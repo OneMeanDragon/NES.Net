@@ -1,8 +1,4 @@
-﻿
-
-'Dissassembler not implemented (atm).
-
-Namespace NintendoEntertainmentSystem
+﻿Namespace NintendoEntertainmentSystem
 
     Public Class em6502
         'Public OpcodeHandlers As New Hashtable

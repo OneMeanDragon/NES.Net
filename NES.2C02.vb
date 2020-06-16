@@ -1,6 +1,7 @@
 ﻿
+
 Imports System.Runtime.CompilerServices
-Imports System.Runtime.InteropServices 'For the union type
+Imports System.Runtime.InteropServices 'For the pixel union type, [note: dosn't help with bit unions]
 
 Namespace MathObjects
     Public Class ByteBitField
@@ -59,6 +60,7 @@ Namespace GraphicsObjects
             Next
         End Sub
         Protected Overrides Sub Finalize()
+            'build pixel destructor
             MyBase.Finalize()
         End Sub
 
@@ -70,6 +72,7 @@ Namespace GraphicsObjects
 #If (OVERDRAW >= 1) Then
             nOverdrawCount += 1
 #End If
+            '
             If x >= 0 AndAlso x < Width AndAlso y >= 0 AndAlso y < Height Then
                 pColData(y * Width + x).Copy(p)
                 Return True
@@ -95,7 +98,7 @@ Namespace GraphicsObjects
         <FieldOffset(2)> Public r As Byte
         <FieldOffset(1)> Public g As Byte
         <FieldOffset(0)> Public b As Byte
-        <FieldOffset(3)> Public a As Byte
+        <FieldOffset(3)> Public a As Byte '
         <FieldOffset(0)> Public n As UInt32 ' = &HFF000000UI
         <FieldOffset(0)> Public Signed As Int32
     End Structure 'I may have these fields in reverse order? (apparently not acording to c++)
@@ -218,9 +221,9 @@ Namespace NintendoEntertainmentSystem
 
     Public Class em2C02
 
-        Public tblName(1, 1023) As Byte 'VB
-        Private tblPalette(31) As Byte 'VB
-        Private tblPattern(1, 4095) As Byte 'VB
+        Public tblName(1, 1024) As Byte 'VB
+        Private tblPalette(32) As Byte 'VB
+        Private tblPattern(1, 4096) As Byte 'VB
 
         Public palScreen(&H40UI) As GraphicsObjects.Pixel
         Private sprScreen As New GraphicsObjects.Sprite(256, 240) 'Screen
@@ -235,7 +238,7 @@ Namespace NintendoEntertainmentSystem
         Private ppu_data_buffer As Byte = &H0UI
 
         ' Pixel "dot" position information
-        Private scanline As UInt16 = 0
+        Private scanline As Int16 = 0
         Private cycle As Int16 = 0
         Private odd_frame As Boolean = False
 
@@ -298,7 +301,7 @@ Namespace NintendoEntertainmentSystem
             End Sub
         End Structure
         Public OAM(63) As sObjectAttributeEntry 'VB
-        '[OAM[address][address]=OAM(address \ 4).G/SetByteAt(address)]
+        '[OAM[address][address]=OAM(address \ 4).G/SetByteAt(address)] 'Math.Floor(addr / 4)
         'Suppose could have just made this an array of 256 bytes heh
 
         '// A register to store the address when the CPU manually communicates
@@ -338,27 +341,34 @@ Namespace NintendoEntertainmentSystem
                 MyBase.Finalize()
             End Sub
 
-
-            Private m_nametable_x As Byte = 0
-            Public Property unused() As Byte 'handles 5 fields
+            Public Property Unused() As Byte 'handles 5 fields
                 Get
-                    Return m_nametable_x
+                    Dim ReturnValue As Byte = 0
+                    For i As Integer = 0 To 4
+                        If BitField(i) Then
+                            ReturnValue += (1 << i)
+                        End If
+                    Next
+                    Return ReturnValue
                 End Get
                 Set(value As Byte)
                     For i As Integer = 0 To 4
                         If value And (1 << i) Then
-                            BitField(0) = True
+                            BitField(i) = True
                         Else
-                            BitField(0) = False
+                            BitField(i) = False
                         End If
                     Next
-                    m_nametable_x = value And &H1F
                 End Set
             End Property
-            Private m_sprite_size As Byte = 0
-            Public Property sprite_overflow() As Byte
+
+            Public Property Sprite_overflow() As Byte
                 Get
-                    Return m_sprite_size
+                    If BitField(5) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -366,13 +376,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(5) = False
                     End If
-                    m_sprite_size = value And 1
                 End Set
             End Property
-            Private m_slave_mode As Byte = 0
-            Public Property sprite_zero_hit() As Byte
+
+            Public Property Sprite_zero_hit() As Byte
                 Get
-                    Return m_slave_mode
+                    If BitField(6) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -380,13 +393,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(6) = False
                     End If
-                    m_sprite_size = value And 1
                 End Set
             End Property
-            Private m_enable_nmi As Byte = 0
-            Public Property vertical_blank() As Byte
+
+            Public Property Vertical_blank() As Byte
                 Get
-                    Return m_enable_nmi
+                    If BitField(7) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -394,10 +410,10 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(7) = False
                     End If
-                    m_enable_nmi = value And 1
                 End Set
             End Property
-            Public Property reg() As Byte
+
+            Public Property Reg() As Byte
                 Get
                     Dim ReturnValue As Byte = 0
                     For i As Integer = 0 To 7
@@ -415,201 +431,10 @@ Namespace NintendoEntertainmentSystem
                             BitField(i) = False
                         End If
                     Next
-                    'Set the values
-                    m_nametable_x = value And &H1F
-                    m_sprite_size = (value And (1 << 5)) >> 5
-                    m_slave_mode = (value And (1 << 6)) >> 6
-                    m_enable_nmi = (value And (1 << 7)) >> 7
                 End Set
             End Property
 
         End Class
-        'Public Structure FrankenStatus
-        '    Private m_unused_1 As Byte ' bit 0
-        '    Private m_unused_2 As Byte ' bit 1
-        '    Private m_unused_3 As Byte ' bit 2
-        '    Private m_unused_4 As Byte ' bit 3
-        '    Private m_unused_5 As Byte ' bit 4
-
-        '    Private m_sprite_overflow As Byte ' bit 5
-        '    Private m_sprite_zero_hit As Byte ' bit 6
-        '    Private m_vertical_blank As Byte ' bit 7
-
-        '    Private n_TotalByte As Byte
-
-        '    Private Sub Reset()
-        '        m_unused_1 = 0
-        '        m_unused_2 = 0
-        '        m_unused_3 = 0
-        '        m_unused_4 = 0
-        '        m_unused_5 = 0
-        '        m_sprite_overflow = 0
-        '        m_sprite_zero_hit = 0
-        '        m_vertical_blank = 0
-        '        n_TotalByte = 0
-        '    End Sub
-
-        '    Public Property unused1() As Byte
-        '        Get
-        '            Return m_unused_1
-        '        End Get
-        '        Set(value As Byte)
-        '            m_unused_1 = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag0) = BitFlag0)
-        '            If m_unused_1 Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag0
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag0
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property unused2() As Byte
-        '        Get
-        '            Return m_unused_2
-        '        End Get
-        '        Set(value As Byte)
-        '            m_unused_2 = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag1) = BitFlag1)
-        '            If m_unused_2 Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag1
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag1
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property unused3() As Byte
-        '        Get
-        '            Return m_unused_3
-        '        End Get
-        '        Set(value As Byte)
-        '            m_unused_3 = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag2) = BitFlag2)
-        '            If m_unused_3 Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag2
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag2
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property unused4() As Byte
-        '        Get
-        '            Return m_unused_4
-        '        End Get
-        '        Set(value As Byte)
-        '            m_unused_4 = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag3) = BitFlag3)
-        '            If m_unused_4 Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag3
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag3
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property unused5() As Byte
-        '        Get
-        '            Return m_unused_5
-        '        End Get
-        '        Set(value As Byte)
-        '            m_unused_5 = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag4) = BitFlag4)
-        '            If m_unused_5 Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag4
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag4
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property sprite_overflow() As Byte
-        '        Get
-        '            Return m_sprite_overflow
-        '        End Get
-        '        Set(value As Byte)
-        '            m_sprite_overflow = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag5) = BitFlag5)
-        '            If m_sprite_overflow Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag5
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag5
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property sprite_zero_hit() As Byte
-        '        Get
-        '            Return m_sprite_zero_hit
-        '        End Get
-        '        Set(value As Byte)
-        '            m_sprite_zero_hit = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag6) = BitFlag6)
-        '            If m_sprite_zero_hit Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag6
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag6
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property vertical_blank() As Byte
-        '        Get
-        '            Return m_vertical_blank
-        '        End Get
-        '        Set(value As Byte)
-        '            m_vertical_blank = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag7) = BitFlag7)
-        '            If m_vertical_blank Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag7
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag7
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property reg() As Byte
-        '        Get
-        '            Return n_TotalByte
-        '        End Get
-        '        Set(value As Byte)
-        '            Reset()
-        '            If (value And BitFlag0) = BitFlag0 Then n_TotalByte = n_TotalByte Or BitFlag0 : m_unused_1 = 1
-        '            If (value And BitFlag1) = BitFlag1 Then n_TotalByte = n_TotalByte Or BitFlag1 : m_unused_2 = 1
-        '            If (value And BitFlag2) = BitFlag2 Then n_TotalByte = n_TotalByte Or BitFlag2 : m_unused_3 = 1
-        '            If (value And BitFlag3) = BitFlag3 Then n_TotalByte = n_TotalByte Or BitFlag3 : m_unused_4 = 1
-        '            If (value And BitFlag4) = BitFlag4 Then n_TotalByte = n_TotalByte Or BitFlag4 : m_unused_5 = 1
-        '            If (value And BitFlag5) = BitFlag5 Then n_TotalByte = n_TotalByte Or BitFlag5 : m_sprite_overflow = 1
-        '            If (value And BitFlag6) = BitFlag6 Then n_TotalByte = n_TotalByte Or BitFlag6 : m_sprite_zero_hit = 1
-        '            If (value And BitFlag7) = BitFlag7 Then n_TotalByte = n_TotalByte Or BitFlag7 : m_vertical_blank = 1
-        '        End Set
-        '    End Property
-        'End Structure
         Private PPUStatus As New FrankenStatus
 
         Public Class FrankenMask
@@ -624,11 +449,13 @@ Namespace NintendoEntertainmentSystem
                 MyBase.Finalize()
             End Sub
 
-
-            Private m_nametable_x As Byte = 0
-            Public Property grayscale() As Byte
+            Public Property Grayscale() As Byte
                 Get
-                    Return m_nametable_x
+                    If BitField(0) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -636,13 +463,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(0) = False
                     End If
-                    m_nametable_x = value And 1
                 End Set
             End Property
-            Private m_nametable_y As Byte = 0
-            Public Property render_background_left() As Byte
+
+            Public Property Render_background_left() As Byte
                 Get
-                    Return m_nametable_y
+                    If BitField(1) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -650,13 +480,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(1) = False
                     End If
-                    m_nametable_y = value And 1
                 End Set
             End Property
-            Private m_increment_mode As Byte = 0
-            Public Property render_sprites_left() As Byte
+
+            Public Property Render_sprites_left() As Byte
                 Get
-                    Return m_increment_mode
+                    If BitField(2) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -664,13 +497,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(2) = False
                     End If
-                    m_increment_mode = value And 1
                 End Set
             End Property
-            Private m_pattern_sprite As Byte = 0
-            Public Property render_background() As Byte
+
+            Public Property Render_background() As Byte
                 Get
-                    Return m_pattern_sprite
+                    If BitField(3) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -678,13 +514,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(3) = False
                     End If
-                    m_pattern_sprite = value And 1
                 End Set
             End Property
-            Private m_pattern_background As Byte = 0
-            Public Property render_sprites() As Byte
+
+            Public Property Render_sprites() As Byte
                 Get
-                    Return m_pattern_background
+                    If BitField(4) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -692,13 +531,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(4) = False
                     End If
-                    m_pattern_background = value And 1
                 End Set
             End Property
-            Private m_sprite_size As Byte = 0
-            Public Property enhance_red() As Byte
+
+            Public Property Enhance_red() As Byte
                 Get
-                    Return m_sprite_size
+                    If BitField(5) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -706,13 +548,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(5) = False
                     End If
-                    m_sprite_size = value And 1
                 End Set
             End Property
-            Private m_slave_mode As Byte = 0
-            Public Property enhance_green() As Byte
+
+            Public Property Enhance_green() As Byte
                 Get
-                    Return m_slave_mode
+                    If BitField(6) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -720,13 +565,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(6) = False
                     End If
-                    m_sprite_size = value And 1
                 End Set
             End Property
-            Private m_enable_nmi As Byte = 0
-            Public Property enhance_blue() As Byte
+
+            Public Property Enhance_blue() As Byte
                 Get
-                    Return m_enable_nmi
+                    If BitField(7) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -734,10 +582,10 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(7) = False
                     End If
-                    m_enable_nmi = value And 1
                 End Set
             End Property
-            Public Property reg() As Byte
+
+            Public Property Reg() As Byte
                 Get
                     Dim ReturnValue As Byte = 0
                     For i As Integer = 0 To 7
@@ -755,204 +603,10 @@ Namespace NintendoEntertainmentSystem
                             BitField(i) = False
                         End If
                     Next
-                    'Set the values
-                    m_nametable_x = value And (1 << 0)
-                    m_nametable_y = (value And (1 << 1)) >> 1
-                    m_increment_mode = (value And (1 << 2)) >> 2
-                    m_pattern_sprite = (value And (1 << 3)) >> 3
-                    m_pattern_background = (value And (1 << 4)) >> 4
-                    m_sprite_size = (value And (1 << 5)) >> 5
-                    m_slave_mode = (value And (1 << 6)) >> 6
-                    m_enable_nmi = (value And (1 << 7)) >> 7
                 End Set
             End Property
 
         End Class
-        'Public Structure FrankenMask
-        '    Private m_grayscale As Byte                 ' bit 0
-        '    Private m_render_background_left As Byte    ' bit 1
-        '    Private m_render_sprites_left As Byte       ' bit 2
-        '    Private m_render_background As Byte         ' bit 3
-        '    Private m_render_sprites As Byte            ' bit 4
-
-        '    Private m_enhance_red As Byte               ' bit 5
-        '    Private m_enhance_green As Byte             ' bit 6
-        '    Private m_enhance_blue As Byte              ' bit 7
-
-        '    Private n_TotalByte As Byte
-        '    Private Sub Reset()
-        '        m_grayscale = 0
-        '        m_render_background_left = 0
-        '        m_render_sprites_left = 0
-        '        m_render_background = 0
-        '        m_render_sprites = 0
-        '        m_enhance_red = 0
-        '        m_enhance_green = 0
-        '        m_enhance_blue = 0
-        '        n_TotalByte = 0
-        '    End Sub
-
-        '    Public Property grayscale() As Byte
-        '        Get
-        '            Return m_grayscale
-        '        End Get
-        '        Set(value As Byte)
-        '            m_grayscale = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag0) = BitFlag0)
-        '            If m_grayscale Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag0
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag0
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property render_background_left() As Byte
-        '        Get
-        '            Return m_render_background_left
-        '        End Get
-        '        Set(value As Byte)
-        '            m_render_background_left = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag1) = BitFlag1)
-        '            If m_render_background_left Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag1
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag1
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property render_sprites_left() As Byte
-        '        Get
-        '            Return m_render_sprites_left
-        '        End Get
-        '        Set(value As Byte)
-        '            m_render_sprites_left = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag2) = BitFlag2)
-        '            If m_render_sprites_left Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag2
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag2
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property render_background() As Byte
-        '        Get
-        '            Return m_render_background
-        '        End Get
-        '        Set(value As Byte)
-        '            m_render_background = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag3) = BitFlag3)
-        '            If m_render_background Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag3
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag3
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property render_sprites() As Byte
-        '        Get
-        '            Return m_render_sprites
-        '        End Get
-        '        Set(value As Byte)
-        '            m_render_sprites = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag4) = BitFlag4)
-        '            If m_render_sprites Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag4
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag4
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property enhance_red() As Byte
-        '        Get
-        '            Return m_enhance_red
-        '        End Get
-        '        Set(value As Byte)
-        '            m_enhance_red = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag5) = BitFlag5)
-        '            If m_enhance_red Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag5
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag5
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property enhance_green() As Byte
-        '        Get
-        '            Return m_enhance_green
-        '        End Get
-        '        Set(value As Byte)
-        '            m_enhance_green = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag6) = BitFlag6)
-        '            If m_enhance_green Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag6
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag6
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property enhance_blue() As Byte
-        '        Get
-        '            Return m_enhance_blue
-        '        End Get
-        '        Set(value As Byte)
-        '            m_enhance_blue = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag7) = BitFlag7)
-        '            If m_enhance_blue Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag7
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag7
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property reg() As Byte
-        '        Get
-        '            Return n_TotalByte
-        '        End Get
-        '        Set(value As Byte)
-        '            Reset()
-        '            If (value And BitFlag0) = BitFlag0 Then n_TotalByte = n_TotalByte Or BitFlag0 : m_grayscale = 1
-        '            If (value And BitFlag1) = BitFlag1 Then n_TotalByte = n_TotalByte Or BitFlag1 : m_render_background_left = 1
-        '            If (value And BitFlag2) = BitFlag2 Then n_TotalByte = n_TotalByte Or BitFlag2 : m_render_sprites_left = 1
-        '            If (value And BitFlag3) = BitFlag3 Then n_TotalByte = n_TotalByte Or BitFlag3 : m_render_background = 1
-        '            If (value And BitFlag4) = BitFlag4 Then n_TotalByte = n_TotalByte Or BitFlag4 : m_render_sprites = 1
-        '            If (value And BitFlag5) = BitFlag5 Then n_TotalByte = n_TotalByte Or BitFlag5 : m_enhance_red = 1
-        '            If (value And BitFlag6) = BitFlag6 Then n_TotalByte = n_TotalByte Or BitFlag6 : m_enhance_green = 1
-        '            If (value And BitFlag7) = BitFlag7 Then n_TotalByte = n_TotalByte Or BitFlag7 : m_enhance_blue = 1
-        '        End Set
-        '    End Property
-        'End Structure
         Private PPUMask As New FrankenMask
 
         Public Class FrankenControl
@@ -967,11 +621,13 @@ Namespace NintendoEntertainmentSystem
                 MyBase.Finalize()
             End Sub
 
-
-            Private m_nametable_x As Byte = 0
-            Public Property nametable_x() As Byte
+            Public Property Nametable_x() As Byte
                 Get
-                    Return m_nametable_x
+                    If BitField(0) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -979,13 +635,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(0) = False
                     End If
-                    m_nametable_x = value And 1
                 End Set
             End Property
-            Private m_nametable_y As Byte = 0
-            Public Property nametable_y() As Byte
+
+            Public Property Nametable_y() As Byte
                 Get
-                    Return m_nametable_y
+                    If BitField(1) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -993,13 +652,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(1) = False
                     End If
-                    m_nametable_y = value And 1
                 End Set
             End Property
-            Private m_increment_mode As Byte = 0
-            Public Property increment_mode() As Byte
+
+            Public Property Increment_mode() As Byte
                 Get
-                    Return m_increment_mode
+                    If BitField(2) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -1007,13 +669,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(2) = False
                     End If
-                    m_increment_mode = value And 1
                 End Set
             End Property
-            Private m_pattern_sprite As Byte = 0
-            Public Property pattern_sprite() As Byte
+
+            Public Property Pattern_sprite() As Byte
                 Get
-                    Return m_pattern_sprite
+                    If BitField(3) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -1021,13 +686,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(3) = False
                     End If
-                    m_pattern_sprite = value And 1
                 End Set
             End Property
-            Private m_pattern_background As Byte = 0
-            Public Property pattern_background() As Byte
+
+            Public Property Pattern_background() As Byte
                 Get
-                    Return m_pattern_background
+                    If BitField(4) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -1035,13 +703,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(4) = False
                     End If
-                    m_pattern_background = value And 1
                 End Set
             End Property
-            Private m_sprite_size As Byte = 0
-            Public Property sprite_size() As Byte
+
+            Public Property Sprite_size() As Byte
                 Get
-                    Return m_sprite_size
+                    If BitField(5) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -1049,13 +720,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(5) = False
                     End If
-                    m_sprite_size = value And 1
                 End Set
             End Property
-            Private m_slave_mode As Byte = 0
-            Public Property slave_mode() As Byte
+
+            Public Property Slave_mode() As Byte
                 Get
-                    Return m_slave_mode
+                    If BitField(6) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -1063,13 +737,16 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(6) = False
                     End If
-                    m_sprite_size = value And 1
                 End Set
             End Property
-            Private m_enable_nmi As Byte = 0
-            Public Property enable_nmi() As Byte
+
+            Public Property Enable_nmi() As Byte
                 Get
-                    Return m_enable_nmi
+                    If BitField(7) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As Byte)
                     If value And &H1 Then
@@ -1077,10 +754,10 @@ Namespace NintendoEntertainmentSystem
                     Else
                         BitField(7) = False
                     End If
-                    m_enable_nmi = value And 1
                 End Set
             End Property
-            Public Property reg() As Byte
+
+            Public Property Reg() As Byte
                 Get
                     Dim ReturnValue As Byte = 0
                     For i As Integer = 0 To 7
@@ -1098,204 +775,10 @@ Namespace NintendoEntertainmentSystem
                             BitField(i) = False
                         End If
                     Next
-                    'Set the values
-                    m_nametable_x = value And (1 << 0)
-                    m_nametable_y = (value And (1 << 1)) >> 1
-                    m_increment_mode = (value And (1 << 2)) >> 2
-                    m_pattern_sprite = (value And (1 << 3)) >> 3
-                    m_pattern_background = (value And (1 << 4)) >> 4
-                    m_sprite_size = (value And (1 << 5)) >> 5
-                    m_slave_mode = (value And (1 << 6)) >> 6
-                    m_enable_nmi = (value And (1 << 7)) >> 7
                 End Set
             End Property
 
         End Class
-        'Public Structure FrankenControl
-        '    Private m_nametable_x As Byte           ' bit 0
-        '    Private m_nametable_y As Byte           ' bit 1
-        '    Private m_increment_mode As Byte        ' bit 2
-        '    Private m_pattern_sprite As Byte        ' bit 3
-        '    Private m_pattern_background As Byte    ' bit 4
-
-        '    Private m_sprite_size As Byte           ' bit 5
-        '    Private m_slave_mode As Byte            ' bit 6
-        '    Private m_enable_nmi As Byte            ' bit 7
-
-        '    Private n_TotalByte As Byte
-        '    Private Sub Reset()
-        '        m_nametable_x = 0
-        '        m_nametable_y = 0
-        '        m_increment_mode = 0
-        '        m_pattern_sprite = 0
-        '        m_pattern_background = 0
-        '        m_sprite_size = 0
-        '        m_slave_mode = 0
-        '        m_enable_nmi = 0
-        '        n_TotalByte = 0
-        '    End Sub
-
-        '    Public Property nametable_x() As Byte
-        '        Get
-        '            Return m_nametable_x
-        '        End Get
-        '        Set(value As Byte)
-        '            m_nametable_x = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag0) = BitFlag0)
-        '            If m_nametable_x Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag0
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag0
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property nametable_y() As Byte
-        '        Get
-        '            Return m_nametable_y
-        '        End Get
-        '        Set(value As Byte)
-        '            m_nametable_y = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag1) = BitFlag1)
-        '            If m_nametable_y Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag1
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag1
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property increment_mode() As Byte
-        '        Get
-        '            Return m_increment_mode
-        '        End Get
-        '        Set(value As Byte)
-        '            m_increment_mode = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag2) = BitFlag2)
-        '            If m_increment_mode Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag2
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag2
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property pattern_sprite() As Byte
-        '        Get
-        '            Return m_pattern_sprite
-        '        End Get
-        '        Set(value As Byte)
-        '            m_pattern_sprite = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag3) = BitFlag3)
-        '            If m_pattern_sprite Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag3
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag3
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property pattern_background() As Byte
-        '        Get
-        '            Return m_pattern_background
-        '        End Get
-        '        Set(value As Byte)
-        '            m_pattern_background = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag4) = BitFlag4)
-        '            If m_pattern_background Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag4
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag4
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property sprite_size() As Byte
-        '        Get
-        '            Return m_sprite_size
-        '        End Get
-        '        Set(value As Byte)
-        '            m_sprite_size = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag5) = BitFlag5)
-        '            If m_sprite_size Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag5
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag5
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property slave_mode() As Byte
-        '        Get
-        '            Return m_slave_mode
-        '        End Get
-        '        Set(value As Byte)
-        '            m_slave_mode = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag6) = BitFlag6)
-        '            If m_slave_mode Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag6
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag6
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property enable_nmi() As Byte
-        '        Get
-        '            Return m_enable_nmi
-        '        End Get
-        '        Set(value As Byte)
-        '            m_enable_nmi = value And 1
-        '            Dim tmp_exists As Boolean = ((n_TotalByte And BitFlag7) = BitFlag7)
-        '            If m_enable_nmi Then
-        '                If Not tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Or BitFlag7
-        '                End If
-        '            Else
-        '                If tmp_exists Then
-        '                    n_TotalByte = n_TotalByte Xor BitFlag7
-        '                End If
-        '            End If
-        '        End Set
-        '    End Property
-        '    Public Property reg() As Byte
-        '        Get
-        '            Return n_TotalByte
-        '        End Get
-        '        Set(value As Byte)
-        '            Reset()
-        '            If (value And BitFlag0) = BitFlag0 Then n_TotalByte = n_TotalByte Or BitFlag0 : m_nametable_x = 1
-        '            If (value And BitFlag1) = BitFlag1 Then n_TotalByte = n_TotalByte Or BitFlag1 : m_nametable_y = 1
-        '            If (value And BitFlag2) = BitFlag2 Then n_TotalByte = n_TotalByte Or BitFlag2 : m_increment_mode = 1
-        '            If (value And BitFlag3) = BitFlag3 Then n_TotalByte = n_TotalByte Or BitFlag3 : m_pattern_sprite = 1
-        '            If (value And BitFlag4) = BitFlag4 Then n_TotalByte = n_TotalByte Or BitFlag4 : m_pattern_background = 1
-        '            If (value And BitFlag5) = BitFlag5 Then n_TotalByte = n_TotalByte Or BitFlag5 : m_sprite_size = 1
-        '            If (value And BitFlag6) = BitFlag6 Then n_TotalByte = n_TotalByte Or BitFlag6 : m_slave_mode = 1
-        '            If (value And BitFlag7) = BitFlag7 Then n_TotalByte = n_TotalByte Or BitFlag7 : m_enable_nmi = 1
-        '        End Set
-        '    End Property
-        'End Structure
         Private PPUControl As New FrankenControl
 
         Public Structure FrankenRegister
@@ -1410,14 +893,7 @@ Namespace NintendoEntertainmentSystem
         End Structure
 
         Public Class FrankenLoopy
-            Private BitFeild(15) As Boolean '16-bit union
-            'm_first5Bits = 0    '5
-            'm_second5Bits = 0   '5
-            'm_bit0_1 = 0        '1
-            'm_bit0_2 = 0        '1
-            'm_first3Bits = 0    '3
-            'm_bit0_3 = 0        '1
-            'm_totalValue = 0    '
+            Private BitFeild(15) As Boolean ' 5,5,1,1,3,1
 
             Public Sub New()
                 For i As Integer = 0 To BitFeild.Length() - 1
@@ -1425,70 +901,91 @@ Namespace NintendoEntertainmentSystem
                 Next
             End Sub
 
-            Private m_cx As UInt16 = 0
             Public Property Coarse_X() As UInt16
                 Get
-                    Return m_cx
+                    Dim ReturnValue As UInt16 = 0
+                    For i As Integer = 0 To 4 '0->4
+                        If BitFeild(i) Then
+                            ReturnValue += (1 << i)
+                        End If
+                    Next
+                    Return ReturnValue '>> 0
                 End Get
                 Set(value As UInt16)
-                    For i As Integer = 0 To 4 '5
+                    For i As Integer = 0 To 4
                         If value And (1 << i) Then
                             BitFeild(i) = True
                         Else
                             BitFeild(i) = False
                         End If
                     Next
-                    m_cx = (value And &H1FUS)
                 End Set
             End Property
-            Private m_cy As UInt16 = 0
+
             Public Property Coarse_Y() As UInt16
                 Get
-                    Return m_cy
+                    Dim ReturnValue As UInt16 = 0
+                    For i As Integer = 0 To 4 '5->9
+                        If BitFeild(5 + i) Then
+                            ReturnValue += (1 << i)
+                        End If
+                    Next
+                    Return ReturnValue '(ReturnValue >> 5)
                 End Get
                 Set(value As UInt16)
-                    For i As Integer = 0 To 4 '5
+                    For i As Integer = 0 To 4
                         If value And (1 << i) Then
                             BitFeild(5 + i) = True
                         Else
                             BitFeild(5 + i) = False
                         End If
                     Next
-                    m_cy = (value And &H1FUS)
                 End Set
             End Property
-            Private m_nt_x As UInt16 = 0
+
             Public Property NameTable_X() As UInt16
                 Get
-                    Return m_nt_x
+                    If BitFeild(10) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As UInt16)
-                    If value And (1 << 0) Then
+                    If value And 1 Then
                         BitFeild(10) = True
                     Else
                         BitFeild(10) = False
                     End If
-                    m_nt_x = (value And &H1US)
                 End Set
             End Property
-            Private m_nt_y As UInt16 = 0
+
             Public Property NameTable_Y() As UInt16
                 Get
-                    Return m_nt_y
+                    If BitFeild(11) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As UInt16)
-                    If value And (1 << 0) Then
+                    If value And 1 Then
                         BitFeild(11) = True
                     Else
                         BitFeild(11) = False
                     End If
-                    m_nt_y = (value And &H1US)
                 End Set
             End Property
-            Private m_f_y As UInt16 = 0
+
             Public Property Fine_Y() As UInt16
                 Get
-                    Return m_f_y
+                    Dim ReturnValue As UInt16 = 0
+                    For i As Integer = 0 To 2 '12->14
+                        If BitFeild(12 + i) Then
+                            ReturnValue += (1 << i)
+                        End If
+                    Next
+                    Return ReturnValue '(ReturnValue >> 12)
                 End Get
                 Set(value As UInt16)
                     For i As Integer = 0 To 2 '3
@@ -1498,23 +995,26 @@ Namespace NintendoEntertainmentSystem
                             BitFeild(12 + i) = False
                         End If
                     Next
-                    m_f_y = (value And &H7US)
                 End Set
             End Property
-            Private m_unused As UInt16 = 0
+
             Public Property unused() As UInt16
                 Get
-                    Return m_unused
+                    If BitFeild(15) Then
+                        Return 1
+                    Else
+                        Return 0
+                    End If
                 End Get
                 Set(value As UInt16)
-                    If value And (1 << 0) Then
+                    If value And 1 Then
                         BitFeild(15) = True
                     Else
                         BitFeild(15) = False
                     End If
-                    m_unused = (value And &H1US)
                 End Set
             End Property
+
             Public Property Reg() As UInt16
                 Get
                     Dim ReturnValue As UInt16 = 0
@@ -1533,25 +1033,34 @@ Namespace NintendoEntertainmentSystem
                             BitFeild(i) = False
                         End If
                     Next
-                    'Set the values
-                    m_cx = (value And &H1FUS)
-                    m_cy = (value And &H3E0US) >> 5
-                    m_nt_x = (value And &H400US) >> 10
-                    m_nt_y = (value And &H800US) >> 11
-                    m_f_y = (value And &H7000US) >> 12
-                    m_unused = (value And &H8000US) >> 15
                 End Set
             End Property
 
         End Class
-
         'some how the franken register gives a sort of screen lol
-        Public Shared vram_addr As New FrankenLoopy
-        Private Shared tram_addr As New FrankenLoopy
+        Protected vram_addr As New FrankenLoopy 'New FrankenLoopy 'FrankenRegister ' New FrankenLoopy
+        Protected tram_addr As New FrankenLoopy 'New FrankenLoopy 'FrankenRegister ' New FrankenLoopy
 
         Public Sub New()
             sprNameTable = {New GraphicsObjects.Sprite(256, 240), New GraphicsObjects.Sprite(256, 240)}
             sprPatternTable = {New GraphicsObjects.Sprite(128, 128), New GraphicsObjects.Sprite(128, 128)}
+
+            'Public tblName(1, 1024) As Byte 'VB
+            'Private tblPalette(32) As Byte 'VB
+            'Private tblPattern(1, 4096) As Byte 'VB
+            For i As Integer = 0 To 4095
+                If i < 32 Then
+                    tblPalette(i) = &H0
+                End If
+                If i < 1024 Then
+                    tblName(0, i) = &H0
+                    tblName(1, i) = &H0
+                End If
+                If i < 4096 Then
+                    tblPattern(0, i) = &H0
+                    tblPattern(1, i) = &H0
+                End If
+            Next
 
             palScreen(&H0) = New GraphicsObjects.Pixel(84, 84, 84)
             palScreen(&H1) = New GraphicsObjects.Pixel(0, 30, 116)
@@ -1673,7 +1182,8 @@ Namespace NintendoEntertainmentSystem
                     '// Convert the 2D tile coordinate into a 1D offset into the pattern
                     '// table memory.
                     'uint16_t nOffset = nTileY * 256 + nTileX * 16;
-                    Dim nOffset As UInt16 = MathHelpers.SafeAddition16(MathHelpers.SafeMul16(nTileY, 256), MathHelpers.SafeMul16(nTileX, 16))
+                    'Dim nOffset As UInt16 = MathHelpers.SafeAddition16(MathHelpers.SafeMul16(nTileY, 256), MathHelpers.SafeMul16(nTileX, 16))
+                    Dim nOffset As UInt16 = ((nTileY * 256) + (nTileX * 16))
 
                     '// Now loop through 8 rows of 8 pixels
                     For row As UInt16 = 0 To 7 'VB
@@ -1693,12 +1203,12 @@ Namespace NintendoEntertainmentSystem
                         For col As UInt16 = 0 To 7 'VB
                             '// We can get the index value by simply adding the bits together
                             '// but we're only interested in the lsb of the row words because...
-                            Dim pixel As Byte = MathHelpers.SafeShiftLeft8((tile_msb And &H1UI), 1) Or (tile_lsb And &H1UI)
+                            Dim pixel As Byte = ((tile_msb And &H1UI) << 1) Or (tile_lsb And &H1UI)
 
                             '// ...we will shift the row words 1 bit right for each column of
                             '// the character.
-                            tile_lsb = MathHelpers.SafeShiftRight8(tile_lsb, 1) ' >>= 1
-                            tile_msb = MathHelpers.SafeShiftRight8(tile_msb, 1) ' >>= 1
+                            tile_lsb >>= 1
+                            tile_msb >>= 1
 
                             '// Now we know the location And NES pixel value for a specific location
                             '// in the pattern table, we can translate that to a screen colour, And an
@@ -1836,7 +1346,7 @@ Namespace NintendoEntertainmentSystem
                     Exit Select
                 Case &H6US
                     If address_latch = 0 Then
-                        tram_addr.Reg = ((data And &H3FUS) << 8) Or (tram_addr.Reg And &HFFUS)
+                        tram_addr.Reg = MathHelpers.SafeShiftLeft16((data And &H3FUS), 8) Or (tram_addr.Reg And &HFFUS)
                         address_latch = 1
                     Else
                         tram_addr.Reg = (tram_addr.Reg And &HFF00US) Or data
@@ -1970,7 +1480,7 @@ Namespace NintendoEntertainmentSystem
             End If
         End Sub
 
-        'Public Cart As clsCartridge
+        'Public Cart As clsCartridge 'The Cartridge is globalized
         'Public Sub ConnectCartridge(ByRef cartridge As clsCartridge)
         '    Cart = cartridge
         'End Sub
@@ -2010,14 +1520,14 @@ Namespace NintendoEntertainmentSystem
                                                vram_addr.Coarse_X = 0
                                                vram_addr.NameTable_X = Not vram_addr.NameTable_X 'VBMATH
                                            Else
-                                               vram_addr.Coarse_X = vram_addr.Coarse_X + 1
+                                               vram_addr.Coarse_X += 1
                                            End If
                                        End If
                                    End Sub
             Dim IncrementScrollY = Sub()
                                        If PPUMask.render_background OrElse PPUMask.render_sprites Then
                                            If vram_addr.Fine_Y < 7 Then
-                                               vram_addr.Fine_Y = vram_addr.Fine_Y + 1
+                                               vram_addr.Fine_Y += 1
                                            Else
                                                vram_addr.Fine_Y = 0
 
@@ -2027,7 +1537,7 @@ Namespace NintendoEntertainmentSystem
                                                ElseIf vram_addr.Coarse_Y = 31 Then
                                                    vram_addr.Coarse_Y = 0
                                                Else
-                                                   vram_addr.Coarse_Y = vram_addr.Coarse_Y + 1
+                                                   vram_addr.Coarse_Y += 1
                                                End If
                                            End If
                                        End If
@@ -2048,8 +1558,8 @@ Namespace NintendoEntertainmentSystem
             Dim LoadBackgroundShifters = Sub()
                                              bg_shifter_pattern_lo = (bg_shifter_pattern_lo And &HFF00US) Or bg_next_tile_lsb
                                              bg_shifter_pattern_hi = (bg_shifter_pattern_hi And &HFF00US) Or bg_next_tile_msb
-                                             bg_shifter_attrib_lo = (bg_shifter_attrib_lo And &HFF00US) Or IIf(bg_next_tile_attrib And &H1, &HFFUI, &H0UI)
-                                             bg_shifter_attrib_hi = (bg_shifter_attrib_hi And &HFF00US) Or IIf(bg_next_tile_attrib And &H2, &HFFUI, &H0UI)
+                                             bg_shifter_attrib_lo = ((bg_shifter_attrib_lo And &HFF00US) Or IIf(bg_next_tile_attrib And &H1, &HFFUI, &H0UI))
+                                             bg_shifter_attrib_hi = ((bg_shifter_attrib_hi And &HFF00US) Or IIf(bg_next_tile_attrib And &H2, &HFFUI, &H0UI))
                                          End Sub
             Dim UpdateShifters = Sub()
                                      If PPUMask.render_background Then
@@ -2072,13 +1582,6 @@ Namespace NintendoEntertainmentSystem
                                          End If
                                      End If
                                  End Sub
-
-            'Dim thisx As Integer 'Was Debuging
-            'If ClockCounter = 3068 Then
-            '    thisx = 1
-            'Else
-            '    thisx = 2
-            'End If
 
             If scanline >= -1 AndAlso scanline < 240 Then
                 ' Background Rendering
@@ -2187,10 +1690,10 @@ Namespace NintendoEntertainmentSystem
                             '// result to select target nametable, And attribute byte offset. Finally
                             '// Or with 0x2000 to offset into nametable address space on PPU bus.
                             bg_next_tile_attrib = ppuRead(&H23C0US Or
-                                                          MathHelpers.SafeShiftLeft16(vram_addr.NameTable_Y, 11) Or
-                                                          MathHelpers.SafeShiftLeft16(vram_addr.NameTable_X, 10) Or
-                                                          MathHelpers.SafeShiftLeft16(MathHelpers.SafeShiftRight16(vram_addr.Coarse_Y, 2), 3) Or
-                                                          MathHelpers.SafeShiftRight16(vram_addr.Coarse_X, 2))
+                                                          (vram_addr.NameTable_Y << 11) Or      '1
+                                                          (vram_addr.NameTable_X << 10) Or      '1
+                                                          ((vram_addr.Coarse_Y >> 2) << 3) Or   '5-2
+                                                          (vram_addr.Coarse_X >> 2))            '5-2
 
                             '// Right we've read the correct attribute byte for a specified address,
                             '// but the byte itself Is broken down further into the 2x2 tile groups
@@ -2212,8 +1715,8 @@ Namespace NintendoEntertainmentSystem
                             '// Likewise if "coarse x % 4" < 2 we are in the left half else right half.
                             '// Ultimately we want the bottom two bits of our attribute word to be the
                             '// palette selected. So shift as required...
-                            If (vram_addr.Coarse_Y And &H2US) Then bg_next_tile_attrib = MathHelpers.SafeShiftRight16(bg_next_tile_attrib, 4)
-                            If (vram_addr.Coarse_X And &H2US) Then bg_next_tile_attrib = MathHelpers.SafeShiftRight16(bg_next_tile_attrib, 2)
+                            If (vram_addr.Coarse_Y And &H2US) Then bg_next_tile_attrib >>= 4
+                            If (vram_addr.Coarse_X And &H2US) Then bg_next_tile_attrib >>= 2
                             bg_next_tile_attrib = bg_next_tile_attrib And &H3UI
                             Exit Select
                             '// Compared to the last two, the next two are the easy ones... :P
@@ -2239,7 +1742,7 @@ Namespace NintendoEntertainmentSystem
                             '// "+ 0"                                 : Mental clarity for plane offset
                             '// Note: No PPU address bus offset required as it starts at 0x0000
                             'bg_next_tile_lsb = ppuRead((PPUControl.pattern_background << 12) + (bg_next_tile_id << 4) + (vram_addr.Fine_Y) + 0) 'VBMATH checkme
-                            bg_next_tile_lsb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(PPUControl.pattern_background, 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), MathHelpers.SafeAddition16((vram_addr.Fine_Y), 0)))
+                            bg_next_tile_lsb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(PPUControl.pattern_background, 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), vram_addr.Fine_Y + 0))
                             Exit Select
                         Case 6
                             '// Fetch the next background tile MSB bit plane from the pattern memory
@@ -2291,8 +1794,8 @@ Namespace NintendoEntertainmentSystem
 
                     '// Firstly, clear out the sprite memory. This memory Is used to store the
                     '// sprites to be rendered. It Is Not the OAM.
-                    For i As UInt32 = 0 To spriteScanline.Length() - 1 'VB
-                        spriteScanline(i).MemorySet(&HFFUI)
+                    For i As UInt32 = 0 To spriteScanline.Length() - 1 'VB [std::memset(spriteScanline, 0xFF, 8 * sizeof(sObjectAttributeEntry));]
+                        spriteScanline(i).MemorySet(&H7FUI)
                     Next
 
                     '// The NES supports a maximum number of sprites per scanline. Nominally
@@ -2318,9 +1821,9 @@ Namespace NintendoEntertainmentSystem
                     bSpriteZeroHitPossible = False
 
                     'Dim diff As Int16 = 0
-                    While nOAMEntry < 64 AndAlso sprite_count < 9
+                    While ((nOAMEntry < 64) AndAlso (sprite_count < 9))
                         '// Note the conversion to signed numbers here
-                        Dim diff As Int16 = Int16.Parse(scanline) - OAM(nOAMEntry).y
+                        Dim diff As Int16 = scanline - OAM(nOAMEntry).y
 
                         '// If the difference Is positive then the scanline Is at least at the
                         '// same height as the sprite, so check if it resides in the sprite vertically
@@ -2342,7 +1845,6 @@ Namespace NintendoEntertainmentSystem
                                 spriteScanline(sprite_count).Copy(OAM(nOAMEntry)) 'Copied
                             End If
                             sprite_count += 1
-                            'diff += 1
                         End If
                         nOAMEntry += 1
                     End While '// End of sprite evaluation for next scanline
@@ -2361,12 +1863,9 @@ Namespace NintendoEntertainmentSystem
                 If cycle = 340 Then
                     '// Now we're at the very end of the scanline, I'm going to prepare the 
                     '// sprite shifters with the 8 Or less selected sprites.
-                    If sprite_count = 1 Then
-                        sprite_count += 1
-                        sprite_count -= 1
-                    End If
-                    If sprite_count > 0 Then 'Because if left as 0 the sprite count will throw an over flow (VB For Loops Problem not being able to if i < value)
-                        For i As Byte = 0 To sprite_count - 1 'VB
+
+                    If sprite_count > 0 Then 'Because if left as 0 the sprite count will throw an over flow when sprite_count = 0 (VB For Loops Problem not being able to if i < value)
+                        For i As Byte = 0 To sprite_count - 1 'VB because vb has no for i = 0; i < spritecount; i++;
                             '// We need to extract the 8-bit row patterns of the sprite with the
                             '// correct vertical offset. The "Sprite Mode" also affects this as
                             '// the sprites may be 8 Or 16 rows high. Additionally, the sprite
@@ -2383,14 +1882,14 @@ Namespace NintendoEntertainmentSystem
                                 '// 8x8 Sprite Mode - The control register determines the pattern table
                                 If Not (spriteScanline(i).attribute And &H80UI) Then
                                     '// Sprite is NOT flipped vertically, i.e. normal    
-                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.pattern_sprite, 12) Or  '// Which Pattern Table? 0KB or 4KB offset
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or  '// Which Pattern Table? 0KB or 4KB offset
                                                          MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or        '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                         ((scanline - spriteScanline(i).y) And &HFFFFUS)                '// Which Row in cell? (0->7)
+                                                         ((scanline - spriteScanline(i).y) And 7)                '// Which Row in cell? (0->7) [shouldent there be an & 0x7 here]
                                 Else
                                     '// Sprite is flipped vertically, i.e. upside down
-                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.pattern_sprite, 12) Or                  '// Which Pattern Table? 0KB or 4KB offset
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or                  '// Which Pattern Table? 0KB or 4KB offset
                                                          MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or                        '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                         MathHelpers.SafeSubtract16(7, ((scanline - spriteScanline(i).y) And &HFFFFUS)) '// Which Row in cell? (7->0)
+                                                         MathHelpers.SafeSubtract16(7, ((scanline - spriteScanline(i).y) And 7)) '// Which Row in cell? (7->0)
                                 End If
                             Else
                                 '// 8x16 Sprite Mode - The sprite attribute determines the pattern table
@@ -2400,7 +1899,7 @@ Namespace NintendoEntertainmentSystem
                                         '// Reading Top half Tile
                                         sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or   '// Which Pattern Table? 0KB or 4KB offset
                                                              MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &HFEUI), 4) Or   '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                             ((scanline - spriteScanline(i).y) And &H7US)                           '// Which Row in cell? (0->7)
+                                                             ((scanline - spriteScanline(i).y) And &H7UI)                           '// Which Row in cell? (0->7)
                                     Else
                                         '// Reading Bottom Half Tile
                                         sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or                                   '// Which Pattern Table? 0KB or 4KB offset
@@ -2442,6 +1941,7 @@ Namespace NintendoEntertainmentSystem
                                 '// clever, And stolen completely from here:
                                 '// https//stackoverflow.com/a/2602885
                                 Dim flipbyte = Function(ByVal b1 As Byte) As Byte
+                                                   If b1 = 0 Then Return 0
                                                    Dim b As Byte = b1
                                                    b = ((b And &HF0UI) >> 4) Or ((b And &HFUI) << 4)
                                                    b = ((b And &HCCUI) >> 2) Or ((b And &H33UI) << 2)
@@ -2456,6 +1956,7 @@ Namespace NintendoEntertainmentSystem
                             '// ready for rendering on the next scanline
                             sprite_shifter_pattern_lo(i) = sprite_pattern_bits_lo
                             sprite_shifter_pattern_hi(i) = sprite_pattern_bits_hi
+
                         Next
                     End If
                 End If
@@ -2475,9 +1976,7 @@ Namespace NintendoEntertainmentSystem
                     '// will be informed that rendering Is complete so it can
                     '// perform operations with the PPU knowing it wont
                     '// produce visible artefacts
-                    If PPUControl.enable_nmi Then
-                        nmi = True
-                    End If
+                    If PPUControl.enable_nmi Then nmi = True
                 End If
             End If
             '-----------------------------
@@ -2496,7 +1995,7 @@ Namespace NintendoEntertainmentSystem
                     '// depending upon fine x scolling. This has the effect of
                     '// offsetting ALL background rendering by a set number
                     '// of pixels, permitting smooth scrolling
-                    Dim bit_mux As UInt16 = MathHelpers.SafeShiftRight16(&H8000US, fine_x)
+                    Dim bit_mux As UInt16 = &H8000US >> fine_x
 
                     '// Select Plane pixels by extracting from the shifter 
                     '// at the required location. 
@@ -2525,12 +2024,12 @@ Namespace NintendoEntertainmentSystem
                 '// Iterate through all sprites for this scanline. This Is to maintain
                 '// sprite priority. As soon as we find a non transparent pixel of
                 '// a sprite we can abort
-                If PPUMask.render_sprites_left OrElse cycle >= 9 Then
+                If PPUMask.render_sprites_left OrElse (cycle >= 9) Then
 
                     bSpriteZeroBeingRendered = False
 
-                    If sprite_count > 0 Then
-                        For i As Byte = 0 To sprite_count - 1 'VB
+                    If sprite_count > 0 Then 'same reason as further up the chain sprite_count = 0 = overflow in vb (the c++ counterpart just skips this vb does not)
+                        For i As Byte = 0 To (sprite_count - 1) 'VB
                             '// Scanline cycle has "collided" with sprite, shifters taking over
                             If spriteScanline(i).x = 0 Then
                                 '// Note Fine X scrolling does Not apply to sprites, the game
@@ -2545,7 +2044,7 @@ Namespace NintendoEntertainmentSystem
                                 '// Extract the palette from the bottom two bits. Recall
                                 '// that foreground palettes are the latter 4 in the 
                                 '// palette memory.
-                                fg_palette = MathHelpers.SafeAddition8((spriteScanline(i).attribute And &H3UI), &H4UI)
+                                fg_palette = (spriteScanline(i).attribute And &H3UI) + &H4UI
                                 fg_priority = ((spriteScanline(i).attribute And &H20UI) = 0)
 
                                 '// If pixel Is Not transparent, we render it, And dont

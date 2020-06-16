@@ -182,7 +182,7 @@ Namespace NintendoEntertainmentSystem
                             '// On odd clock cycles, write to PPU OAM
                             PPU.OAM(dma_addr \ 4).SetByteAt(dma_addr, dma_data)
                             '// Increment the lo byte of the address
-                            dma_addr += 1
+                            dma_addr = MathHelpers.SafeIncrementByte(dma_addr)
                             '// If this wraps around, we know that 256
                             '// bytes have been written, so end the DMA
                             '// transfer, And proceed as normal

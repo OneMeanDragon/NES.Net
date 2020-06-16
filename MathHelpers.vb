@@ -3,20 +3,20 @@ Module MathHelpers
     Private M32Helper As UInt32 = 0
     Private M64Helper As UInt64 = 0
 
-    Public Function BitSwap(ByVal value As UInt64, ByVal bitcount As UInt64, ByVal ander As UInt64) As UInt64
-        Dim TempData As UInt64 = value And ander
-        Dim OutData As UInt64 = 0
-        If TempData = 0 Then Return 0
-        If bitcount = 0 Then Return 0
-        If ander <= 0 Then Return 0 '1 will rep bit-0
+    'Public Function BitSwap(ByVal value As UInt64, ByVal bitcount As UInt64, ByVal ander As UInt64) As UInt64
+    '    Dim TempData As UInt64 = value And ander
+    '    Dim OutData As UInt64 = 0
+    '    If TempData = 0 Then Return 0
+    '    If bitcount = 0 Then Return 0
+    '    If ander <= 0 Then Return 0 '1 will rep bit-0
 
-        'swap the bits
-        For i As Integer = 0 To bitcount - 1
-            If TempData And (1 << i) Then
-                OutData += (1 << ((bitcount - 1) - i))
-            End If
-        Next
-    End Function
+    '    'swap the bits
+    '    For i As Integer = 0 To bitcount - 1
+    '        If TempData And (1 << i) Then
+    '            OutData += (1 << ((bitcount - 1) - i))
+    '        End If
+    '    Next
+    'End Function
     Public Function SafeDecrement16(ByVal bytIn As UInt16) As UInt16
         If bytIn = 0 Then
             Return &HFFFFUI
