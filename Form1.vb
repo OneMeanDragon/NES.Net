@@ -370,6 +370,14 @@ Public Class Form1
             Next
         Next
 
+        'forgot to post the dead background after ending emulation
+        If picScreen.InvokeRequired Then
+            picScreen.Invoke(New DoStuffDelegate(AddressOf picScreenDel), bmpBackground)
+        Else
+            picScreen.Image = bmpBackground
+            picScreen.Refresh()
+        End If
+
     End Sub
 
     Private Sub DrawSprite(ByVal x As Int32, ByVal y As Int32, ByVal ImageObj As GraphicsObjects.Sprite)
