@@ -83,12 +83,12 @@ Namespace GraphicsObjects
         Public Function GetPixel(ByVal x As Int32, ByVal y As Int32) As Pixel
             If modeSample = enuMode.normal Then
                 If x >= 0 AndAlso x < Width AndAlso y >= 0 AndAlso y < Height Then
-                    Return pColData(y * Width + x)
+                    Return pColData((y * Width) + x)
                 Else
                     Return New Pixel(0, 0, 0, 0)
                 End If
             Else
-                Return pColData(Math.Abs(y Mod Height) * Width + Math.Abs(x Mod Width))
+                Return pColData((Math.Abs(y Mod Height) * Width) + Math.Abs(x Mod Width))
             End If
         End Function
     End Class
@@ -149,7 +149,7 @@ Namespace GraphicsObjects
             m_Pixel.r = r                                       '|
             m_Pixel.g = g                                       '|
             m_Pixel.b = b                                       '|
-            m_Pixel.a = a                                       '|
+            m_Pixel.a = &HFF ' a                                '|
             '---------------------------------------------------'|
             'm_Pixel.n = r or (g << 8) or (b << 16) or (a << 24)'|
             '----------------------------------------------------'
@@ -2150,7 +2150,7 @@ Namespace NintendoEntertainmentSystem
                 End If
             End If
 
-        End Sub
+        End Sub 'pretty sure the entire clock sub needs a look over
 
     End Class
 

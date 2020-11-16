@@ -199,8 +199,8 @@ Public Class Form1
                 DrawSprite(256 + 4, 2, emNES.PPU.GetPatternTable(0, nSelectedPalette))                  ' Working (would like to resize these to 1/2 scale to make room on the screen)
                 DrawSprite(256 + 4 + (128 + 2), 2, emNES.PPU.GetPatternTable(1, nSelectedPalette))      ' Working
                 ' Drawing half scaled
-                ' DrawToScale(256 + 4, 2, emNES.PPU.GetPatternTable(0, nSelectedPalette), 0.5)        'Also working, bitmap scaleing sucks though lol 0.5 = (128x128)=64x64
-                ' DrawToScale(256 + 6 + 64, 2, emNES.PPU.GetPatternTable(1, nSelectedPalette), 0.5)   'Also working, bitmap scaleing sucks though lol 0.5 = (128x128)=64x64
+                'DrawToScale(256 + 4, 2, emNES.PPU.GetPatternTable(0, nSelectedPalette), 0.5)        'Also working, bitmap scaleing sucks though lol 0.5 = (128x128)=64x64
+                'DrawToScale(256 + 6 + 64, 2, emNES.PPU.GetPatternTable(1, nSelectedPalette), 0.5)   'Also working, bitmap scaleing sucks though lol 0.5 = (128x128)=64x64
                 QueuePatterns = False
             End If
 
@@ -230,10 +230,10 @@ Public Class Form1
 
             '----------------------
             'For i As Integer = 0 To 4
-            '    For j As Integer = 0 To 4
-            '        Dim id As Byte = emNES.PPU.tblName(0, i * 32 + j)
-            '        DrawSprite(i * 16, j * 16, emNES.PPU.GetPatternTable(0, nSelectedPalette))
-            '    Next
+            '   For j As Integer = 0 To 4
+            '       Dim id As Byte = emNES.PPU.tblName(0, i * 32 + j)
+            '       DrawSprite(i * 16, j * 16, emNES.PPU.GetPatternTable(0, nSelectedPalette))
+            '   Next
             'Next
 
 
@@ -245,7 +245,7 @@ Public Class Form1
             '    Threading.Thread.Sleep(FRAMERATE_LOCK - frameticks)
             'End If
         End While
-        DrawClear(PixelColors.DARK_BLUE)
+        DrawClear(PixelColors.BLACK)
     End Sub
 
     '256=Game screen size
@@ -370,7 +370,6 @@ Public Class Form1
             Next
         Next
 
-        'forgot to post the dead background after ending emulation
         If picScreen.InvokeRequired Then
             picScreen.Invoke(New DoStuffDelegate(AddressOf picScreenDel), bmpBackground)
         Else
