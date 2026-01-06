@@ -1,5 +1,4 @@
-﻿
-Namespace FOREVERLOOP_HELPERS
+﻿Namespace FOREVERLOOP_HELPERS
 
     Public Class myTimer
         Private Const FRAME_COUNT_MAX As Integer = 100 'Max frame counter storage
@@ -13,16 +12,17 @@ Namespace FOREVERLOOP_HELPERS
             SetTicks = 0
             FrameStart = System.Environment.TickCount
             LastTick = 0
-            Paused = 0
-            Started = 0
+            Paused = False
+            Started = False
         End Sub
 
-        Private Property StartTicks() As UInt32
-        Private Property PausedTicks() As UInt32
+        ' Use signed Integer to match Environment.TickCount
+        Private Property StartTicks() As Integer
+        Private Property PausedTicks() As Integer
 
-        Private Property SetTicks() As UInt32
-        Private Property FrameStart() As UInt32
-        Private Property LastTick() As UInt32
+        Private Property SetTicks() As Integer
+        Private Property FrameStart() As Integer
+        Private Property LastTick() As Integer
 
         Private m_paused As Boolean = False
         Private Property Paused() As Boolean
@@ -70,8 +70,8 @@ Namespace FOREVERLOOP_HELPERS
             End If
         End Sub
 
-        Public Function GetFPSDelta() As UInt32
-            Return (System.Environment.TickCount - FrameStart)
+        Public Function GetFPSDelta() As Integer
+            Return System.Environment.TickCount - FrameStart
         End Function
 
         Public Sub NextFrame()
@@ -89,9 +89,13 @@ Namespace FOREVERLOOP_HELPERS
             m_Frames(m_FrameCount Mod FRAME_AVERAGE_COUNT) = _frametime
             Dim count As Integer = 0
             If m_FrameCount < FRAME_AVERAGE_COUNT Then
-                count = m_FrameCount - 1 'for the vb loop
+                count = CInt(m_FrameCount) - 1 'for the vb loop
             Else
                 count = FRAME_AVERAGE_COUNT - 1 'for the vb loop
+            End If
+            If count <= 0 Then
+                NextFrame()
+                Return 9000.0
             End If
             Dim average_value As Double = 0.0F
             For i As Integer = 0 To count
@@ -107,7 +111,7 @@ Namespace FOREVERLOOP_HELPERS
             Return _fps
         End Function
 
-        Public Function GetDelta() As UInt32
+        Public Function GetDelta() As Integer
             Return System.Environment.TickCount - StartTicks
         End Function
 

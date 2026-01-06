@@ -1,7 +1,7 @@
-﻿
-
-Imports System.Runtime.CompilerServices
+﻿Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices 'For the pixel union type, [note: dosn't help with bit unions]
+
+
 
 Namespace MathObjects
     Public Class ByteBitField
@@ -36,6 +36,8 @@ Namespace MathObjects
         End Property
     End Class
 End Namespace
+
+
 
 Namespace GraphicsObjects
 #Const OVERDRAW = 0
@@ -207,6 +209,8 @@ Namespace GraphicsObjects
 
 End Namespace
 
+
+
 Namespace NintendoEntertainmentSystem
     Public Module Flags_8Bit_Byte
         Public Const BitFlag0 As UInteger = (1 << 0)
@@ -255,6 +259,83 @@ Namespace NintendoEntertainmentSystem
         Public nmi As Boolean = False
         Public scanline_trigger As Boolean = False
 
+
+        ' Expose control/mask/status as read-only bytes for diagnostics
+        Public ReadOnly Property Debug_PPUControlReg As Byte
+            Get
+                Return CByte(PPUControl.Reg And &HFF)
+            End Get
+        End Property
+
+        Public ReadOnly Property Debug_PPUMaskReg As Byte
+            Get
+                Return CByte(PPUMask.Reg And &HFF)
+            End Get
+        End Property
+
+        Public ReadOnly Property Debug_PPUStatusReg As Byte
+            Get
+                Return CByte(PPUStatus.Reg And &HFF)
+            End Get
+        End Property
+
+        ' Expose loopy regs
+        Public ReadOnly Property Debug_VramReg As UInt16
+            Get
+                Return vram_addr.Reg
+            End Get
+        End Property
+
+        Public ReadOnly Property Debug_TramReg As UInt16
+            Get
+                Return tram_addr.Reg
+            End Get
+        End Property
+
+        ' Return a copy of the palette RAM bytes
+        Public Function Debug_GetTblPalette() As Byte()
+            Dim out(tblPalette.Length - 1) As Byte
+            Array.Copy(tblPalette, out, tblPalette.Length)
+            Return out
+        End Function
+
+        ' Return a contiguous slice of a nametable row (rowIndex: 0 or 1)
+        Public Function Debug_GetNameTableRow(rowIndex As Integer, startIndex As Integer, count As Integer) As Byte()
+            Dim out(Math.Max(0, count - 1)) As Byte
+            For i As Integer = 0 To count - 1
+                out(i) = tblName(rowIndex, startIndex + i)
+            Next
+            Return out
+        End Function
+
+        ' Return pattern memory slice from specified pattern table (0 or 1)
+        Public Function Debug_GetPatternBytes(tableIndex As Integer, startIndex As Integer, count As Integer) As Byte()
+            Dim out(Math.Max(0, count - 1)) As Byte
+            For i As Integer = 0 To count - 1
+                out(i) = tblPattern(tableIndex, startIndex + i)
+            Next
+            Return out
+        End Function
+
+        ' Temporarily enable rendering (write mask). Use only for debugging.
+        Public Sub Debug_SetPPUMask(mask As Byte)
+            PPUMask.Reg = mask
+        End Sub
+
+        ' Fill both nametables with a single tile id for quick background test.
+        Public Sub Debug_FillNameTables(tileId As Byte)
+            For i As Integer = 0 To 1023
+                tblName(0, i) = tileId
+                tblName(1, i) = tileId
+            Next
+        End Sub
+
+        ' Populate palette RAM with sequential entries (0..31) for a visible palette.
+        Public Sub Debug_FillPaletteSequential()
+            For i As Integer = 0 To Math.Min(tblPalette.Length - 1, 31)
+                tblPalette(i) = CByte(i And &H3F)
+            Next
+        End Sub
 
         '// Foreground "Sprite" rendering ================================
         '// The OAM Is an additional memory internal to the PPU. It Is
@@ -782,261 +863,174 @@ Namespace NintendoEntertainmentSystem
         Private PPUControl As New FrankenControl
 
         Public Structure FrankenRegister
-            Private m_first5Bits As UInt16
-            Private m_second5Bits As UInt16
-            Private m_bit0_1 As UInt16
-            Private m_bit0_2 As UInt16
-            Private m_first3Bits As UInt16
-            Private m_bit0_3 As UInt16
-            Private m_totalValue As UInt16
+            Private m_register As UInt16
 
-            Private Sub Reset()
-                m_first5Bits = 0    '5
-                m_second5Bits = 0   '5
-                m_bit0_1 = 0        '1
-                m_bit0_2 = 0        '1
-                m_first3Bits = 0    '3
-                m_bit0_3 = 0        '1
-                m_totalValue = 0    '
-            End Sub
             Public Property Coarse_X() As UInt16
                 Get
-                    Return m_first5Bits
+                    Return m_register And &H1FUS
                 End Get
                 Set(value As UInt16)
-                    If m_first5Bits > 0 Then
-                        m_totalValue -= m_first5Bits
-                    End If
-                    m_first5Bits = value And &H1FUS
-                    m_totalValue += m_first5Bits '<< 0
+                    m_register = (m_register And &HFFE0US) Or (value And &H1FUS)
                 End Set
             End Property
+
             Public Property Coarse_Y() As UInt16
                 Get
-                    Return m_second5Bits
+                    Return (m_register >> 5) And &H1FUS
                 End Get
                 Set(value As UInt16)
-                    If m_second5Bits > 0 Then
-                        m_totalValue -= m_second5Bits << 5
-                    End If
-                    m_second5Bits = value And &H1FUS
-                    m_totalValue += m_second5Bits << 5 '<< [Course_X bit count]
+                    m_register = (m_register And &HFC1FUS) Or ((value And &H1FUS) << 5)
                 End Set
             End Property
+
             Public Property NameTable_X() As UInt16
                 Get
-                    Return m_bit0_1
+                    Return (m_register >> 10) And &H1US
                 End Get
                 Set(value As UInt16)
-                    If m_bit0_1 > 0 Then
-                        m_totalValue -= (m_bit0_1 << 10)
+                    If (value And &H1US) <> 0 Then
+                        m_register = m_register Or &H400US
+                    Else
+                        m_register = m_register And &HFBFFUS
                     End If
-                    m_bit0_1 = value And &H1US
-                    m_totalValue += m_bit0_1 << 10 '<< [Course_X + Course_Y bit count]
                 End Set
             End Property
+
             Public Property NameTable_Y() As UInt16
                 Get
-                    Return m_bit0_2
+                    Return (m_register >> 11) And &H1US
                 End Get
                 Set(value As UInt16)
-                    If m_bit0_2 > 0 Then
-                        m_totalValue -= (m_bit0_2 << 11)
+                    If (value And &H1US) <> 0 Then
+                        m_register = m_register Or &H800US
+                    Else
+                        m_register = m_register And &HF7FFUS
                     End If
-                    m_bit0_2 = value And &H1US
-                    m_totalValue += (m_bit0_2 << 11) '<< [Course_X + Course_Y + NameTable_X bit count]
                 End Set
             End Property
+
             Public Property Fine_Y() As UInt16
                 Get
-                    Return m_first3Bits
+                    Return (m_register >> 12) And &H7US
                 End Get
                 Set(value As UInt16)
-                    If m_first3Bits > 0 Then
-                        m_totalValue -= (m_first3Bits << 12)
-                    End If
-                    m_first3Bits = value And &H7US
-                    m_totalValue += (m_first3Bits << 12) '<< [Course_X + Course_Y + NameTable_X + NameTable_Y bit count]
+                    m_register = (m_register And &H8FFFUS) Or ((value And &H7US) << 12)
                 End Set
             End Property
+
             Public Property Unused() As UInt16
                 Get
-                    Return m_bit0_3
+                    Return (m_register >> 15) And &H1US
                 End Get
                 Set(value As UInt16)
-                    If m_bit0_3 > 0 Then
-                        m_totalValue -= (m_bit0_3 << 15)
+                    If (value And &H1US) <> 0 Then
+                        m_register = m_register Or &H8000US
+                    Else
+                        m_register = m_register And &H7FFFUS
                     End If
-                    m_bit0_3 = value And &H8000US
-                    m_totalValue += (m_bit0_3 << 15) '<< [Course_X + Course_Y + NameTable_X + NameTable_Y + Fine_Y bit count]
                 End Set
             End Property
+
             Public Property Reg() As UInt16
                 Get
-                    Return m_totalValue '(m_first5Bits + m_second5Bits + m_bit0_1 + m_bit0_2 + m_first3Bits + m_bit0_3)
-                    'Return m_totalValue
+                    Return m_register
                 End Get
                 Set(value As UInt16)
-                    'Reset our totals
-                    Reset()                                     'I Need more info
-                    If value > 0 Then                               'FEDCBA9876543210
-                        m_first5Bits = (value And &H1FUS) '>> 0     '0000000000011111 << 11 ' 0
-                        m_second5Bits = (value And &H3E0US) >> 5    '0000001111100000 << 6  ' 5
-                        m_bit0_1 = (value And &H400US) >> 10        '0000010000000000 << 5  '10
-                        m_bit0_2 = (value And &H800US) >> 11        '0000100000000000 << 4  '11
-                        m_first3Bits = (value And &H7000US) >> 12   '0111000000000000 << 1  '12
-                        m_bit0_3 = (value And &H8000US) >> 15       '1000000000000000 << 0  '15
-                        m_totalValue = value '(m_first5Bits + m_second5Bits + m_bit0_1 + m_bit0_2 + m_first3Bits + m_bit0_3)                        ' Total combined value
-                    End If
+                    m_register = value
                 End Set
             End Property
         End Structure
-
         Public Class FrankenLoopy
-            Private BitFeild(15) As Boolean ' 5,5,1,1,3,1
+            Private m_Register As UInt16 = 0
 
             Public Sub New()
-                For i As Integer = 0 To BitFeild.Length() - 1
-                    BitFeild(i) = False
-                Next
+                m_Register = 0
             End Sub
 
+            ' Bits 0-4: Coarse X (5 bits)
             Public Property Coarse_X() As UInt16
                 Get
-                    Dim ReturnValue As UInt16 = 0
-                    For i As Integer = 0 To 4 '0->4
-                        If BitFeild(i) Then
-                            ReturnValue += (1 << i)
-                        End If
-                    Next
-                    Return ReturnValue '>> 0
+                    Return m_Register And &H1FUS
                 End Get
                 Set(value As UInt16)
-                    For i As Integer = 0 To 4
-                        If value And (1 << i) Then
-                            BitFeild(i) = True
-                        Else
-                            BitFeild(i) = False
-                        End If
-                    Next
+                    m_Register = (m_Register And &HFFE0US) Or (value And &H1FUS)
                 End Set
             End Property
 
+            ' Bits 5-9: Coarse Y (5 bits)
             Public Property Coarse_Y() As UInt16
                 Get
-                    Dim ReturnValue As UInt16 = 0
-                    For i As Integer = 0 To 4 '5->9
-                        If BitFeild(5 + i) Then
-                            ReturnValue += (1 << i)
-                        End If
-                    Next
-                    Return ReturnValue '(ReturnValue >> 5)
+                    Return (m_Register >> 5) And &H1FUS
                 End Get
                 Set(value As UInt16)
-                    For i As Integer = 0 To 4
-                        If value And (1 << i) Then
-                            BitFeild(5 + i) = True
-                        Else
-                            BitFeild(5 + i) = False
-                        End If
-                    Next
+                    m_Register = (m_Register And &HFC1FUS) Or ((value And &H1FUS) << 5)
                 End Set
             End Property
 
+            ' Bit 10: Nametable X (1 bit)
             Public Property NameTable_X() As UInt16
                 Get
-                    If BitFeild(10) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
+                    Return (m_Register >> 10) And &H1US
                 End Get
                 Set(value As UInt16)
-                    If value And 1 Then
-                        BitFeild(10) = True
+                    If (value And &H1US) <> 0 Then
+                        m_Register = m_Register Or &H400US
                     Else
-                        BitFeild(10) = False
+                        m_Register = m_Register And &HFBFFUS
                     End If
                 End Set
             End Property
 
+            ' Bit 11: Nametable Y (1 bit)
             Public Property NameTable_Y() As UInt16
                 Get
-                    If BitFeild(11) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
+                    Return (m_Register >> 11) And &H1US
                 End Get
                 Set(value As UInt16)
-                    If value And 1 Then
-                        BitFeild(11) = True
+                    If (value And &H1US) <> 0 Then
+                        m_Register = m_Register Or &H800US
                     Else
-                        BitFeild(11) = False
+                        m_Register = m_Register And &HF7FFUS
                     End If
                 End Set
             End Property
 
+            ' Bits 12-14: Fine Y (3 bits)
             Public Property Fine_Y() As UInt16
                 Get
-                    Dim ReturnValue As UInt16 = 0
-                    For i As Integer = 0 To 2 '12->14
-                        If BitFeild(12 + i) Then
-                            ReturnValue += (1 << i)
-                        End If
-                    Next
-                    Return ReturnValue '(ReturnValue >> 12)
+                    Return (m_Register >> 12) And &H7US
                 End Get
                 Set(value As UInt16)
-                    For i As Integer = 0 To 2 '3
-                        If value And (1 << i) Then
-                            BitFeild(12 + i) = True
-                        Else
-                            BitFeild(12 + i) = False
-                        End If
-                    Next
+                    m_Register = (m_Register And &H8FFFUS) Or ((value And &H7US) << 12)
                 End Set
             End Property
 
+            ' Bit 15: Unused (1 bit)
             Public Property unused() As UInt16
                 Get
-                    If BitFeild(15) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
+                    Return (m_Register >> 15) And &H1US
                 End Get
                 Set(value As UInt16)
-                    If value And 1 Then
-                        BitFeild(15) = True
+                    If (value And &H1US) <> 0 Then
+                        m_Register = m_Register Or &H8000US
                     Else
-                        BitFeild(15) = False
+                        m_Register = m_Register And &H7FFFUS
                     End If
                 End Set
             End Property
 
+            ' The complete register value
             Public Property Reg() As UInt16
                 Get
-                    Dim ReturnValue As UInt16 = 0
-                    For i As Integer = 0 To 15
-                        If BitFeild(i) Then
-                            ReturnValue += (1 << i)
-                        End If
-                    Next
-                    Return ReturnValue
+                    Return m_Register
                 End Get
                 Set(value As UInt16)
-                    For i As Integer = 0 To 15
-                        If value And (1 << i) Then
-                            BitFeild(i) = True
-                        Else
-                            BitFeild(i) = False
-                        End If
-                    Next
+                    m_Register = value
                 End Set
             End Property
 
         End Class
+
         'some how the franken register gives a sort of screen lol
         Protected vram_addr As New FrankenLoopy 'New FrankenLoopy 'FrankenRegister ' New FrankenLoopy
         Protected tram_addr As New FrankenLoopy 'New FrankenLoopy 'FrankenRegister ' New FrankenLoopy
@@ -1315,15 +1309,19 @@ Namespace NintendoEntertainmentSystem
             End If
             Return bytData
         End Function
+
         Public Sub cpuWrite(ByVal addr As UInt16, ByVal data As Byte)
             Select Case addr
-                Case &H0US
-                    PPUControl.reg = data
-                    tram_addr.NameTable_X = PPUControl.nametable_x
-                    tram_addr.NameTable_Y = PPUControl.nametable_y
+                Case &H0US  ' PPUCTRL ($2000)
+                    PPUControl.Reg = data
+                    tram_addr.NameTable_X = PPUControl.Nametable_x
+                    tram_addr.NameTable_Y = PPUControl.Nametable_y
+                    Debug.WriteLine(String.Format("PPU Control write: 0x{0:X2}, NT_X={1}, NT_Y={2}, NMI={3}",
+                                  data, tram_addr.NameTable_X, tram_addr.NameTable_Y, PPUControl.Enable_nmi))
                     Exit Select
                 Case &H1US
-                    PPUMask.reg = data
+                    PPUMask.Reg = data
+                    Debug.WriteLine(String.Format("PPU: CPU write $2001 = 0x{0:X2}", data))
                     Exit Select
                 Case &H2US
                     Exit Select
@@ -1333,15 +1331,19 @@ Namespace NintendoEntertainmentSystem
                 Case &H4US
                     OAM(oam_addr \ 4).SetByteAt(oam_addr, data)
                     Exit Select
-                Case &H5US
+                Case &H5US  ' PPUSCROLL ($2005)
                     If address_latch = 0 Then
                         fine_x = data And &H7UI
                         tram_addr.Coarse_X = data >> 3
                         address_latch = 1
+                        Debug.WriteLine(String.Format("PPU Scroll X write: data=0x{0:X2}, fine_x={1}, coarse_x={2}",
+                                      data, fine_x, tram_addr.Coarse_X))
                     Else
                         tram_addr.Fine_Y = data And &H7UI
                         tram_addr.Coarse_Y = data >> 3
                         address_latch = 0
+                        Debug.WriteLine(String.Format("PPU Scroll Y write: data=0x{0:X2}, fine_y={1}, coarse_y={2}",
+                                      data, tram_addr.Fine_Y, tram_addr.Coarse_Y))
                     End If
                     Exit Select
                 Case &H6US
@@ -1353,11 +1355,14 @@ Namespace NintendoEntertainmentSystem
                         vram_addr = tram_addr
                         address_latch = 0
                     End If
+                    Debug.WriteLine(String.Format("PPU: CPU write $2006  (set vram_addr = 0x{0:X4})", vram_addr.Reg))
                     Exit Select
                 Case &H7US
+                    ' Write to VRAM via PPU (this is how CPU writes palette/nametable/pattern)
+                    Debug.WriteLine(String.Format("PPU: CPU write $2007 -> vram 0x{0:X4} = 0x{1:X2}", vram_addr.Reg, data))
                     ppuWrite(vram_addr.Reg, data)
-                    If PPUControl.increment_mode Then
-                        vram_addr.Reg = vram_addr.Reg + 31
+                    If PPUControl.Increment_mode Then
+                        vram_addr.Reg = vram_addr.Reg + 32 '31
                     Else
                         vram_addr.Reg = vram_addr.Reg + 1
                     End If
@@ -1425,6 +1430,7 @@ Namespace NintendoEntertainmentSystem
             End If
             Return data
         End Function
+
         Public Sub ppuWrite(ByVal addr As UInt16, ByVal data As Byte)
             addr = addr And &H3FFFUS
             If Cart.ppuWrite(addr, data) Then
@@ -1477,16 +1483,9 @@ Namespace NintendoEntertainmentSystem
                         Exit Select
                 End Select
                 tblPalette(addr) = data
+                Debug.WriteLine(String.Format("PPU: ppuWrite palette 0x3F{0:X2} = 0x{1:X2}", addr, data))
             End If
         End Sub
-
-        'Public Cart As clsCartridge 'The Cartridge is globalized
-        'Public Sub ConnectCartridge(ByRef cartridge As clsCartridge)
-        '    Cart = cartridge
-        'End Sub
-        'Public Sub RemoveCartridge()
-        '    Cart = Nothing
-        'End Sub
 
         Public Sub Reset()
             fine_x = 0
@@ -1502,14 +1501,20 @@ Namespace NintendoEntertainmentSystem
             bg_shifter_pattern_hi = 0
             bg_shifter_attrib_lo = 0
             bg_shifter_attrib_hi = 0
-            PPUStatus.reg = 0
-            PPUMask.reg = 0
-            PPUControl.reg = 0
+            PPUStatus.Reg = 0
+            PPUMask.Reg = 0
+            PPUControl.Reg = 0
             vram_addr.Reg = 0
             tram_addr.Reg = 0
             scanline_trigger = False
             odd_frame = False
-            Return
+        End Sub
+
+        Public Sub DebugScrollState()
+            Debug.WriteLine(String.Format("Frame: vram Y={0}, Coarse_Y={1}, Fine_Y={2}, NT_Y={3}",
+                                  vram_addr.Reg, vram_addr.Coarse_Y, vram_addr.Fine_Y, vram_addr.NameTable_Y))
+            Debug.WriteLine(String.Format("Frame: tram Y={0}, Coarse_Y={1}, Fine_Y={2}, NT_Y={3}",
+                                  tram_addr.Reg, tram_addr.Coarse_Y, tram_addr.Fine_Y, tram_addr.NameTable_Y))
         End Sub
 
         Public Sub Clock()
@@ -1525,12 +1530,12 @@ Namespace NintendoEntertainmentSystem
                                        End If
                                    End Sub
             Dim IncrementScrollY = Sub()
-                                       If PPUMask.render_background OrElse PPUMask.render_sprites Then
+                                       ' ONLY increment if rendering is enabled
+                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
                                            If vram_addr.Fine_Y < 7 Then
                                                vram_addr.Fine_Y += 1
                                            Else
                                                vram_addr.Fine_Y = 0
-
                                                If vram_addr.Coarse_Y = 29 Then
                                                    vram_addr.Coarse_Y = 0
                                                    vram_addr.NameTable_Y = Not vram_addr.NameTable_Y
@@ -1543,23 +1548,33 @@ Namespace NintendoEntertainmentSystem
                                        End If
                                    End Sub
             Dim TransferAddressX = Sub()
-                                       If PPUMask.render_background OrElse PPUMask.render_sprites Then
+                                       ' Only transfer during rendering
+                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
                                            vram_addr.NameTable_X = tram_addr.NameTable_X
                                            vram_addr.Coarse_X = tram_addr.Coarse_X
                                        End If
                                    End Sub
             Dim TransferAddressY = Sub()
-                                       If PPUMask.render_background OrElse PPUMask.render_sprites Then
+                                       ' Only transfer during rendering
+                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
                                            vram_addr.Fine_Y = tram_addr.Fine_Y
                                            vram_addr.NameTable_Y = tram_addr.NameTable_Y
                                            vram_addr.Coarse_Y = tram_addr.Coarse_Y
                                        End If
                                    End Sub
             Dim LoadBackgroundShifters = Sub()
-                                             bg_shifter_pattern_lo = (bg_shifter_pattern_lo And &HFF00US) Or bg_next_tile_lsb
-                                             bg_shifter_pattern_hi = (bg_shifter_pattern_hi And &HFF00US) Or bg_next_tile_msb
-                                             bg_shifter_attrib_lo = ((bg_shifter_attrib_lo And &HFF00US) Or IIf(bg_next_tile_attrib And &H1, &HFFUI, &H0UI))
-                                             bg_shifter_attrib_hi = ((bg_shifter_attrib_hi And &HFF00US) Or IIf(bg_next_tile_attrib And &H2, &HFFUI, &H0UI))
+                                             'bg_shifter_pattern_lo = (bg_shifter_pattern_lo And &HFF00US) Or bg_next_tile_lsb
+                                             'bg_shifter_pattern_hi = (bg_shifter_pattern_hi And &HFF00US) Or bg_next_tile_msb
+                                             'bg_shifter_attrib_lo = ((bg_shifter_attrib_lo And &HFF00US) Or IIf(bg_next_tile_attrib And &H1, &HFFUI, &H0UI))
+                                             'bg_shifter_attrib_hi = ((bg_shifter_attrib_hi And &HFF00US) Or IIf(bg_next_tile_attrib And &H2, &HFFUI, &H0UI))
+                                             bg_shifter_pattern_lo = (bg_shifter_pattern_lo And &HFF00US) Or CUShort(bg_next_tile_lsb)
+                                             bg_shifter_pattern_hi = (bg_shifter_pattern_hi And &HFF00US) Or CUShort(bg_next_tile_msb)
+
+                                             ' Use If() for conditional, ensure proper type
+                                             bg_shifter_attrib_lo = (bg_shifter_attrib_lo And &HFF00US) Or
+                                                                    If((bg_next_tile_attrib And &H1) <> 0, &HFFUS, &H0US)
+                                             bg_shifter_attrib_hi = (bg_shifter_attrib_hi And &HFF00US) Or
+                                                                    If((bg_next_tile_attrib And &H2) <> 0, &HFFUS, &H0US)
                                          End Sub
             Dim UpdateShifters = Sub()
                                      If PPUMask.render_background Then
@@ -1591,12 +1606,23 @@ Namespace NintendoEntertainmentSystem
                 End If
                 '-----------------------------
                 If scanline = -1 AndAlso cycle = 1 Then
+                    DebugScrollState()
+
+                    ' UNCOMMENT THESE LINES TO TEST:
+                    'Debug.WriteLine("=== NEW FRAME ===")
+                    'tram_addr.Coarse_X = 0
+                    'tram_addr.Coarse_Y = 0
+                    'tram_addr.Fine_Y = 0
+                    'tram_addr.NameTable_X = 0
+                    'tram_addr.NameTable_Y = 0
+                    'fine_x = 0
+
                     '// Effectively start of new frame, so clear vertical blank flag
-                    PPUStatus.vertical_blank = 0
+                    PPUStatus.Vertical_blank = 0
                     '// Clear sprite overflow flag
-                    PPUStatus.sprite_overflow = 0
+                    PPUStatus.Sprite_overflow = 0
                     '// Clear the sprite zero hit flag
-                    PPUStatus.sprite_zero_hit = 0
+                    PPUStatus.Sprite_zero_hit = 0
                     '// Clear Shifters
                     For i As UInt32 = 0 To 7 'VB
                         sprite_shifter_pattern_lo(i) = 0
@@ -1775,6 +1801,7 @@ Namespace NintendoEntertainmentSystem
                     bg_next_tile_id = ppuRead(&H2000US Or (vram_addr.Reg And &HFFFUS))
                 End If
                 '-----------------------------
+                ' In the Clock() method, around scanline -1, cycle 280-304:
                 If scanline = -1 AndAlso cycle >= 280 AndAlso cycle < 305 Then
                     '// End of vertical blank period so reset the Y address ready for rendering
                     TransferAddressY()
@@ -1999,17 +2026,23 @@ Namespace NintendoEntertainmentSystem
 
                     '// Select Plane pixels by extracting from the shifter 
                     '// at the required location. 
-                    Dim p0_pixel As Byte = (bg_shifter_pattern_lo And bit_mux) > 0
-                    Dim p1_pixel As Byte = (bg_shifter_pattern_hi And bit_mux) > 0
+                    'Dim p0_pixel As Byte = (bg_shifter_pattern_lo And bit_mux) > 0
+                    'Dim p1_pixel As Byte = (bg_shifter_pattern_hi And bit_mux) > 0
+                    Dim p0_pixel As Byte = If((bg_shifter_pattern_lo And bit_mux) <> 0, 1, 0)
+                    Dim p1_pixel As Byte = If((bg_shifter_pattern_hi And bit_mux) <> 0, 1, 0)
 
                     '// Combine to form pixel index
-                    bg_pixel = MathHelpers.SafeShiftLeft8(p1_pixel, 1) Or p0_pixel
+                    'bg_pixel = MathHelpers.SafeShiftLeft8(p1_pixel, 1) Or p0_pixel
+                    bg_pixel = (p1_pixel << 1) Or p0_pixel
 
                     '// Get palette
-                    Dim bg_pal0 As Byte = (bg_shifter_attrib_lo And bit_mux) > 0
-                    Dim bg_pal1 As Byte = (bg_shifter_attrib_hi And bit_mux) > 0
+                    'Dim bg_pal0 As Byte = (bg_shifter_attrib_lo And bit_mux) > 0
+                    'Dim bg_pal1 As Byte = (bg_shifter_attrib_hi And bit_mux) > 0
+                    Dim bg_pal0 As Byte = If((bg_shifter_attrib_lo And bit_mux) <> 0, 1, 0)
+                    Dim bg_pal1 As Byte = If((bg_shifter_attrib_hi And bit_mux) <> 0, 1, 0)
                     '-----------------------------
-                    bg_palette = MathHelpers.SafeShiftLeft8(bg_pal1, 1) Or bg_pal0
+                    'bg_palette = MathHelpers.SafeShiftLeft8(bg_pal1, 1) Or bg_pal0
+                    bg_palette = (bg_pal1 << 1) Or bg_pal0
                 End If
             End If
             '-----------------------------
@@ -2037,15 +2070,20 @@ Namespace NintendoEntertainmentSystem
                                 '// we'll just use the MSB of the shifter
 
                                 '// Determine the pixel value...
-                                Dim fg_pixel_lo As Byte = (sprite_shifter_pattern_lo(i) And &H80UI) > 0
-                                Dim fg_pixel_hi As Byte = (sprite_shifter_pattern_hi(i) And &H80UI) > 0
-                                fg_pixel = MathHelpers.SafeShiftLeft8(fg_pixel_hi, 1) Or fg_pixel_lo
+                                'Dim fg_pixel_lo As Byte = (sprite_shifter_pattern_lo(i) And &H80UI) > 0
+                                'Dim fg_pixel_hi As Byte = (sprite_shifter_pattern_hi(i) And &H80UI) > 0
+                                'fg_pixel = MathHelpers.SafeShiftLeft8(fg_pixel_hi, 1) Or fg_pixel_lo
+                                Dim fg_pixel_lo As Byte = If((sprite_shifter_pattern_lo(i) And &H80UI) <> 0, 1, 0)
+                                Dim fg_pixel_hi As Byte = If((sprite_shifter_pattern_hi(i) And &H80UI) <> 0, 1, 0)
+                                fg_pixel = (fg_pixel_hi << 1) Or fg_pixel_lo
 
                                 '// Extract the palette from the bottom two bits. Recall
                                 '// that foreground palettes are the latter 4 in the 
                                 '// palette memory.
+                                'fg_palette = (spriteScanline(i).attribute And &H3UI) + &H4UI
+                                'fg_priority = ((spriteScanline(i).attribute And &H20UI) = 0)
                                 fg_palette = (spriteScanline(i).attribute And &H3UI) + &H4UI
-                                fg_priority = ((spriteScanline(i).attribute And &H20UI) = 0)
+                                fg_priority = If((spriteScanline(i).attribute And &H20UI) = 0, 1, 0)
 
                                 '// If pixel Is Not transparent, we render it, And dont
                                 '// bother checking the rest because the earlier sprites
@@ -2094,7 +2132,7 @@ Namespace NintendoEntertainmentSystem
                 '// The background pixel Is visible
                 '// The foreground pixel Is visible
                 '// Hmmm...
-                If fg_priority Then
+                If fg_priority <> 0 Then
                     '// Foreground cheats its way to victory!
                     pixel = fg_pixel
                     palette = fg_palette
@@ -2150,6 +2188,18 @@ Namespace NintendoEntertainmentSystem
                 End If
             End If
 
+            '---------------------
+            Static lastVramAddr As UInt16 = 0
+            Static lastScanline As Int16 = -2
+
+            ' Only log when vram changes and we're NOT in visible rendering area
+            If vram_addr.Reg <> lastVramAddr AndAlso Not (scanline >= 0 AndAlso scanline < 240 AndAlso cycle >= 1 AndAlso cycle < 257) Then
+                Debug.WriteLine(String.Format("VRAM changed outside rendering: scanline={0}, cycle={1}, old=0x{2:X4}, new=0x{3:X4}",
+                                              scanline, cycle, lastVramAddr, vram_addr.Reg))
+            End If
+
+            lastVramAddr = vram_addr.Reg
+            lastScanline = scanline
         End Sub 'pretty sure the entire clock sub needs a look over
 
     End Class

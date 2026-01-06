@@ -1,5 +1,7 @@
 ﻿Imports System.IO
 Imports System.Threading
+Imports System.Drawing.Imaging
+Imports System.Runtime.InteropServices
 
 Imports Nintendo.FOREVERLOOP_HELPERS
 Imports Nintendo.GraphicsObjects
@@ -134,6 +136,11 @@ Public Class Form1
             Cart = New clsCartridge(dlgOpenFile.FileName)
             If Cart.ValidImage Then
                 emNES.Reset()
+                ' quick test: enable background+sprites (mask bit 3 = render_background, bit 4 = render_sprites -> 0x18)
+                '    emNES.PPU.Debug_SetPPUMask(&H18)
+                ' Fill palette and nametables so the PPU has visible data immediately
+                '    emNES.PPU.Debug_FillPaletteSequential()
+                '    emNES.PPU.Debug_FillNameTables(&H0) '24) ' sample tile id used earlier
             End If
         Else
             Cart.Reset()
@@ -159,7 +166,7 @@ Public Class Form1
     Public Sub Run()
         'Const FRAMERATE_LOCK As UInteger = (1000 / 100)
         Dim CapTimer As New myTimer()
-        Dim frame_start, frame_end As UInt32
+        Dim frame_start, frame_end As Integer
 
         Dim n_PrevSelectedPallet As Integer = nSelectedPalette
         running = True
@@ -224,6 +231,21 @@ Public Class Form1
                 QueuePalettes = False
             End If
 
+            If Not debugDumped Then
+                'emNES.PPU.Debug_FillPaletteSequential()
+                'emNES.PPU.Debug_FillNameTables(&H0)  ' use tile 0x00 which you confirmed contains CHR
+                'emNES.PPU.Debug_SetPPUMask(&H18)      ' enable background + sprites
+                DebugDumpPPUState()
+                debugDumped = True
+            End If
+            ' Temporary debug: force visible PPU output (remove after verification)
+            'If Not debugDumped Then
+            '    emNES.PPU.Debug_FillPaletteSequential()
+            '    emNES.PPU.Debug_FillNameTables(&H0)  ' use tile 0x00 which you confirmed contains CHR
+            '    emNES.PPU.Debug_SetPPUMask(&H18)      ' enable background + sprites
+            '    debugDumped = True
+            'End If
+
             ' Render the screen
             DrawSprite(2, 2, emNES.PPU.GetScreen()) 'not working
 
@@ -257,11 +279,26 @@ Public Class Form1
     '4=extra space /2 above and below the screen
     Const BMP_HEIGHT As Integer = 240 + 4 '+ 800
 
+    'Private Sub DrawPixel(ByVal x As UInt32, ByVal y As UInt32, ByVal p As Pixel)
+    '    If IsNothing(bmpBackground) Then
+    '        bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT)
+    '    End If
+    '    bmpBackground.SetPixel(x, y, Color.FromArgb(p.m_Pixel.Signed))
+    'End Sub
+
     Private Sub DrawPixel(ByVal x As UInt32, ByVal y As UInt32, ByVal p As Pixel)
         If IsNothing(bmpBackground) Then
             bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT)
         End If
-        bmpBackground.SetPixel(x, y, Color.FromArgb(p.m_Pixel.Signed))
+
+        ' Convert indices to Int32 to satisfy SetPixel and avoid overflow conversions.
+        Dim xi As Integer = CInt(x)
+        Dim yi As Integer = CInt(y)
+
+        ' Use explicit ARGB components to avoid relying on packed Signed integer interpretation.
+        Dim col As Color = Color.FromArgb(p.m_Pixel.a, p.m_Pixel.r, p.m_Pixel.g, p.m_Pixel.b)
+
+        bmpBackground.SetPixel(xi, yi, col)
     End Sub
 
     Private Sub FillRect(ByVal x As UInt32, ByVal y As UInt32, ByVal w As UInt32, ByVal h As UInt32, ByVal p As Pixel)
@@ -286,11 +323,54 @@ Public Class Form1
 
     End Sub
 
+    'Private Sub DrawToScale(ByVal x As UInt32, ByVal y As UInt32, ByVal objSprite As Sprite, Optional ByVal scale As Single = 1.0F)
+    '    Dim tempBMP As Bitmap
+    '    If objSprite.Height > 0 AndAlso objSprite.Width > 0 Then
+    '        If scale = 1.0F Then 'send to the normal draw were drawing at full scale
+    '            DrawSprite(x, y, objSprite)
+    '            Return
+    '        End If
+    '        Dim h As Integer = objSprite.Height
+    '        Dim w As Integer = objSprite.Width
+    '        tempBMP = New Bitmap(w, h)
+    '    Else
+    '        Return
+    '    End If
+    '    'Draw to the Temp BMP
+    '    For i As Integer = 0 To tempBMP.Width - 1
+    '        For j As Integer = 0 To tempBMP.Width - 1
+    '            tempBMP.SetPixel(i, j, Color.FromArgb(objSprite.GetPixel(i, j).m_Pixel.Signed))
+    '        Next
+    '    Next
+    '    'Resize the newly made bmp
+    '    Dim resizedBMP As New Bitmap(tempBMP, (objSprite.Width * scale), (objSprite.Height * scale))
+    '    ' Draw the new Image to the screen buffer
+    '    If IsNothing(bmpBackground) Then
+    '        bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT)
+    '    End If
+    '
+    '    For i As Int32 = 0 To resizedBMP.Width - 1
+    '        For j As Int32 = 0 To resizedBMP.Height - 1
+    '            bmpBackground.SetPixel(x + i, y + j, resizedBMP.GetPixel(i, j))
+    '        Next
+    '    Next
+    '
+    '    'Dispose our shit
+    '    tempBMP.Dispose()
+    '    resizedBMP.Dispose()
+    '
+    '    If picScreen.InvokeRequired Then
+    '        picScreen.Invoke(New DoStuffDelegate(AddressOf picScreenDel), bmpBackground)
+    '    Else
+    '        picScreen.Image = bmpBackground
+    '        picScreen.Refresh()
+    '    End If
+    'End Sub
     Private Sub DrawToScale(ByVal x As UInt32, ByVal y As UInt32, ByVal objSprite As Sprite, Optional ByVal scale As Single = 1.0F)
         Dim tempBMP As Bitmap
         If objSprite.Height > 0 AndAlso objSprite.Width > 0 Then
             If scale = 1.0F Then 'send to the normal draw were drawing at full scale
-                DrawSprite(x, y, objSprite)
+                DrawSprite(CInt(x), CInt(y), objSprite)
                 Return
             End If
             Dim h As Integer = objSprite.Height
@@ -301,12 +381,13 @@ Public Class Form1
         End If
         'Draw to the Temp BMP
         For i As Integer = 0 To tempBMP.Width - 1
-            For j As Integer = 0 To tempBMP.Width - 1
-                tempBMP.SetPixel(i, j, Color.FromArgb(objSprite.GetPixel(i, j).m_Pixel.Signed))
+            ' FIX: iterate height for the inner loop (was Width in original)
+            For j As Integer = 0 To tempBMP.Height - 1
+                tempBMP.SetPixel(i, j, Color.FromArgb(objSprite.GetPixel(i, j).m_Pixel.a, objSprite.GetPixel(i, j).m_Pixel.r, objSprite.GetPixel(i, j).m_Pixel.g, objSprite.GetPixel(i, j).m_Pixel.b))
             Next
         Next
         'Resize the newly made bmp
-        Dim resizedBMP As New Bitmap(tempBMP, (objSprite.Width * scale), (objSprite.Height * scale))
+        Dim resizedBMP As New Bitmap(tempBMP, CInt(objSprite.Width * scale), CInt(objSprite.Height * scale))
         ' Draw the new Image to the screen buffer
         If IsNothing(bmpBackground) Then
             bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT)
@@ -314,19 +395,23 @@ Public Class Form1
 
         For i As Int32 = 0 To resizedBMP.Width - 1
             For j As Int32 = 0 To resizedBMP.Height - 1
-                bmpBackground.SetPixel(x + i, y + j, resizedBMP.GetPixel(i, j))
+                Dim dstX As Integer = CInt(x) + i
+                Dim dstY As Integer = CInt(y) + j
+                If dstX >= 0 AndAlso dstX < bmpBackground.Width AndAlso dstY >= 0 AndAlso dstY < bmpBackground.Height Then
+                    bmpBackground.SetPixel(dstX, dstY, resizedBMP.GetPixel(i, j))
+                End If
             Next
         Next
 
-        'Dispose our shit
+        'Dispose our temporary bitmaps
         tempBMP.Dispose()
         resizedBMP.Dispose()
 
+        Dim sendBmp As Bitmap = CType(bmpBackground.Clone(), Bitmap)
         If picScreen.InvokeRequired Then
-            picScreen.Invoke(New DoStuffDelegate(AddressOf picScreenDel), bmpBackground)
+            picScreen.Invoke(New DoStuffDelegate(AddressOf picScreenDel), sendBmp)
         Else
-            picScreen.Image = bmpBackground
-            picScreen.Refresh()
+            picScreenDel(sendBmp)
         End If
     End Sub
 
@@ -336,12 +421,12 @@ Public Class Form1
     '        Dim extra_width_for_palettes_etc As Integer = 134
     '        bmpBackground = New Bitmap(256 + extra_width_for_palettes_etc, 240 + 28)
     '    End If
-
+    '
     '    Dim VideoLine As Integer
     '    Dim LinePixel As Integer
     '    For VideoLine = 0 To 239
     '        For LinePixel = 0 To 255
-    '            'Dim Value As Byte = PPU.vBuffer(VideoLine * 256 + LinePixel)
+    '            'Dim Value: Byte = PPU.vBuffer(VideoLine * 256 + LinePixel)
     '            Dim Value As Byte = emNES.PPU.ppuRead(VideoLine * 256 + LinePixel)
     '            Select Case Value
     '                Case &H4, &H8, &HC, &H10, &H14, &H18, &H1C : Value = 0
@@ -359,53 +444,167 @@ Public Class Form1
 #End Region
 
     Private Sub DrawClear(ByVal p As Pixel)
-
         If IsNothing(bmpBackground) Then
             bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT)
         End If
+
+        Dim col As Color = Color.FromArgb(p.m_Pixel.a, p.m_Pixel.r, p.m_Pixel.g, p.m_Pixel.b)
 
         For i As Int32 = 0 To bmpBackground.Width - 1
             For j As Int32 = 0 To bmpBackground.Height - 1
-                bmpBackground.SetPixel(i, j, Color.FromArgb(p.m_Pixel.Signed))
+                bmpBackground.SetPixel(i, j, col)
             Next
         Next
 
+        Dim sendBmp As Bitmap = CType(bmpBackground.Clone(), Bitmap)
         If picScreen.InvokeRequired Then
-            picScreen.Invoke(New DoStuffDelegate(AddressOf picScreenDel), bmpBackground)
+            picScreen.Invoke(New DoStuffDelegate(AddressOf picScreenDel), sendBmp)
         Else
-            picScreen.Image = bmpBackground
-            picScreen.Refresh()
+            picScreenDel(sendBmp)
         End If
-
     End Sub
 
+    'Private Sub DrawSprite(ByVal x As Int32, ByVal y As Int32, ByVal ImageObj As GraphicsObjects.Sprite)
+    '    'fx = fxs;
+    '    'For (int32_t i = 0; i < sprite->width; i++, fx += fxm)
+    '    '{
+    '    '	fy = fys;
+    '    '	For (int32_t j = 0; j < sprite->height; j++, fy += fym)
+    '    '		Draw(x + i, y + j, sprite -> GetPixel(fx, fy));
+    '    '}
+    '
+    '    If IsNothing(bmpBackground) Then
+    '        bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT)
+    '    End If
+    '
+    '    For i As Int32 = 0 To ImageObj.Width - 1
+    '        For j As Int32 = 0 To ImageObj.Height - 1
+    '            bmpBackground.SetPixel(x + i, y + j, Color.FromArgb(ImageObj.GetPixel(i, j).m_Pixel.Signed))
+    '        Next
+    '    Next
+    '
+    '    If picScreen.InvokeRequired Then
+    '        picScreen.Invoke(New DoStuffDelegate(AddressOf picScreenDel), bmpBackground)
+    '    Else
+    '        picScreen.Image = bmpBackground
+    '        picScreen.Refresh()
+    '    End If
+    '
+    'End Sub
     Private Sub DrawSprite(ByVal x As Int32, ByVal y As Int32, ByVal ImageObj As GraphicsObjects.Sprite)
-        'fx = fxs;
-        'For (int32_t i = 0; i < sprite->width; i++, fx += fxm)
-        '{
-        '	fy = fys;
-        '	For (int32_t j = 0; j < sprite->height; j++, fy += fym)
-        '		Draw(x + i, y + j, sprite -> GetPixel(fx, fy));
-        '}
-
         If IsNothing(bmpBackground) Then
-            bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT)
+            bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT, PixelFormat.Format32bppArgb)
         End If
 
-        For i As Int32 = 0 To ImageObj.Width - 1
-            For j As Int32 = 0 To ImageObj.Height - 1
-                bmpBackground.SetPixel(x + i, y + j, Color.FromArgb(ImageObj.GetPixel(i, j).m_Pixel.Signed))
+        Dim w As Integer = CInt(ImageObj.Width)
+        Dim h As Integer = CInt(ImageObj.Height)
+
+        ' Clip source region to destination bitmap
+        If x + w <= 0 OrElse y + h <= 0 OrElse x >= bmpBackground.Width OrElse y >= bmpBackground.Height Then
+            ' nothing visible
+            Return
+        End If
+
+        ' compute effective copy rectangle
+        Dim srcX As Integer = 0
+        Dim srcY As Integer = 0
+        Dim dstX As Integer = x
+        Dim dstY As Integer = y
+        Dim copyW As Integer = w
+        Dim copyH As Integer = h
+
+        If dstX < 0 Then
+            srcX = -dstX
+            copyW -= srcX
+            dstX = 0
+        End If
+        If dstY < 0 Then
+            srcY = -dstY
+            copyH -= srcY
+            dstY = 0
+        End If
+        If dstX + copyW > bmpBackground.Width Then
+            copyW = bmpBackground.Width - dstX
+        End If
+        If dstY + copyH > bmpBackground.Height Then
+            copyH = bmpBackground.Height - dstY
+        End If
+        If copyW <= 0 OrElse copyH <= 0 Then Return
+
+        Dim bmpRect As New Rectangle(0, 0, bmpBackground.Width, bmpBackground.Height)
+        Dim bmpData As BitmapData = bmpBackground.LockBits(bmpRect, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb)
+        Try
+            Dim stride As Integer = bmpData.Stride
+            Dim basePtr As IntPtr = bmpData.Scan0
+
+            ' Row buffer reused to reduce allocations
+            Dim rowBytes(copyW * 4 - 1) As Byte
+
+            For row As Integer = 0 To copyH - 1
+                Dim srcRow As Integer = srcY + row
+                Dim dstRow As Integer = dstY + row
+
+                ' Fill rowBytes from sprite pixels
+                Dim jOff As Integer = 0
+                For col As Integer = 0 To copyW - 1
+                    Dim srcCol As Integer = srcX + col
+                    Dim px As GraphicsObjects.Pixel = ImageObj.GetPixel(srcCol, srcRow)
+                    rowBytes(jOff) = px.m_Pixel.b
+                    rowBytes(jOff + 1) = px.m_Pixel.g
+                    rowBytes(jOff + 2) = px.m_Pixel.r
+                    rowBytes(jOff + 3) = px.m_Pixel.a
+                    jOff += 4
+                Next
+
+                ' destination pointer for this row
+                Dim destOffset As Integer = (dstRow * stride) + (dstX * 4)
+                Dim destPtr As IntPtr = New IntPtr(basePtr.ToInt64() + destOffset)
+                Marshal.Copy(rowBytes, 0, destPtr, rowBytes.Length)
             Next
-        Next
+        Finally
+            bmpBackground.UnlockBits(bmpData)
+        End Try
 
+        ' send a cloned bitmap to UI thread to avoid concurrent access
+        Dim sendBmp As Bitmap = CType(bmpBackground.Clone(), Bitmap)
         If picScreen.InvokeRequired Then
-            picScreen.Invoke(New DoStuffDelegate(AddressOf picScreenDel), bmpBackground)
+            picScreen.Invoke(New DoStuffDelegate(AddressOf picScreenDel), sendBmp)
         Else
-            picScreen.Image = bmpBackground
-            picScreen.Refresh()
+            picScreenDel(sendBmp)
         End If
-
     End Sub
+
+    ' Debug helper — save a sprite to disk so you can inspect the PPU output directly.
+    Private Sub SaveSpriteToFile(spr As GraphicsObjects.Sprite, filepath As String)
+        Dim w As Integer = CInt(spr.Width)
+        Dim h As Integer = CInt(spr.Height)
+        Using bmp As New Bitmap(w, h, PixelFormat.Format32bppArgb)
+            Dim rect As New Rectangle(0, 0, w, h)
+            Dim data As BitmapData = bmp.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb)
+            Try
+                Dim stride As Integer = data.Stride
+                Dim basePtr As IntPtr = data.Scan0
+                Dim rowBytes(w * 4 - 1) As Byte
+                For y As Integer = 0 To h - 1
+                    Dim off As Integer = 0
+                    For x As Integer = 0 To w - 1
+                        Dim px = spr.GetPixel(x, y)
+                        rowBytes(off) = px.m_Pixel.b
+                        rowBytes(off + 1) = px.m_Pixel.g
+                        rowBytes(off + 2) = px.m_Pixel.r
+                        rowBytes(off + 3) = px.m_Pixel.a
+                        off += 4
+                    Next
+                    Dim destPtr As IntPtr = New IntPtr(basePtr.ToInt64() + (y * stride))
+                    Marshal.Copy(rowBytes, 0, destPtr, rowBytes.Length)
+                Next
+            Finally
+                bmp.UnlockBits(data)
+            End Try
+            bmp.Save(filepath, Imaging.ImageFormat.Png)
+        End Using
+    End Sub
+
     Private Delegate Sub DoStuffDelegate(bg As Bitmap)
     Sub picScreenDel(bg As Bitmap)
         picScreen.Image = bg
@@ -414,6 +613,135 @@ Public Class Form1
 
     Private Sub StopToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles StopToolStripMenuItem.Click
         running = False
+    End Sub
+
+    ' Diagnostic helpers - add inside the Form1 class
+
+    Private debugDumped As Boolean = False
+
+    ' Dump CHR range from the cartridge for inspection (safe, non-destructive)
+    Private Sub DumpCartCHR(startAddr As Integer, length As Integer)
+        If IsNothing(Cart) Then
+            Debug.WriteLine("DumpCartCHR: Cart is Nothing")
+            Return
+        End If
+        Dim sb As New System.Text.StringBuilder()
+        sb.AppendFormat("Cart CHR dump 0x{0:X4}..0x{1:X4}:", startAddr, startAddr + length - 1)
+        Debug.WriteLine(sb.ToString())
+        For i As Integer = 0 To length - 1
+            Dim addr As UShort = CUShort((startAddr + i) And &H3FFFUS)
+            Dim b As Byte = 0
+            Dim ok As Boolean = False
+            Try
+                ok = Cart.ppuRead(addr, b)
+            Catch ex As Exception
+                Debug.WriteLine("Cart.ppuRead threw: " & ex.Message)
+            End Try
+            Debug.WriteLine(String.Format("  0x{0:X4}: {1} 0x{2:X2}", addr, If(ok, "OK", "NO"), b))
+        Next
+    End Sub
+
+    ' Update DebugDumpPPUState to use em2C02 debug accessors
+    Private Sub DebugDumpPPUState()
+        Try
+            Dim spr As GraphicsObjects.Sprite = emNES.PPU.GetScreen()
+            Dim outPath As String = Path.Combine("./", "ppu_frame.png") 'Path.GetTempPath()
+            SaveSpriteToFile(spr, outPath)
+            Debug.WriteLine("Saved PPU frame to: " & outPath)
+
+            ' PPU accessors
+            Debug.WriteLine(String.Format("PPUControl.reg = 0x{0:X2}", emNES.PPU.Debug_PPUControlReg))
+            Debug.WriteLine(String.Format("PPUMask.reg    = 0x{0:X2}", emNES.PPU.Debug_PPUMaskReg))
+            Debug.WriteLine(String.Format("PPUStatus.reg  = 0x{0:X2}", emNES.PPU.Debug_PPUStatusReg))
+            Debug.WriteLine(String.Format("vram_addr.Reg = 0x{0:X4}", emNES.PPU.Debug_VramReg))
+            Debug.WriteLine(String.Format("tram_addr.Reg = 0x{0:X4}", emNES.PPU.Debug_TramReg))
+
+            ' Palette & nametable via accessors
+            Dim pal() As Byte = emNES.PPU.Debug_GetTblPalette()
+            Dim sb As New System.Text.StringBuilder()
+            sb.Append("tblPalette[0..31]:")
+            For i As Integer = 0 To Math.Min(31, pal.Length - 1)
+                sb.Append(" " & pal(i).ToString("X2"))
+            Next
+            Debug.WriteLine(sb.ToString())
+
+            Dim nt() As Byte = emNES.PPU.Debug_GetNameTableRow(0, 0, 64)
+            Dim sbn As New System.Text.StringBuilder()
+            sbn.Append("tblName(0)[0..63]:")
+            For i As Integer = 0 To nt.Length - 1
+                sbn.Append(" " & nt(i).ToString("X2"))
+            Next
+            Debug.WriteLine(sbn.ToString())
+
+            ' pattern memory copy (internal) - may be zero for CHR-ROM carts
+            Dim pat() As Byte = emNES.PPU.Debug_GetPatternBytes(0, 0, 16)
+            Dim sbp As New System.Text.StringBuilder()
+            sbp.Append("tblPattern(0)[0..15]:")
+            For i As Integer = 0 To pat.Length - 1
+                sbp.Append(" " & pat(i).ToString("X2"))
+            Next
+            Debug.WriteLine(sbp.ToString())
+
+            ' Determine background pattern base and first tile id
+            Dim bgPatternBase As Integer = If((emNES.PPU.Debug_PPUControlReg And &H10) <> 0, &H1000, &H0)
+            Debug.WriteLine(String.Format("Background pattern base = 0x{0:X4}", bgPatternBase))
+
+            Dim firstTile As Integer = If(nt.Length > 0, nt(0), 0)
+            Debug.WriteLine(String.Format("NameTable0 first tile id = 0x{0:X2} ({1})", firstTile, firstTile))
+
+            Dim tileAddr As Integer = bgPatternBase + (firstTile * 16)
+            Debug.WriteLine(String.Format("Pattern bytes for tile 0x{0:X2} start at PPU addr 0x{1:X4}", firstTile, tileAddr))
+
+            ' Dump CHR around the tile to see whether cartridge has non-zero data there
+            DumpCartCHR(tileAddr And &H1FFF, 64) ' show 64 bytes around the pattern address
+
+            ' Read pattern bytes via PPU.ppuRead (already done) and also call cartridge directly
+            Dim patternViaPpu As New System.Text.StringBuilder()
+            patternViaPpu.Append("ppuRead pattern[0..15]:")
+            For i As Integer = 0 To 15
+                Dim b As Byte = emNES.PPU.ppuRead(CUShort((tileAddr + i) And &H3FFFUS))
+                patternViaPpu.Append(" " & b.ToString("X2"))
+            Next
+            Debug.WriteLine(patternViaPpu.ToString())
+
+            ' Now probe Cartridge directly (if present) to see if it answers CHR reads
+            Try
+                If Not IsNothing(Cart) Then
+                    Debug.WriteLine("Cart object present.")
+                    Try
+                        Debug.WriteLine("Cart.ValidImage = " & Cart.ValidImage.ToString())
+                    Catch ex As Exception
+                        Debug.WriteLine("Cart.ValidImage not accessible: " & ex.Message)
+                    End Try
+
+                    For i As Integer = 0 To 15
+                        Dim addr As UShort = CUShort((tileAddr + i) And &H3FFFUS)
+                        Dim outb As Byte = 0
+                        Dim ok As Boolean = False
+                        Try
+                            ok = Cart.ppuRead(addr, outb)
+                        Catch ex As Exception
+                            Debug.WriteLine("Cart.ppuRead threw: " & ex.Message)
+                        End Try
+                        Debug.WriteLine(String.Format("Cart.ppuRead(0x{0:X4}) returned {1}, value 0x{2:X2}", addr, ok, outb))
+                    Next
+                Else
+                    Debug.WriteLine("Cart is Nothing")
+                End If
+            Catch ex As Exception
+                Debug.WriteLine("Cart probe failed: " & ex.Message)
+            End Try
+
+            ' Clock counter quick-check
+            Try
+                Debug.WriteLine("Clock Counter (approx): " & ClockCounter.ToString())
+            Catch
+            End Try
+
+            '    debugDumped = True
+        Catch ex As Exception
+            Debug.WriteLine("DebugDumpPPUState failed: " & ex.Message)
+        End Try
     End Sub
 
 End Class

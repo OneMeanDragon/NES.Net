@@ -28,7 +28,7 @@ Namespace NintendoEntertainmentSystem
         Public Controller(1) As Byte 'VB
 
         ' A count of how many clocks have passed
-        Private nSystemClockCounter As UInt32 = 0
+        Private nSystemClockCounter As UInt32 = 1
         ' Internal cache of the controller state
         Private controller_state(1) As Byte 'VB
 
@@ -135,7 +135,7 @@ Namespace NintendoEntertainmentSystem
             Cart.Reset()
             CPU.Reset()
             PPU.Reset()
-            nSystemClockCounter = 0
+            nSystemClockCounter = 1
             dma_page = &H0
             dma_addr = &H0
             dma_data = &H0
@@ -152,7 +152,7 @@ Namespace NintendoEntertainmentSystem
             '// The fastest clock frequency the digital system cares
             '// about Is equivalent to the PPU clock. So the PPU Is clocked
             '// each time this function Is called...
-            ppu.clock()
+            PPU.Clock()
 #If APU_IMPLEMENTED >= 1 Then
             '// ...also clock the APU
             APU.clock()
