@@ -215,7 +215,8 @@ Namespace NintendoEntertainmentSystem
             '// vertical blanking period has been entered. If it has, we need
             '// to send that irq to the CPU.
             If ppu.nmi Then
-                ppu.nmi = False
+                Debug.WriteLine(String.Format("========== NMI TRIGGERED at scanline {0} ==========", PPU.Debug_Scanline))
+                PPU.nmi = False
                 CPU.NMI()
             End If
             '// Check if cartridge is requesting IRQ

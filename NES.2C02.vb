@@ -259,6 +259,13 @@ Namespace NintendoEntertainmentSystem
         Public nmi As Boolean = False
         Public scanline_trigger As Boolean = False
 
+        Private FrameNumber As Integer = 0
+
+        Public ReadOnly Property Debug_Scanline As Int16
+            Get
+                Return scanline
+            End Get
+        End Property
 
         ' Expose control/mask/status as read-only bytes for diagnostics
         Public ReadOnly Property Debug_PPUControlReg As Byte
@@ -1312,63 +1319,76 @@ Namespace NintendoEntertainmentSystem
 
         Public Sub cpuWrite(ByVal addr As UInt16, ByVal data As Byte)
             Select Case addr
-                Case &H0US  ' PPUCTRL ($2000)
+                Case &H0US  ' $2000 - PPUCTRL
                     PPUControl.Reg = data
                     tram_addr.NameTable_X = PPUControl.Nametable_x
                     tram_addr.NameTable_Y = PPUControl.Nametable_y
-                    Debug.WriteLine(String.Format("PPU Control write: 0x{0:X2}, NT_X={1}, NT_Y={2}, NMI={3}",
-                                  data, tram_addr.NameTable_X, tram_addr.NameTable_Y, PPUControl.Enable_nmi))
+                    Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2000 write: 0x{2:X2} (NT_X={3}, NT_Y={4}, NMI={5})",
+                                          scanline, cycle, data,
+                                          tram_addr.NameTable_X, tram_addr.NameTable_Y,
+                                          PPUControl.Enable_nmi))
                     Exit Select
-                Case &H1US
+
+                Case &H1US  ' $2001 - PPUMASK
                     PPUMask.Reg = data
-                    Debug.WriteLine(String.Format("PPU: CPU write $2001 = 0x{0:X2}", data))
+                    Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2001 write: 0x{2:X2} (BG={3}, SPR={4})",
+                                          scanline, cycle, data,
+                                          PPUMask.Render_background, PPUMask.Render_sprites))
                     Exit Select
-                Case &H2US
+
+                Case &H2US  ' $2002 - PPUSTATUS (not writable)
                     Exit Select
-                Case &H3US
+
+                Case &H3US  ' $2003 - OAMADDR
                     oam_addr = data
                     Exit Select
-                Case &H4US
+
+                Case &H4US  ' $2004 - OAMDATA
                     OAM(oam_addr \ 4).SetByteAt(oam_addr, data)
                     Exit Select
-                Case &H5US  ' PPUSCROLL ($2005)
+
+                Case &H5US  ' $2005 - PPUSCROLL *** THIS IS THE CRITICAL ONE ***
                     If address_latch = 0 Then
                         fine_x = data And &H7UI
                         tram_addr.Coarse_X = data >> 3
                         address_latch = 1
-                        Debug.WriteLine(String.Format("PPU Scroll X write: data=0x{0:X2}, fine_x={1}, coarse_x={2}",
-                                      data, fine_x, tram_addr.Coarse_X))
+                        Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] *** SCROLL X ***: data=0x{2:X2}, fine_x={3}, coarse_x={4}",
+                                              scanline, cycle, data, fine_x, tram_addr.Coarse_X))
                     Else
                         tram_addr.Fine_Y = data And &H7UI
                         tram_addr.Coarse_Y = data >> 3
                         address_latch = 0
-                        Debug.WriteLine(String.Format("PPU Scroll Y write: data=0x{0:X2}, fine_y={1}, coarse_y={2}",
-                                      data, tram_addr.Fine_Y, tram_addr.Coarse_Y))
+                        Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] *** SCROLL Y ***: data=0x{2:X2}, fine_y={3}, coarse_y={4}",
+                                              scanline, cycle, data, tram_addr.Fine_Y, tram_addr.Coarse_Y))
                     End If
                     Exit Select
-                Case &H6US
+
+                Case &H6US  ' $2006 - PPUADDR
                     If address_latch = 0 Then
                         tram_addr.Reg = MathHelpers.SafeShiftLeft16((data And &H3FUS), 8) Or (tram_addr.Reg And &HFFUS)
                         address_latch = 1
                     Else
                         tram_addr.Reg = (tram_addr.Reg And &HFF00US) Or data
-                        vram_addr = tram_addr
+                        vram_addr.Reg = tram_addr.Reg
                         address_latch = 0
                     End If
-                    Debug.WriteLine(String.Format("PPU: CPU write $2006  (set vram_addr = 0x{0:X4})", vram_addr.Reg))
+                    Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2006 write: vram_addr=0x{2:X4}, tram_addr=0x{3:X4}",
+                                          scanline, cycle, vram_addr.Reg, tram_addr.Reg))
                     Exit Select
-                Case &H7US
-                    ' Write to VRAM via PPU (this is how CPU writes palette/nametable/pattern)
-                    Debug.WriteLine(String.Format("PPU: CPU write $2007 -> vram 0x{0:X4} = 0x{1:X2}", vram_addr.Reg, data))
+
+                Case &H7US  ' $2007 - PPUDATA
+                    Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2007 write: addr=0x{2:X4}, data=0x{3:X2}",
+                                          scanline, cycle, vram_addr.Reg, data))
                     ppuWrite(vram_addr.Reg, data)
                     If PPUControl.Increment_mode Then
-                        vram_addr.Reg = vram_addr.Reg + 32 '31
+                        vram_addr.Reg = vram_addr.Reg + 32
                     Else
                         vram_addr.Reg = vram_addr.Reg + 1
                     End If
                     Exit Select
             End Select
         End Sub
+
         ' Communications with the PPU bus
         Public Function ppuRead(ByVal addr1 As UInt16, ByVal Optional rdOnly As Boolean = False) As Byte
             Dim data As Byte = &H0UI
@@ -1511,10 +1531,20 @@ Namespace NintendoEntertainmentSystem
         End Sub
 
         Public Sub DebugScrollState()
-            Debug.WriteLine(String.Format("Frame: vram Y={0}, Coarse_Y={1}, Fine_Y={2}, NT_Y={3}",
-                                  vram_addr.Reg, vram_addr.Coarse_Y, vram_addr.Fine_Y, vram_addr.NameTable_Y))
-            Debug.WriteLine(String.Format("Frame: tram Y={0}, Coarse_Y={1}, Fine_Y={2}, NT_Y={3}",
-                                  tram_addr.Reg, tram_addr.Coarse_Y, tram_addr.Fine_Y, tram_addr.NameTable_Y))
+            Debug.WriteLine("=".PadRight(80, "="))
+            Debug.WriteLine(String.Format("NEW FRAME START (scanline={0}, cycle={1})", scanline, cycle))
+            Debug.WriteLine(String.Format("  vram_addr: 0x{0:X4} (Coarse_X={1:D2}, Coarse_Y={2:D2}, Fine_Y={3}, NT_X={4}, NT_Y={5})",
+                                  vram_addr.Reg, vram_addr.Coarse_X, vram_addr.Coarse_Y,
+                                  vram_addr.Fine_Y, vram_addr.NameTable_X, vram_addr.NameTable_Y))
+            Debug.WriteLine(String.Format("  tram_addr: 0x{0:X4} (Coarse_X={1:D2}, Coarse_Y={2:D2}, Fine_Y={3}, NT_X={4}, NT_Y={5})",
+                                  tram_addr.Reg, tram_addr.Coarse_X, tram_addr.Coarse_Y,
+                                  tram_addr.Fine_Y, tram_addr.NameTable_X, tram_addr.NameTable_Y))
+            Debug.WriteLine(String.Format("  fine_x: {0}", fine_x))
+            Debug.WriteLine(String.Format("  PPUControl: 0x{0:X2} (NMI={1}, BG_Pattern={2})",
+                                  PPUControl.Reg, PPUControl.Enable_nmi, PPUControl.Pattern_background))
+            Debug.WriteLine(String.Format("  PPUMask: 0x{0:X2} (Render_BG={1}, Render_SPR={2})",
+                                  PPUMask.Reg, PPUMask.Render_background, PPUMask.Render_sprites))
+            Debug.WriteLine("=".PadRight(80, "="))
         End Sub
 
         Public Sub Clock()
@@ -1606,6 +1636,8 @@ Namespace NintendoEntertainmentSystem
                 End If
                 '-----------------------------
                 If scanline = -1 AndAlso cycle = 1 Then
+                    FrameNumber += 1
+                    Debug.WriteLine(String.Format("*** FRAME {0} ***", FrameNumber))
                     DebugScrollState()
 
                     ' UNCOMMENT THESE LINES TO TEST:
@@ -1628,6 +1660,18 @@ Namespace NintendoEntertainmentSystem
                         sprite_shifter_pattern_lo(i) = 0
                         sprite_shifter_pattern_hi(i) = 0
                     Next
+                End If
+                '-----------------------------
+                'Temp force scrolls
+                If scanline = -1 AndAlso cycle = 280 Then  ' During vertical blanking
+                    ' FORCE SCROLL TO ZERO - TEMPORARY TEST
+                    Debug.WriteLine("!!! FORCING SCROLL TO 0,0 !!!")
+                    tram_addr.Coarse_X = 0
+                    tram_addr.Coarse_Y = 0
+                    tram_addr.Fine_Y = 0
+                    tram_addr.NameTable_X = 0
+                    tram_addr.NameTable_Y = 0
+                    fine_x = 0
                 End If
                 '-----------------------------
                 If (cycle >= 2 AndAlso cycle < 258) OrElse (cycle >= 321 AndAlso cycle < 338) Then
