@@ -29,6 +29,12 @@ Namespace NintendoEntertainmentSystem
 
         ' A count of how many clocks have passed
         Private nSystemClockCounter As UInt32 = 1
+        Public ReadOnly Property Debug_SystemClockCounter As UInteger
+            Get
+                Return nSystemClockCounter
+            End Get
+        End Property
+
         ' Internal cache of the controller state
         Private controller_state(1) As Byte 'VB
 
@@ -45,6 +51,9 @@ Namespace NintendoEntertainmentSystem
         Private dAudioGlobalTime As Double = 0.0
         Private dAudioTimePerNESClock As Double = 0.0
         Private dAudioTimePerSystemSample As Double = 0.0F
+
+        ' DEBUG STUFF
+        Public cpuInstructionCount As UInteger = 0
 
         Public Sub New()
             'Connect to the CPU
@@ -81,6 +90,15 @@ Namespace NintendoEntertainmentSystem
                 'GOBACK
                 cpuRam(addr And &H7FFUS) = data ' this should probably be (& 2047) since thats the max buffer size
             ElseIf addr >= &H2000US AndAlso addr <= &H3FFFUS Then
+                Static writeCount As Integer = 0
+                writeCount += 1
+                ' Only log first 100 writes to avoid spam
+                If writeCount <= 100 Then
+                    Dim msg As String = String.Format("PPU Write #{0}: ${1:X4} (reg ${2:X1}) = 0x{3:X2}",
+                                              writeCount, addr, addr And &H7, data)
+                    Debug.WriteLine(msg)
+                End If
+
                 '// PPU Address range. The PPU only has 8 primary registers
                 '// And these are repeated throughout this range. We can
                 '// use bitwise And operation to mask the bottom 3 bits, 
@@ -216,9 +234,17 @@ Namespace NintendoEntertainmentSystem
             '// vertical blanking period has been entered. If it has, we need
             '// to send that irq to the CPU.
             If ppu.nmi Then
-                Debug.WriteLine(String.Format("========== NMI TRIGGERED at scanline {0} ==========", PPU.Debug_Scanline))
+                Static nmiCount As Integer = 0
+                nmiCount += 1
+
+                Debug.WriteLine(String.Format("========== NMI #{0} at scanline {1}, PC=${2:X4} ==========",
+                                  nmiCount, PPU.Debug_Scanline, CPU.Debug_PC))
+
                 PPU.nmi = False
                 CPU.NMI()
+
+                ' After NMI, check where we jumped to
+                Debug.WriteLine(String.Format("           After NMI: PC=${0:X4}", CPU.Debug_PC))
             End If
             '// Check if cartridge is requesting IRQ
             If Cart.GetMapper.irqState() Then

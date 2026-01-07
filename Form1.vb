@@ -29,6 +29,11 @@ Public Class Form1
     Public Shared running As Boolean = False
     Private Shared bmpBackground As Bitmap 'Figure out a way to hold that ratio
 
+    Private ppuWriteCount As Integer = 0
+    Private lastPPUWrites As New List(Of String)
+    Private lastPC As UInt16 = 0
+    Private pcSameCount As Integer = 0
+    Private pcChangeCount As Integer = 0
 
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         ' Initalize Everything that we need
@@ -134,32 +139,29 @@ Public Class Form1
         If running Then Return
         If IsNothing(Cart) Then
             Cart = New clsCartridge(dlgOpenFile.FileName)
-            If Cart.ValidImage Then
-                emNES.Reset()
-                emNES.PPU.DiagnoseAttributeTable()
-                ' quick test: enable background+sprites (mask bit 3 = render_background, bit 4 = render_sprites -> 0x18)
-                '    emNES.PPU.Debug_SetPPUMask(&H18)
-                ' Fill palette and nametables so the PPU has visible data immediately
-                '    emNES.PPU.Debug_FillPaletteSequential()
-                '    emNES.PPU.Debug_FillNameTables(&H0) '24) ' sample tile id used earlier
-            End If
         Else
             Cart.Reset()
             Cart.LoadCartridge(dlgOpenFile.FileName)
-            If Cart.ValidImage Then
-                emNES.Reset()
-            End If
         End If
 
         If Not Cart.ValidImage Then
             Return
         End If
-        'Create Thread for Run()
+
+        ' Reset the system
+        emNES.Reset()
+        DiagnoseReset()
+
+        ' DON'T call diagnostics here - nothing has run yet!
+        ' Instead, set a flag to call it after some frames
+        debugDumped = False
+        framesUntilDiagnostic = 60  ' Wait 60 frames (1 second at 60fps)
+
+        ' Start the emulation thread
         If Not IsNothing(VideoThread) Then : VideoThread = Nothing : End If
         VideoThread = New System.Threading.Thread(AddressOf Run)
         VideoThread.IsBackground = True
         VideoThread.Start()
-
     End Sub
     Public Shared nSelectedPalette As UInteger = 0
 
@@ -180,69 +182,139 @@ Public Class Form1
         Dim QueuePatterns As Boolean = True
         Dim QueuePalettes As Boolean = True
 
+        Dim frameCount As Integer = 0
+
         While running
             CapTimer.StartMe()
             frame_start = Environment.TickCount
-
-            Dim cpuCycles As Integer = 0
-            Dim vblankCycles As Integer = 0
-            Dim inVBlank As Boolean = False
 
             emNES.PPU.frame_complete = False
             Do
                 emNES.Clock()
                 ClockCounter += 1
-
-                If (ClockCounter Mod 3) = 0 Then
-                    cpuCycles += 1
-                    If emNES.PPU.Debug_Scanline >= 241 AndAlso emNES.PPU.Debug_Scanline < 261 Then
-                        vblankCycles += 1
-                    End If
-                End If
-
                 If running = False Then
                     emNES.Reset()
                     Exit While
-                    'Exit Do
                 End If
             Loop While Not emNES.PPU.frame_complete
-            Debug.WriteLine(String.Format("Frame: Total CPU cycles={0}, VBlank CPU cycles={1}",
-                                  cpuCycles, vblankCycles))
 
-            ' Completed Frame
-            'DebugDumpPPUState()
-            'DumpPPUFullDebug()
-
-            ' Reset the frame
             emNES.PPU.frame_complete = False
 
+            frameCount += 1
+
+            ' Run diagnostic after some frames have elapsed
+            If frameCount = 60 AndAlso Not diagnosticRun Then
+                Debug.WriteLine("")
+                Debug.WriteLine("=".PadRight(80, "="))
+                Debug.WriteLine("DIAGNOSTIC AFTER 60 FRAMES")
+                Debug.WriteLine("=".PadRight(80, "="))
+
+                ' CPU State
+                Debug.WriteLine("")
+                Debug.WriteLine("--- CPU STATE ---")
+                Debug.WriteLine(String.Format("CPU Clock Cycles: {0:N0}", emNES.CPU.clock_count))
+
+                ' Calculate approximate instructions (avg 3-4 cycles per instruction)
+                Dim approxInstructions As UInteger = emNES.CPU.clock_count \ 4
+                Debug.WriteLine(String.Format("Approx Instructions: ~{0:N0}", approxInstructions))
+
+                ' Expected for 60 frames at 1.79 MHz:
+                ' 60 frames * 29,780 CPU cycles per frame = ~1,786,800 cycles
+                Dim expected As UInteger = 1786800
+                Dim percentage As Double = (emNES.CPU.clock_count / expected) * 100
+                Debug.WriteLine(String.Format("Expected cycles: ~{0:N0} (actual is {1:F1}%)", expected, percentage))
+
+                Debug.WriteLine(String.Format("Program Counter: ${0:X4}", emNES.CPU.Debug_PC))
+                Debug.WriteLine(String.Format("Stack Pointer: ${0:X2}", emNES.CPU.Debug_SP))
+
+                ' Analysis
+                If emNES.CPU.clock_count > 1000000 Then
+                    Debug.WriteLine("/ CPU is running normally")
+                ElseIf emNES.CPU.clock_count > 10000 Then
+                    Debug.WriteLine("! CPU is running but SLOWER than expected")
+                Else
+                    Debug.WriteLine("x CPU is NOT running properly!")
+                    Debug.WriteLine("  Possible causes:")
+                    Debug.WriteLine("  - CPU is stuck in a loop")
+                    Debug.WriteLine("  - CPU.Clock() not being called")
+                    Debug.WriteLine("  - DMA transfer is blocking CPU")
+                End If
+
+                ' PPU State
+                Debug.WriteLine("")
+                Debug.WriteLine("--- PPU STATE ---")
+                Debug.WriteLine(String.Format("PPU Control: ${0:X2} (NMI enabled: {1})",
+                                              emNES.PPU.Debug_PPUControlReg,
+                                              (emNES.PPU.Debug_PPUControlReg And &H80) <> 0))
+                Debug.WriteLine(String.Format("PPU Mask: ${0:X2} (BG: {1}, SPR: {2})",
+                                              emNES.PPU.Debug_PPUMaskReg,
+                                              (emNES.PPU.Debug_PPUMaskReg And &H8) <> 0,
+                                              (emNES.PPU.Debug_PPUMaskReg And &H10) <> 0))
+                Debug.WriteLine(String.Format("PPU Status: ${0:X2}", emNES.PPU.Debug_PPUStatusReg))
+                Debug.WriteLine(String.Format("VRAM addr: ${0:X4}", emNES.PPU.Debug_VramReg))
+                Debug.WriteLine(String.Format("TRAM addr: ${0:X4}", emNES.PPU.Debug_TramReg))
+
+                ' Memory State
+                Debug.WriteLine("")
+                Debug.WriteLine("--- MEMORY STATE ---")
+                emNES.PPU.DiagnoseAttributeTable()
+
+                ' System State
+                Debug.WriteLine("")
+                Debug.WriteLine("--- SYSTEM STATE ---")
+                Debug.WriteLine(String.Format("System Clock Counter: {0:N0}", emNES.Debug_SystemClockCounter))
+                Debug.WriteLine(String.Format("DMA Active: {0}", emNES.dma_transfer))
+
+                Debug.WriteLine("=".PadRight(80, "="))
+                diagnosticRun = True
+            End If
+
             frame_end = Environment.TickCount
-            Debug.WriteLine("NES Frame completed in: " & ((frame_end - frame_start) / 1000).ToString() & " Seconds.")
-            'Attempt to draw to the screen picture box
+
+            'check PC every 10 frames:
+            If frameCount Mod 10 = 0 Then
+                Dim currentPC As UInt16 = emNES.CPU.Debug_PC
+                If currentPC = lastPC Then
+                    pcSameCount += 1
+                Else
+                    pcChangeCount += 1
+                    lastPC = currentPC
+                End If
+
+                If frameCount = 60 Then
+                    Debug.WriteLine(String.Format("PC Analysis: Changed {0} times, Same {1} times",
+                                      pcChangeCount, pcSameCount))
+                    If pcChangeCount < 2 Then
+                        Debug.WriteLine("✗ PC is STUCK - CPU is in infinite loop or not executing!")
+                    End If
+                End If
+            End If
+            ' Only log every 60th frame to reduce spam
+            If frameCount Mod 60 = 0 Then
+                Debug.WriteLine(String.Format("Frame {0} completed in: {1:F3}s",
+                                         frameCount, (frame_end - frame_start) / 1000.0))
+            End If
+
             '// Draw rendered output ========================================================
 
             ' Draw the Patterns
-            If QueuePatterns Then
-                DrawSprite(256 + 4, 2, emNES.PPU.GetPatternTable(0, nSelectedPalette))                  ' Working (would like to resize these to 1/2 scale to make room on the screen)
-                DrawSprite(256 + 4 + (128 + 2), 2, emNES.PPU.GetPatternTable(1, nSelectedPalette))      ' Working
-                ' Drawing half scaled
-                'DrawToScale(256 + 4, 2, emNES.PPU.GetPatternTable(0, nSelectedPalette), 0.5)        'Also working, bitmap scaleing sucks though lol 0.5 = (128x128)=64x64
-                'DrawToScale(256 + 6 + 64, 2, emNES.PPU.GetPatternTable(1, nSelectedPalette), 0.5)   'Also working, bitmap scaleing sucks though lol 0.5 = (128x128)=64x64
+            If QueuePatterns AndAlso frameCount Mod 30 = 0 Then
+                DrawSprite(256 + 4, 2, emNES.PPU.GetPatternTable(0, nSelectedPalette))
+                DrawSprite(256 + 4 + (128 + 2), 2, emNES.PPU.GetPatternTable(1, nSelectedPalette))
                 QueuePatterns = False
             End If
 
             Const nSwatchSize As Integer = 6
-            ' Draw the selection reticule around the selected [to hell with line drawing]
-            'If we changed selection fill in the old rect
+            ' Handle palette selection changes
             If n_PrevSelectedPallet <> nSelectedPalette Then
-                FillRect((256 + 4) + 1 + (n_PrevSelectedPallet * (nSwatchSize * 5)), 132, (nSwatchSize * 4), nSwatchSize + 2, PixelColors.DARK_GREY) 'Set to previous color
+                FillRect((256 + 4) + 1 + (n_PrevSelectedPallet * (nSwatchSize * 5)), 132, (nSwatchSize * 4), nSwatchSize + 2, PixelColors.DARK_GREY)
                 n_PrevSelectedPallet = nSelectedPalette
-                QueuePatterns = True 'update the paterns with the new palette
+                QueuePatterns = True
                 QueuePalettes = True
             End If
+
             If QueuePalettes Then
                 FillRect((256 + 4) + 1 + (nSelectedPalette * (nSwatchSize * 5)), 132, (nSwatchSize * 4), nSwatchSize + 2, PixelColors.CYAN)
-                ' Draw the Palettes under all that
                 For p As Integer = 0 To 7
                     For s As Integer = 0 To 3
                         FillRect((256 + 4) + 1 + p * (nSwatchSize * 5) + s * nSwatchSize, 133, nSwatchSize, nSwatchSize, emNES.PPU.GetColorFromPaletteRam(p, s))
@@ -251,36 +323,10 @@ Public Class Form1
                 QueuePalettes = False
             End If
 
-            If Not debugDumped Then
-                'emNES.PPU.Debug_FillPaletteSequential()
-                'emNES.PPU.Debug_FillNameTables(&H0)  ' use tile 0x00 which you confirmed contains CHR
-                'emNES.PPU.Debug_SetPPUMask(&H18)      ' enable background + sprites
-                DebugDumpPPUState()
-                debugDumped = True
-            End If
-            ' Temporary debug: force visible PPU output (remove after verification)
-            'If Not debugDumped Then
-            '    emNES.PPU.Debug_FillPaletteSequential()
-            '    emNES.PPU.Debug_FillNameTables(&H0)  ' use tile 0x00 which you confirmed contains CHR
-            '    emNES.PPU.Debug_SetPPUMask(&H18)      ' enable background + sprites
-            '    debugDumped = True
-            'End If
+            ' Render the screen every frame
+            DrawSprite(2, 2, emNES.PPU.GetScreen())
 
-            ' Render the screen
-            DrawSprite(2, 2, emNES.PPU.GetScreen()) 'not working
-
-
-            '----------------------
-            'For i As Integer = 0 To 4
-            '   For j As Integer = 0 To 4
-            '       Dim id As Byte = emNES.PPU.tblName(0, i * 32 + j)
-            '       DrawSprite(i * 16, j * 16, emNES.PPU.GetPatternTable(0, nSelectedPalette))
-            '   Next
-            'Next
-
-
-
-            Debug.WriteLine("FPS:" & CapTimer.CalculateFPS().ToString())
+            Debug.WriteLine(String.Format("FPS: {0:F2}", CapTimer.CalculateFPS()))
             'Sleep Frames or not (Not needed ever since adding the draw procedure, was running 900FPS without it, now its lucky to make 3FPS at times lol, though my calculation in the timer is likely wrong aswell)
             'Dim frameticks As UInteger = CapTimer.GetDelta()
             'If frameticks < FRAMERATE_LOCK Then 
@@ -603,6 +649,46 @@ Public Class Form1
         End Try
     End Sub
 
+    Private Sub DiagnoseReset()
+        Debug.WriteLine("=== RESET VECTOR DIAGNOSTIC ===")
+
+        ' Read reset vector from $FFFC/$FFFD
+        Dim resetLow As Byte = emNES.cpuRead(&HFFFCUS)
+        Dim resetHigh As Byte = emNES.cpuRead(&HFFFDUS)
+        Dim resetVector As UInt16 = CUShort((resetHigh << 8) Or resetLow)
+
+        Debug.WriteLine(String.Format("Reset Vector: $FFFC=${0:X2}, $FFFD=${1:X2} → Start at ${2:X4}",
+                                  resetLow, resetHigh, resetVector))
+
+        ' Read NMI vector
+        Dim nmiLow As Byte = emNES.cpuRead(&HFFFAUS)
+        Dim nmiHigh As Byte = emNES.cpuRead(&HFFFBUS)
+        Dim nmiVector As UInt16 = CUShort((nmiHigh << 8) Or nmiLow)
+
+        Debug.WriteLine(String.Format("NMI Vector: $FFFA=${0:X2}, $FFFB=${1:X2} → Handler at ${2:X4}",
+                                  nmiLow, nmiHigh, nmiVector))
+
+        ' Read IRQ vector
+        Dim irqLow As Byte = emNES.cpuRead(&HFFFEUS)
+        Dim irqHigh As Byte = emNES.cpuRead(&HFFFFUS)
+        Dim irqVector As UInt16 = CUShort((irqHigh << 8) Or irqLow)
+
+        Debug.WriteLine(String.Format("IRQ Vector: $FFFE=${0:X2}, $FFFF=${1:X2} → Handler at ${2:X4}",
+                                  irqLow, irqHigh, irqVector))
+
+        ' Show first 32 bytes of reset code
+        Debug.WriteLine("")
+        Debug.WriteLine("First 32 bytes at reset vector:")
+        For i As Integer = 0 To 31
+            Dim b As Byte = emNES.cpuRead(CUShort(resetVector + i))
+            Debug.Write(String.Format("{0:X2} ", b))
+            If (i + 1) Mod 16 = 0 Then Debug.WriteLine("")
+        Next
+        Debug.WriteLine("")
+
+        Debug.WriteLine("=== END RESET DIAGNOSTIC ===")
+    End Sub
+
     Private Sub DiagnoseNMI()
         ' Read NMI vector from $FFFA/$FFFB
         Dim nmiLow As Byte = emNES.cpuRead(&HFFFAUS)
@@ -635,6 +721,8 @@ Public Class Form1
     ' Diagnostic helpers - add inside the Form1 class
 
     Private debugDumped As Boolean = False
+    Private framesUntilDiagnostic As Integer = -1
+    Private diagnosticRun As Boolean = False
 
     ' Dump CHR range from the cartridge for inspection (safe, non-destructive)
     Private Sub DumpCartCHR(startAddr As Integer, length As Integer)

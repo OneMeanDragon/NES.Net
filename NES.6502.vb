@@ -75,6 +75,8 @@
         Private lookup(TOTAL_INSTRUCTIONS) As INSTRUCTIONS
 #End Region
 
+        Public InstructionCount As UInteger = 0
+
 #Region "Construction - Destruction"
         Private Sub InitializeHandler(index As Integer, name As String, Fun1 As OpCodeDelegation, Fun2 As AddressModeDelegation, cycles As Integer)
             With lookup(index)
@@ -1197,6 +1199,47 @@
         Public opcode As Byte = &H0
         Public cycles As Byte = &H0
         Public clock_count As UInt32 = 0UI
+
+        Public ReadOnly Property Debug_PC As UInt16
+            Get
+                Return PC  ' Change "pc" to whatever you named your program counter
+            End Get
+        End Property
+
+        Public ReadOnly Property Debug_SP As Byte
+            Get
+                Return StackPointer  ' Change "stkp" to whatever you named your stack pointer
+            End Get
+        End Property
+
+        Public ReadOnly Property Debug_A As Byte
+            Get
+                Return A  ' Change "a" to whatever you named your accumulator
+            End Get
+        End Property
+
+        Public ReadOnly Property Debug_X As Byte
+            Get
+                Return X  ' Change "x" to whatever you named your X register
+            End Get
+        End Property
+
+        Public ReadOnly Property Debug_Y As Byte
+            Get
+                Return Y  ' Change "y" to whatever you named your Y register
+            End Get
+        End Property
+
+        Public ReadOnly Property Debug_Status As Byte
+            Get
+                Return Status  ' Change "status" to whatever you named your status register
+            End Get
+        End Property
+        Public ReadOnly Property Debug_ClockCount As UInteger
+            Get
+                Return clock_count
+            End Get
+        End Property
 
         Public Function GetFlag(ByVal f As FLAGS6502) As Byte
             If (Status And f) > 0 Then
