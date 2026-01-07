@@ -136,6 +136,7 @@ Public Class Form1
             Cart = New clsCartridge(dlgOpenFile.FileName)
             If Cart.ValidImage Then
                 emNES.Reset()
+                emNES.PPU.DiagnoseAttributeTable()
                 ' quick test: enable background+sprites (mask bit 3 = render_background, bit 4 = render_sprites -> 0x18)
                 '    emNES.PPU.Debug_SetPPUMask(&H18)
                 ' Fill palette and nametables so the PPU has visible data immediately
@@ -181,18 +182,37 @@ Public Class Form1
 
         While running
             CapTimer.StartMe()
-
             frame_start = Environment.TickCount
+
+            Dim cpuCycles As Integer = 0
+            Dim vblankCycles As Integer = 0
+            Dim inVBlank As Boolean = False
+
             emNES.PPU.frame_complete = False
             Do
                 emNES.Clock()
                 ClockCounter += 1
+
+                If (ClockCounter Mod 3) = 0 Then
+                    cpuCycles += 1
+                    If emNES.PPU.Debug_Scanline >= 241 AndAlso emNES.PPU.Debug_Scanline < 261 Then
+                        vblankCycles += 1
+                    End If
+                End If
+
                 If running = False Then
                     emNES.Reset()
                     Exit While
-                    Exit Do
+                    'Exit Do
                 End If
             Loop While Not emNES.PPU.frame_complete
+            Debug.WriteLine(String.Format("Frame: Total CPU cycles={0}, VBlank CPU cycles={1}",
+                                  cpuCycles, vblankCycles))
+
+            ' Completed Frame
+            'DebugDumpPPUState()
+            'DumpPPUFullDebug()
+
             ' Reset the frame
             emNES.PPU.frame_complete = False
 
@@ -323,49 +343,6 @@ Public Class Form1
 
     End Sub
 
-    'Private Sub DrawToScale(ByVal x As UInt32, ByVal y As UInt32, ByVal objSprite As Sprite, Optional ByVal scale As Single = 1.0F)
-    '    Dim tempBMP As Bitmap
-    '    If objSprite.Height > 0 AndAlso objSprite.Width > 0 Then
-    '        If scale = 1.0F Then 'send to the normal draw were drawing at full scale
-    '            DrawSprite(x, y, objSprite)
-    '            Return
-    '        End If
-    '        Dim h As Integer = objSprite.Height
-    '        Dim w As Integer = objSprite.Width
-    '        tempBMP = New Bitmap(w, h)
-    '    Else
-    '        Return
-    '    End If
-    '    'Draw to the Temp BMP
-    '    For i As Integer = 0 To tempBMP.Width - 1
-    '        For j As Integer = 0 To tempBMP.Width - 1
-    '            tempBMP.SetPixel(i, j, Color.FromArgb(objSprite.GetPixel(i, j).m_Pixel.Signed))
-    '        Next
-    '    Next
-    '    'Resize the newly made bmp
-    '    Dim resizedBMP As New Bitmap(tempBMP, (objSprite.Width * scale), (objSprite.Height * scale))
-    '    ' Draw the new Image to the screen buffer
-    '    If IsNothing(bmpBackground) Then
-    '        bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT)
-    '    End If
-    '
-    '    For i As Int32 = 0 To resizedBMP.Width - 1
-    '        For j As Int32 = 0 To resizedBMP.Height - 1
-    '            bmpBackground.SetPixel(x + i, y + j, resizedBMP.GetPixel(i, j))
-    '        Next
-    '    Next
-    '
-    '    'Dispose our shit
-    '    tempBMP.Dispose()
-    '    resizedBMP.Dispose()
-    '
-    '    If picScreen.InvokeRequired Then
-    '        picScreen.Invoke(New DoStuffDelegate(AddressOf picScreenDel), bmpBackground)
-    '    Else
-    '        picScreen.Image = bmpBackground
-    '        picScreen.Refresh()
-    '    End If
-    'End Sub
     Private Sub DrawToScale(ByVal x As UInt32, ByVal y As UInt32, ByVal objSprite As Sprite, Optional ByVal scale As Single = 1.0F)
         Dim tempBMP As Bitmap
         If objSprite.Height > 0 AndAlso objSprite.Width > 0 Then
@@ -415,34 +392,6 @@ Public Class Form1
         End If
     End Sub
 
-#Region "bNES DrawScreen [dosent work here]"
-    'Private Sub TestScreenDraw(ByVal x As UInt32, ByVal y As UInt32)
-    '    If IsNothing(bmpBackground) Then
-    '        Dim extra_width_for_palettes_etc As Integer = 134
-    '        bmpBackground = New Bitmap(256 + extra_width_for_palettes_etc, 240 + 28)
-    '    End If
-    '
-    '    Dim VideoLine As Integer
-    '    Dim LinePixel As Integer
-    '    For VideoLine = 0 To 239
-    '        For LinePixel = 0 To 255
-    '            'Dim Value: Byte = PPU.vBuffer(VideoLine * 256 + LinePixel)
-    '            Dim Value As Byte = emNES.PPU.ppuRead(VideoLine * 256 + LinePixel)
-    '            Select Case Value
-    '                Case &H4, &H8, &HC, &H10, &H14, &H18, &H1C : Value = 0
-    '            End Select
-    '            'bmpBackground.SetPixel(LinePixel, VideoLine, SYS.NESColor(VRAM.Read(&H3F00 + Value)))
-    '            bmpBackground.SetPixel(LinePixel, VideoLine, Color.FromArgb(emNES.PPU.palScreen(emNES.PPU.ppuRead(&H3F00 + Value)).m_Pixel.Signed))
-    '            'If ShowGrid Then
-    '            '    If VideoLine Mod 8 = 0 And LinePixel Mod 2 = 0 Then bmpBackground.SetPixel(LinePixel, VideoLine, Color.White)
-    '            '    If VideoLine Mod 2 = 0 And LinePixel Mod 8 = 0 Then bmpBackground.SetPixel(LinePixel, VideoLine, Color.White)
-    '            '    If VideoLine Mod 32 = 0 Or LinePixel Mod 32 = 0 Then bmpBackground.SetPixel(LinePixel, VideoLine, Color.White)
-    '            'End If
-    '        Next
-    '    Next
-    'End Sub
-#End Region
-
     Private Sub DrawClear(ByVal p As Pixel)
         If IsNothing(bmpBackground) Then
             bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT)
@@ -464,33 +413,6 @@ Public Class Form1
         End If
     End Sub
 
-    'Private Sub DrawSprite(ByVal x As Int32, ByVal y As Int32, ByVal ImageObj As GraphicsObjects.Sprite)
-    '    'fx = fxs;
-    '    'For (int32_t i = 0; i < sprite->width; i++, fx += fxm)
-    '    '{
-    '    '	fy = fys;
-    '    '	For (int32_t j = 0; j < sprite->height; j++, fy += fym)
-    '    '		Draw(x + i, y + j, sprite -> GetPixel(fx, fy));
-    '    '}
-    '
-    '    If IsNothing(bmpBackground) Then
-    '        bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT)
-    '    End If
-    '
-    '    For i As Int32 = 0 To ImageObj.Width - 1
-    '        For j As Int32 = 0 To ImageObj.Height - 1
-    '            bmpBackground.SetPixel(x + i, y + j, Color.FromArgb(ImageObj.GetPixel(i, j).m_Pixel.Signed))
-    '        Next
-    '    Next
-    '
-    '    If picScreen.InvokeRequired Then
-    '        picScreen.Invoke(New DoStuffDelegate(AddressOf picScreenDel), bmpBackground)
-    '    Else
-    '        picScreen.Image = bmpBackground
-    '        picScreen.Refresh()
-    '    End If
-    '
-    'End Sub
     Private Sub DrawSprite(ByVal x As Int32, ByVal y As Int32, ByVal ImageObj As GraphicsObjects.Sprite)
         If IsNothing(bmpBackground) Then
             bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT, PixelFormat.Format32bppArgb)
@@ -603,6 +525,101 @@ Public Class Form1
             End Try
             bmp.Save(filepath, Imaging.ImageFormat.Png)
         End Using
+    End Sub
+
+    ' Diagnostic helper: dump full PPU tables to the Debug output for offline inspection.
+    Private Sub DumpPPUFullDebug()
+        If IsNothing(emNES) OrElse IsNothing(emNES.PPU) Then
+            Debug.WriteLine("DumpPPUFullDebug: emNES.PPU is Nothing")
+            Return
+        End If
+
+        Try
+            Debug.WriteLine("=== PPU FULL DUMP START ===")
+            Debug.WriteLine(String.Format("PPUControl={0:X2} PPUMask={1:X2} PPUStatus={2:X2}", emNES.PPU.Debug_PPUControlReg, emNES.PPU.Debug_PPUMaskReg, emNES.PPU.Debug_PPUStatusReg))
+            Debug.WriteLine(String.Format("vram_addr=0x{0:X4} tram_addr=0x{1:X4} fine_x={2}", emNES.PPU.Debug_VramReg, emNES.PPU.Debug_TramReg, GetType(NintendoEntertainmentSystem.em2C02).GetField("fine_x", Reflection.BindingFlags.NonPublic Or Reflection.BindingFlags.Instance)?.GetValue(emNES.PPU)))
+
+            ' Palette dump (32 bytes)
+            Dim pal() As Byte = emNES.PPU.Debug_GetTblPalette()
+            Dim sbPal As New System.Text.StringBuilder()
+            sbPal.Append("tblPalette[0..31]:")
+            For i As Integer = 0 To pal.Length - 1
+                sbPal.Append(" " & pal(i).ToString("X2"))
+            Next
+            Debug.WriteLine(sbPal.ToString())
+
+            ' Dump entire nametable 0 & 1 (1024 bytes each)
+            Dim nt0() As Byte = emNES.PPU.Debug_GetNameTableRow(0, 0, 1024)
+            Debug.WriteLine("NameTable0 (1024 bytes):")
+            For i As Integer = 0 To 1023 Step 32
+                Dim line As New System.Text.StringBuilder()
+                For j As Integer = 0 To 31
+                    line.Append(nt0(i + j).ToString("X2") & " ")
+                Next
+                Debug.WriteLine(line.ToString())
+            Next
+
+            Dim nt1() As Byte = emNES.PPU.Debug_GetNameTableRow(1, 0, 1024)
+            Debug.WriteLine("NameTable1 (1024 bytes):")
+            For i As Integer = 0 To 1023 Step 32
+                Dim line As New System.Text.StringBuilder()
+                For j As Integer = 0 To 31
+                    line.Append(nt1(i + j).ToString("X2") & " ")
+                Next
+                Debug.WriteLine(line.ToString())
+            Next
+
+            ' Dump attribute table bytes for name table 0 ($23C0..$23FF)
+            Debug.WriteLine("Attribute bytes for NT0 ($23C0..$23FF):")
+            For i As Integer = 0 To 63 Step 8
+                Dim line As New System.Text.StringBuilder()
+                For j As Integer = 0 To 7
+                    Dim addr As UShort = CUShort(&H23C0 + i + j)
+                    Dim b As Byte = emNES.PPU.ppuRead(addr)
+                    line.Append(b.ToString("X2") & " ")
+                Next
+                Debug.WriteLine(line.ToString())
+            Next
+
+            ' Dump pattern bytes around tile ids likely used by title screen
+            ' Adjust startTile/count if you want to inspect specific ids
+            Dim startTile As Integer = 0 ' change if you know offending tile id
+            Dim tileCount As Integer = 128
+            Debug.WriteLine(String.Format("Pattern bytes for tiles {0}..{1} (first 16 bytes each):", startTile, startTile + tileCount - 1))
+            For t As Integer = startTile To Math.Min(startTile + tileCount - 1, 255)
+                Dim addrBase As UShort = CUShort(((t And &HFF) << 4)) ' assume pattern table 0 here
+                Dim sbp As New System.Text.StringBuilder()
+                sbp.AppendFormat("Tile {0:X2}:", t)
+                For k As Integer = 0 To 15
+                    Dim b As Byte = emNES.PPU.ppuRead(CUShort(&H0US + addrBase + k))
+                    sbp.Append(" " & b.ToString("X2"))
+                Next
+                Debug.WriteLine(sbp.ToString())
+            Next
+
+            Debug.WriteLine("=== PPU FULL DUMP END ===")
+        Catch ex As Exception
+            Debug.WriteLine("DumpPPUFullDebug failed: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub DiagnoseNMI()
+        ' Read NMI vector from $FFFA/$FFFB
+        Dim nmiLow As Byte = emNES.cpuRead(&HFFFAUS)
+        Dim nmiHigh As Byte = emNES.cpuRead(&HFFFBUS)
+        Dim nmiVector As UInt16 = CUShort((nmiHigh << 8) Or nmiLow)
+
+        Debug.WriteLine(String.Format("NMI Vector: $FFFA=${0:X2}, $FFFB=${1:X2} → NMI handler at ${2:X4}",
+                                  nmiLow, nmiHigh, nmiVector))
+
+        ' Read first few bytes of NMI handler
+        Debug.WriteLine("First 16 bytes of NMI handler:")
+        For i As Integer = 0 To 15
+            Dim b As Byte = emNES.cpuRead(CUShort(nmiVector + i))
+            Debug.Write(String.Format("{0:X2} ", b))
+            If (i + 1) Mod 8 = 0 Then Debug.WriteLine("")
+        Next
+        Debug.WriteLine("")
     End Sub
 
     Private Delegate Sub DoStuffDelegate(bg As Bitmap)

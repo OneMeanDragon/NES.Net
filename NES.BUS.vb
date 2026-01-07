@@ -85,7 +85,8 @@ Namespace NintendoEntertainmentSystem
                 '// And these are repeated throughout this range. We can
                 '// use bitwise And operation to mask the bottom 3 bits, 
                 '// which Is the equivalent of addr % 8.
-                ppu.cpuWrite(addr And &H7US, data)
+                Debug.WriteLine(String.Format("CPU → PPU register ${0:X4} = 0x{1:X2}", addr, data))
+                PPU.cpuWrite(addr And &H7US, data)
             ElseIf (addr >= &H4000US AndAlso addr <= &H4013US) OrElse addr = &H4015US OrElse addr = &H4017US Then
 #If APU_IMPLEMENTED >= 1 Then
                 APU.cpuWrite(addr, data)

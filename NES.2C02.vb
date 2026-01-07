@@ -1042,6 +1042,8 @@ Namespace NintendoEntertainmentSystem
         Protected vram_addr As New FrankenLoopy 'New FrankenLoopy 'FrankenRegister ' New FrankenLoopy
         Protected tram_addr As New FrankenLoopy 'New FrankenLoopy 'FrankenRegister ' New FrankenLoopy
 
+        Private attr_shift_table(3, 3) As Byte
+
         Public Sub New()
             sprNameTable = {New GraphicsObjects.Sprite(256, 240), New GraphicsObjects.Sprite(256, 240)}
             sprPatternTable = {New GraphicsObjects.Sprite(128, 128), New GraphicsObjects.Sprite(128, 128)}
@@ -1130,6 +1132,36 @@ Namespace NintendoEntertainmentSystem
             palScreen(&H3D) = New GraphicsObjects.Pixel(160, 162, 160)
             palScreen(&H3E) = New GraphicsObjects.Pixel(0, 0, 0)
             palScreen(&H3F) = New GraphicsObjects.Pixel(0, 0, 0)
+
+            ' Initialize attribute shift lookup table
+            ' [y][x] where y and x are 0 or 1 (from coarse_y & 2 and coarse_x & 2)
+            attr_shift_table(0, 0) = 0  ' Top-left: bits 1-0
+            attr_shift_table(0, 1) = 2  ' Top-right: bits 3-2
+            attr_shift_table(1, 0) = 4  ' Bottom-left: bits 5-4
+            attr_shift_table(1, 1) = 6  ' Bottom-right: bits 7-6
+        End Sub
+
+        Public Sub DiagnoseAttributeTable()
+            Debug.WriteLine("=== Attribute Table Diagnostic ===")
+
+            ' Read first 64 bytes of attribute table for nametable 0
+            Debug.WriteLine("First 64 attribute bytes at $23C0:")
+            For i As Integer = 0 To 63
+                Dim addr As UInt16 = &H23C0US + CUShort(i)
+                Dim value As Byte = ppuRead(addr)
+                Debug.Write(String.Format("{0:X2} ", value))
+                If (i + 1) Mod 8 = 0 Then Debug.WriteLine("")
+            Next
+
+            Debug.WriteLine("")
+            Debug.WriteLine("First 32 nametable tiles:")
+            For i As Integer = 0 To 31
+                Dim tile As Byte = ppuRead(&H2000US + CUShort(i))
+                Debug.Write(String.Format("{0:X2} ", tile))
+                If (i + 1) Mod 8 = 0 Then Debug.WriteLine("")
+            Next
+
+            Debug.WriteLine("=== End Diagnostic ===")
         End Sub
 
         Protected Overrides Sub Finalize()
@@ -1253,9 +1285,9 @@ Namespace NintendoEntertainmentSystem
                 '// state of the PPU without changing its state. This Is
                 '// really only used in debug mode.
                 Select Case addr
-                    Case &H0US : bytData = PPUControl.reg : Exit Select ' Control
-                    Case &H1US : bytData = PPUMask.reg : Exit Select    ' Mask
-                    Case &H2US : bytData = PPUStatus.reg : Exit Select  ' Status
+                    Case &H0US : bytData = PPUControl.Reg : Exit Select ' Control
+                    Case &H1US : bytData = PPUMask.Reg : Exit Select    ' Mask
+                    Case &H2US : bytData = PPUStatus.Reg : Exit Select  ' Status
                     Case &H3US : Exit Select                         ' OAM Address
                     Case &H4US : Exit Select                         ' OAM Data
                     Case &H5US : Exit Select                         ' Scroll
@@ -1278,9 +1310,9 @@ Namespace NintendoEntertainmentSystem
                         '// represent the last PPU bus transaction. Some games "may"
                         '// use this noise as valid data (even though they probably
                         '// shouldn't)
-                        bytData = (PPUStatus.reg And &HE0UI) Or (ppu_data_buffer And &H1FUI)
+                        bytData = (PPUStatus.Reg And &HE0UI) Or (ppu_data_buffer And &H1FUI)
                         '// Clear the vertical blanking flag
-                        PPUStatus.vertical_blank = 0
+                        PPUStatus.Vertical_blank = 0
                         '// Reset Loopy's Address latch flag
                         address_latch = 0
                         Exit Select
@@ -1306,7 +1338,7 @@ Namespace NintendoEntertainmentSystem
                         '// If set to vertical mode, the increment Is 32, so it skips
                         '// one whole nametable row; in horizontal mode it just increments
                         '// by 1, moving to the next column
-                        If PPUControl.increment_mode Then
+                        If PPUControl.Increment_mode Then
                             vram_addr.Reg = vram_addr.Reg + 32
                         Else
                             vram_addr.Reg = vram_addr.Reg + 1
@@ -1442,7 +1474,7 @@ Namespace NintendoEntertainmentSystem
                         addr = &HCUS
                         Exit Select
                 End Select
-                If PPUMask.grayscale Then
+                If PPUMask.Grayscale Then
                     data = tblPalette(addr) And &H30UI
                 Else
                     data = tblPalette(addr) And &H3FUI
@@ -1488,22 +1520,16 @@ Namespace NintendoEntertainmentSystem
                 End If
             ElseIf addr >= &H3F00US AndAlso addr <= &H3FFFUS Then
                 addr = addr And &H1FUS
+                ' Palette mirroring
                 Select Case addr
-                    Case &H10US
-                        addr = &H0US
-                        Exit Select
-                    Case &H14US
-                        addr = &H4US
-                        Exit Select
-                    Case &H18US
-                        addr = &H8US
-                        Exit Select
-                    Case &H1CUS
-                        addr = &HCUS
-                        Exit Select
+                    Case &H10US : addr = &H0US
+                    Case &H14US : addr = &H4US
+                    Case &H18US : addr = &H8US
+                    Case &H1CUS : addr = &HCUS
                 End Select
                 tblPalette(addr) = data
-                Debug.WriteLine(String.Format("PPU: ppuWrite palette 0x3F{0:X2} = 0x{1:X2}", addr, data))
+                Debug.WriteLine(String.Format("Palette write: $3F{0:X2} = 0x{1:X2} (color index {2})",
+                                      addr, data, data And &H3F))
             End If
         End Sub
 
@@ -1550,7 +1576,7 @@ Namespace NintendoEntertainmentSystem
         Public Sub Clock()
 
             Dim IncrementScrollX = Sub()
-                                       If PPUMask.render_background OrElse PPUMask.render_sprites Then
+                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
                                            If vram_addr.Coarse_X = 31 Then
                                                vram_addr.Coarse_X = 0
                                                vram_addr.NameTable_X = Not vram_addr.NameTable_X 'VBMATH
@@ -1593,28 +1619,34 @@ Namespace NintendoEntertainmentSystem
                                        End If
                                    End Sub
             Dim LoadBackgroundShifters = Sub()
-                                             'bg_shifter_pattern_lo = (bg_shifter_pattern_lo And &HFF00US) Or bg_next_tile_lsb
-                                             'bg_shifter_pattern_hi = (bg_shifter_pattern_hi And &HFF00US) Or bg_next_tile_msb
-                                             'bg_shifter_attrib_lo = ((bg_shifter_attrib_lo And &HFF00US) Or IIf(bg_next_tile_attrib And &H1, &HFFUI, &H0UI))
-                                             'bg_shifter_attrib_hi = ((bg_shifter_attrib_hi And &HFF00US) Or IIf(bg_next_tile_attrib And &H2, &HFFUI, &H0UI))
+                                             ' Load pattern shifters with next tile data
                                              bg_shifter_pattern_lo = (bg_shifter_pattern_lo And &HFF00US) Or CUShort(bg_next_tile_lsb)
                                              bg_shifter_pattern_hi = (bg_shifter_pattern_hi And &HFF00US) Or CUShort(bg_next_tile_msb)
 
-                                             ' Use If() for conditional, ensure proper type
-                                             bg_shifter_attrib_lo = (bg_shifter_attrib_lo And &HFF00US) Or
-                                                                    If((bg_next_tile_attrib And &H1) <> 0, &HFFUS, &H0US)
-                                             bg_shifter_attrib_hi = (bg_shifter_attrib_hi And &HFF00US) Or
-                                                                    If((bg_next_tile_attrib And &H2) <> 0, &HFFUS, &H0US)
+                                             ' Load attribute shifters
+                                             ' If bit 0 of attribute is set, load 0xFF (all bits on), else 0x00 (all bits off)
+                                             ' This expands the single bit across all 8 pixels of the tile
+                                             If (bg_next_tile_attrib And &H1) <> 0 Then
+                                                 bg_shifter_attrib_lo = (bg_shifter_attrib_lo And &HFF00US) Or &HFFUS
+                                             Else
+                                                 bg_shifter_attrib_lo = (bg_shifter_attrib_lo And &HFF00US)
+                                             End If
+
+                                             If (bg_next_tile_attrib And &H2) <> 0 Then
+                                                 bg_shifter_attrib_hi = (bg_shifter_attrib_hi And &HFF00US) Or &HFFUS
+                                             Else
+                                                 bg_shifter_attrib_hi = (bg_shifter_attrib_hi And &HFF00US)
+                                             End If
                                          End Sub
             Dim UpdateShifters = Sub()
-                                     If PPUMask.render_background Then
+                                     If PPUMask.Render_background Then
                                          bg_shifter_pattern_lo <<= 1
                                          bg_shifter_pattern_hi <<= 1
 
                                          bg_shifter_attrib_lo <<= 1
                                          bg_shifter_attrib_hi <<= 1
                                      End If
-                                     If PPUMask.render_sprites AndAlso cycle >= 1 AndAlso cycle < 258 Then
+                                     If PPUMask.Render_sprites AndAlso cycle >= 1 AndAlso cycle < 258 Then
                                          If sprite_count > 0 Then
                                              For i As UInt32 = 0 To (sprite_count - 1)
                                                  If spriteScanline(i).x > 0 Then
@@ -1630,7 +1662,7 @@ Namespace NintendoEntertainmentSystem
 
             If scanline >= -1 AndAlso scanline < 240 Then
                 ' Background Rendering
-                If scanline = 0 AndAlso cycle = 0 AndAlso odd_frame AndAlso (PPUMask.render_background OrElse PPUMask.render_sprites) Then
+                If scanline = 0 AndAlso cycle = 0 AndAlso odd_frame AndAlso (PPUMask.Render_background OrElse PPUMask.Render_sprites) Then
                     ' Odd frame, cycle skip
                     cycle = 1
                 End If
@@ -1639,15 +1671,6 @@ Namespace NintendoEntertainmentSystem
                     FrameNumber += 1
                     Debug.WriteLine(String.Format("*** FRAME {0} ***", FrameNumber))
                     DebugScrollState()
-
-                    ' UNCOMMENT THESE LINES TO TEST:
-                    'Debug.WriteLine("=== NEW FRAME ===")
-                    'tram_addr.Coarse_X = 0
-                    'tram_addr.Coarse_Y = 0
-                    'tram_addr.Fine_Y = 0
-                    'tram_addr.NameTable_X = 0
-                    'tram_addr.NameTable_Y = 0
-                    'fine_x = 0
 
                     '// Effectively start of new frame, so clear vertical blank flag
                     PPUStatus.Vertical_blank = 0
@@ -1663,15 +1686,23 @@ Namespace NintendoEntertainmentSystem
                 End If
                 '-----------------------------
                 'Temp force scrolls
-                If scanline = -1 AndAlso cycle = 280 Then  ' During vertical blanking
-                    ' FORCE SCROLL TO ZERO - TEMPORARY TEST
-                    Debug.WriteLine("!!! FORCING SCROLL TO 0,0 !!!")
-                    tram_addr.Coarse_X = 0
-                    tram_addr.Coarse_Y = 0
-                    tram_addr.Fine_Y = 0
-                    tram_addr.NameTable_X = 0
-                    tram_addr.NameTable_Y = 0
-                    fine_x = 0
+                '-----------------------------
+                If scanline = -1 AndAlso cycle >= 280 AndAlso cycle < 305 Then
+                    ' This is when TransferAddressY should happen
+                    ' Force it to transfer 0,0 scroll
+                    If cycle = 280 Then
+                        Debug.WriteLine("!!! FORCING SCROLL TO 0,0 (improved) !!!")
+                        tram_addr.Coarse_X = 0
+                        tram_addr.Coarse_Y = 0
+                        tram_addr.Fine_Y = 0
+                        tram_addr.NameTable_X = 0
+                        tram_addr.NameTable_Y = 0
+                        fine_x = 0
+                    End If
+
+                    ' Let the normal TransferAddressY happen during cycles 280-304
+                    ' This will copy tram_addr → vram_addr
+                    TransferAddressY()
                 End If
                 '-----------------------------
                 If (cycle >= 2 AndAlso cycle < 258) OrElse (cycle >= 321 AndAlso cycle < 338) Then
@@ -1719,77 +1750,65 @@ Namespace NintendoEntertainmentSystem
                             '// just so happens to be 2^12!
                             Exit Select
                         Case 2
-                            '// Fetch the next background tile attribute. OK, so this one Is a bit
-                            '// more involved :P
+                            ' Fetch the next background tile attribute
+                            ' 
+                            ' Attribute memory structure:
+                            ' - Starts at $23C0 (or +$0400 for nametable 1, +$0800 for NT 2, +$0C00 for NT 3)
+                            ' - Each byte controls a 4x4 tile region (32x32 pixels, or 4x4 tiles)
+                            ' - Each 4x4 region is divided into four 2x2 tile quadrants
+                            ' - Each quadrant gets 2 bits (4 possible palettes: 0-3)
+                            '
+                            ' Byte layout: [BR][BL][TR][TL] where T=Top, B=Bottom, L=Left, R=Right
+                            '              bits: 7-6, 5-4, 3-2, 1-0
 
-                            '// Recall that each nametable has two rows of cells that are Not tile 
-                            '// information, instead they represent the attribute information that
-                            '// indicates which palettes are applied to which area on the screen.
-                            '// Importantly (And frustratingly) there Is Not a 1 to 1 correspondance
-                            '// between background tile And palette. Two rows of tile data holds
-                            '// 64 attributes. Therfore we can assume that the attributes affect
-                            '// 8x8 zones on the screen for that nametable. Given a working resolution
-                            '// of 256x240, we can further assume that each zone Is 32x32 pixels
-                            '// in screen space, Or 4x4 tiles. Four system palettes are allocated
-                            '// to background rendering, so a palette can be specified using just
-                            '// 2 bits. The attribute byte therefore can specify 4 distinct palettes.
-                            '// Therefore we can even further assume that a single palette Is
-                            '// applied to a 2x2 tile combination of the 4x4 tile zone. The very fact
-                            '// that background tiles "share" a palette locally Is the reason why
-                            '// in some games you see distortion in the colours at screen edges.
-
-                            '// As before when choosing the tile ID, we can use the bottom 12 bits of
-                            '// the loopy register, but we need to make the implementation "coarser"
-                            '// because instead of a specific tile, we want the attribute byte for a 
-                            '// group of 4x4 tiles, Or in other words, we divide our 32x32 address
-                            '// by 4 to give us an equivalent 8x8 address, And we offset this address
-                            '// into the attribute section of the target nametable.
-
-                            '// Reconstruct the 12 bit loopy address into an offset into the
-                            '// attribute memory
-
-                            '// "(vram_addr.coarse_x >> 2)"         Integer divide coarse x by 4, 
-                            '//                                      from 5 bits to 3 bits
-                            '// "((vram_addr.coarse_y >> 2) << 3)" : Integer divide coarse y by 4, 
-                            '//                                      from 5 bits to 3 bits,
-                            '//                                      shift to make room for coarse x
-
-                            '// Result so far YX00 0yy yxxx
-
-                            '// All attribute memory begins at 0x03C0 within a nametable, so Or with
-                            '// result to select target nametable, And attribute byte offset. Finally
-                            '// Or with 0x2000 to offset into nametable address space on PPU bus.
+                            ' Calculate attribute table address
+                            ' The attribute table is 8x8 bytes (covering 32x32 tiles = 256x240 pixels)
                             bg_next_tile_attrib = ppuRead(&H23C0US Or
-                                                          (vram_addr.NameTable_Y << 11) Or      '1
-                                                          (vram_addr.NameTable_X << 10) Or      '1
-                                                          ((vram_addr.Coarse_Y >> 2) << 3) Or   '5-2
-                                                          (vram_addr.Coarse_X >> 2))            '5-2
+                              (vram_addr.NameTable_Y << 11) Or
+                              (vram_addr.NameTable_X << 10) Or
+                              ((vram_addr.Coarse_Y >> 2) << 3) Or
+                              (vram_addr.Coarse_X >> 2))
 
-                            '// Right we've read the correct attribute byte for a specified address,
-                            '// but the byte itself Is broken down further into the 2x2 tile groups
-                            '// in the 4x4 attribute zone.
+                            ' Now extract the correct 2 bits based on which quadrant we're in
+                            ' within the 4x4 tile region
+                            '
+                            ' Quadrant determination:
+                            ' - Bit 1 of Coarse_Y determines top (0) or bottom (1) half
+                            ' - Bit 1 of Coarse_X determines left (0) or right (1) half
+                            '
+                            ' Truth table:
+                            ' Coarse_Y[1] | Coarse_X[1] | Quadrant | Bits | Shift
+                            ' ------------|-------------|----------|------|-------
+                            '      0      |      0      | Top-Left |  1-0 |   0
+                            '      0      |      1      | Top-Right|  3-2 |   2
+                            '      1      |      0      | Bot-Left |  5-4 |   4
+                            '      1      |      1      | Bot-Right|  7-6 |   6
 
-                            '// The attribute byte Is assembled thus BR(76) BL(54) TR(32) TL(10)
-                            '//
-                            '// +----+----+			    +----+----+
-                            '// | TL | TR |			    | ID | ID |
-                            '// +----+----+ where TL =  +----+----+
-                            '// | BL | BR |			    | ID | ID |
-                            '// +----+----+			    +----+----+
-                            '//
-                            '// Since we know we can access a tile directly from the 12 bit address, we
-                            '// can analyse the bottom bits of the coarse coordinates to provide us with
-                            '// the correct offset into the 8-bit word, to yield the 2 bits we are
-                            '// actually interested in which specifies the palette for the 2x2 group of
-                            '// tiles. We know if "coarse y % 4" < 2 we are in the top half else bottom half.
-                            '// Likewise if "coarse x % 4" < 2 we are in the left half else right half.
-                            '// Ultimately we want the bottom two bits of our attribute word to be the
-                            '// palette selected. So shift as required...
-                            If (vram_addr.Coarse_Y And &H2US) Then bg_next_tile_attrib >>= 4
-                            If (vram_addr.Coarse_X And &H2US) Then bg_next_tile_attrib >>= 2
-                            bg_next_tile_attrib = bg_next_tile_attrib And &H3UI
-                            Exit Select
-                            '// Compared to the last two, the next two are the easy ones... :P
+                            ' Method 1: Using conditional shifts (CLEAREST)
+                            Dim y_bit As Integer = If((vram_addr.Coarse_Y And &H2US) <> 0, 1, 0)
+                            Dim x_bit As Integer = If((vram_addr.Coarse_X And &H2US) <> 0, 1, 0)
+                            Dim shift_amount As Byte = attr_shift_table(y_bit, x_bit)
+
+                            bg_next_tile_attrib = (bg_next_tile_attrib >> shift_amount) And &H3UI
+
+                            ' DEBUG: Log first few attributes on scanline 0
+                            'Static debugCount As Integer = 0
+                            'If scanline = 0 AndAlso cycle < 100 AndAlso (cycle - 2) Mod 8 = 0 Then
+                            '    Debug.WriteLine(String.Format("Tile pos ({0},{1}), attr byte=0x{2:X2}, extracted={3}, " &
+                            '          "coarse_y[1]={4}, coarse_x[1]={5}",
+                            '          vram_addr.Coarse_X, vram_addr.Coarse_Y,
+                            '          ppuRead(&H23C0US Or (vram_addr.NameTable_Y << 11) Or
+                            '                 (vram_addr.NameTable_X << 10) Or
+                            '                 ((vram_addr.Coarse_Y >> 2) << 3) Or
+                            '                 (vram_addr.Coarse_X >> 2)),
+                            '          bg_next_tile_attrib,
+                            '          (vram_addr.Coarse_Y And &H2US) >> 1,
+                            '          (vram_addr.Coarse_X And &H2US) >> 1))
+                            '    debugCount += 1
+                            '    If debugCount > 10 Then debugCount = 0  ' Reset to avoid spam
+                            'End If
+
+                            Exit Select                            '// Compared to the last two, the next two are the easy ones... :P
                         Case 4
                             '// Fetch the next background tile LSB bit plane from the pattern memory
                             '// The Tile ID has been read from the nametable. We will use this id to 
@@ -1812,13 +1831,13 @@ Namespace NintendoEntertainmentSystem
                             '// "+ 0"                                 : Mental clarity for plane offset
                             '// Note: No PPU address bus offset required as it starts at 0x0000
                             'bg_next_tile_lsb = ppuRead((PPUControl.pattern_background << 12) + (bg_next_tile_id << 4) + (vram_addr.Fine_Y) + 0) 'VBMATH checkme
-                            bg_next_tile_lsb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(PPUControl.pattern_background, 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), vram_addr.Fine_Y + 0))
+                            bg_next_tile_lsb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(PPUControl.Pattern_background, 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), vram_addr.Fine_Y + 0))
                             Exit Select
                         Case 6
                             '// Fetch the next background tile MSB bit plane from the pattern memory
                             '// This Is the same as above, but has a +8 offset to select the next bit plane
                             'bg_next_tile_msb = ppuRead((PPUControl.pattern_background << 12) + (bg_next_tile_id << 4) + (vram_addr.Fine_Y) + 8) 'VBMATH checkme
-                            bg_next_tile_msb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(PPUControl.pattern_background, 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), MathHelpers.SafeAddition16((vram_addr.Fine_Y), 8))) 'VBMATH checkme
+                            bg_next_tile_msb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(PPUControl.Pattern_background, 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), MathHelpers.SafeAddition16((vram_addr.Fine_Y), 8))) 'VBMATH checkme
                             Exit Select
                         Case 7
                             '// Increment the background tile "pointer" to the next tile horizontally
@@ -1902,7 +1921,7 @@ Namespace NintendoEntertainmentSystem
                         '// FLAGGED
 
                         'Dim iif_var As Integer = IIf(PPUControl.sprite_size, 16, 8) 'was checking
-                        If diff >= 0 AndAlso diff < IIf(PPUControl.sprite_size, 16, 8) AndAlso sprite_count < 8 Then
+                        If diff >= 0 AndAlso diff < IIf(PPUControl.Sprite_size, 16, 8) AndAlso sprite_count < 8 Then
                             '// Sprite Is visible, so copy the attribute entry over to our
                             '// scanline sprite cache. Ive added < 8 here to guard the array
                             '// being written to.
@@ -1921,7 +1940,7 @@ Namespace NintendoEntertainmentSystem
                     End While '// End of sprite evaluation for next scanline
 
                     '// Set sprite overflow flag
-                    PPUStatus.sprite_overflow = (sprite_count >= 8)
+                    PPUStatus.Sprite_overflow = (sprite_count >= 8)
 
                     '// Now we have an array of the 8 visible sprites for the next scanline. By 
                     '// the nature of this search, they are also ranked in priority, because
@@ -1949,18 +1968,18 @@ Namespace NintendoEntertainmentSystem
                             '// Determine the memory addresses that contain the byte of pattern data. We
                             '// only need the lo pattern address, because the hi pattern address Is always
                             '// offset by 8 from the lo address.
-                            If Not PPUControl.sprite_size Then
+                            If Not PPUControl.Sprite_size Then
                                 '// 8x8 Sprite Mode - The control register determines the pattern table
                                 If Not (spriteScanline(i).attribute And &H80UI) Then
                                     '// Sprite is NOT flipped vertically, i.e. normal    
                                     sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or  '// Which Pattern Table? 0KB or 4KB offset
-                                                         MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or        '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                         ((scanline - spriteScanline(i).y) And 7)                '// Which Row in cell? (0->7) [shouldent there be an & 0x7 here]
+                                                     MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or        '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                     ((scanline - spriteScanline(i).y) And 7)                '// Which Row in cell? (0->7) [shouldent there be an & 0x7 here]
                                 Else
                                     '// Sprite is flipped vertically, i.e. upside down
                                     sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or                  '// Which Pattern Table? 0KB or 4KB offset
-                                                         MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or                        '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                         MathHelpers.SafeSubtract16(7, ((scanline - spriteScanline(i).y) And 7)) '// Which Row in cell? (7->0)
+                                                     MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or                        '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                     MathHelpers.SafeSubtract16(7, ((scanline - spriteScanline(i).y) And 7)) '// Which Row in cell? (7->0)
                                 End If
                             Else
                                 '// 8x16 Sprite Mode - The sprite attribute determines the pattern table
@@ -1969,25 +1988,25 @@ Namespace NintendoEntertainmentSystem
                                     If (scanline - spriteScanline(i).y) < 8 Then
                                         '// Reading Top half Tile
                                         sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or   '// Which Pattern Table? 0KB or 4KB offset
-                                                             MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &HFEUI), 4) Or   '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                             ((scanline - spriteScanline(i).y) And &H7UI)                           '// Which Row in cell? (0->7)
+                                                         MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &HFEUI), 4) Or   '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                         ((scanline - spriteScanline(i).y) And &H7UI)                           '// Which Row in cell? (0->7)
                                     Else
                                         '// Reading Bottom Half Tile
                                         sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or                                   '// Which Pattern Table? 0KB or 4KB offset
-                                                             MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16((spriteScanline(i).id And &HFEUI), 1), 4) Or    '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                             ((scanline - spriteScanline(i).y) And &H7UI)                                                           '// Which Row in cell? (0->7)
+                                                         MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16((spriteScanline(i).id And &HFEUI), 1), 4) Or    '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                         ((scanline - spriteScanline(i).y) And &H7UI)                                                           '// Which Row in cell? (0->7)
                                     End If
                                 Else
                                     '// Sprite is flipped vertically, i.e. upside down
                                     If (scanline - spriteScanline(i).y < 8) Then
                                         sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or                                   '// Which Pattern Table? 0KB or 4KB offset
-                                                             MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16((spriteScanline(i).id And &HFEUI), 1), 4) Or    '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                             MathHelpers.SafeSubtract16(7, (scanline - spriteScanline(i).y) And &H7UI)                              '// Which Row in cell? (0->7)
+                                                         MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16((spriteScanline(i).id And &HFEUI), 1), 4) Or    '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                         MathHelpers.SafeSubtract16(7, (scanline - spriteScanline(i).y) And &H7UI)                              '// Which Row in cell? (0->7)
 
                                     Else
                                         sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or       '// Which Pattern Table? 0KB or 4KB offset
-                                                             MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &HFEUI), 4) Or       '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                             MathHelpers.SafeSubtract16(7, (scanline - spriteScanline(i).y) And &H7UI)  '// Which Row in cell? (0->7)
+                                                         MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &HFEUI), 4) Or       '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                         MathHelpers.SafeSubtract16(7, (scanline - spriteScanline(i).y) And &H7UI)  '// Which Row in cell? (0->7)
                                     End If
                                 End If
                             End If
@@ -2040,14 +2059,14 @@ Namespace NintendoEntertainmentSystem
             If scanline >= 241 AndAlso scanline < 261 Then
                 If scanline = 241 AndAlso cycle = 1 Then
                     '// Effectively end of frame, so set vertical blank flag
-                    PPUStatus.vertical_blank = 1
+                    PPUStatus.Vertical_blank = 1
 
                     '// If the control register tells us to emit a NMI when
                     '// entering vertical blanking period, do it! The CPU
                     '// will be informed that rendering Is complete so it can
                     '// perform operations with the PPU knowing it wont
                     '// produce visible artefacts
-                    If PPUControl.enable_nmi Then nmi = True
+                    If PPUControl.Enable_nmi Then nmi = True
                 End If
             End If
             '-----------------------------
@@ -2060,32 +2079,18 @@ Namespace NintendoEntertainmentSystem
             '// background rendering Is disabled, the pixel And palette combine
             '// to form 0x00. This will fall through the colour tables to yield
             '// the current background colour in effect
-            If PPUMask.render_background Then
-                If PPUMask.render_background_left OrElse (cycle >= 9) Then
-                    '// Handle Pixel Selection by selecting the relevant bit
-                    '// depending upon fine x scolling. This has the effect of
-                    '// offsetting ALL background rendering by a set number
-                    '// of pixels, permitting smooth scrolling
+            If PPUMask.Render_background Then
+                If PPUMask.Render_background_left OrElse (cycle >= 9) Then
                     Dim bit_mux As UInt16 = &H8000US >> fine_x
 
-                    '// Select Plane pixels by extracting from the shifter 
-                    '// at the required location. 
-                    'Dim p0_pixel As Byte = (bg_shifter_pattern_lo And bit_mux) > 0
-                    'Dim p1_pixel As Byte = (bg_shifter_pattern_hi And bit_mux) > 0
+                    ' Extract 2-bit pixel value
                     Dim p0_pixel As Byte = If((bg_shifter_pattern_lo And bit_mux) <> 0, 1, 0)
                     Dim p1_pixel As Byte = If((bg_shifter_pattern_hi And bit_mux) <> 0, 1, 0)
-
-                    '// Combine to form pixel index
-                    'bg_pixel = MathHelpers.SafeShiftLeft8(p1_pixel, 1) Or p0_pixel
                     bg_pixel = (p1_pixel << 1) Or p0_pixel
 
-                    '// Get palette
-                    'Dim bg_pal0 As Byte = (bg_shifter_attrib_lo And bit_mux) > 0
-                    'Dim bg_pal1 As Byte = (bg_shifter_attrib_hi And bit_mux) > 0
+                    ' Extract 2-bit palette value
                     Dim bg_pal0 As Byte = If((bg_shifter_attrib_lo And bit_mux) <> 0, 1, 0)
                     Dim bg_pal1 As Byte = If((bg_shifter_attrib_hi And bit_mux) <> 0, 1, 0)
-                    '-----------------------------
-                    'bg_palette = MathHelpers.SafeShiftLeft8(bg_pal1, 1) Or bg_pal0
                     bg_palette = (bg_pal1 << 1) Or bg_pal0
                 End If
             End If
@@ -2097,11 +2102,11 @@ Namespace NintendoEntertainmentSystem
             Dim fg_priority As Byte = 0 '// A bit of the sprite attribute indicates if its
             '                           '// more important than the background
 
-            If PPUMask.render_sprites Then
+            If PPUMask.Render_sprites Then
                 '// Iterate through all sprites for this scanline. This Is to maintain
                 '// sprite priority. As soon as we find a non transparent pixel of
                 '// a sprite we can abort
-                If PPUMask.render_sprites_left OrElse (cycle >= 9) Then
+                If PPUMask.Render_sprites_left OrElse (cycle >= 9) Then
 
                     bSpriteZeroBeingRendered = False
 
@@ -2192,17 +2197,17 @@ Namespace NintendoEntertainmentSystem
                 If bSpriteZeroHitPossible AndAlso bSpriteZeroBeingRendered Then
                     '// Sprite zero Is a collision between foreground And background
                     '// so they must both be enabled
-                    If PPUMask.render_background And PPUMask.render_sprites Then
+                    If PPUMask.Render_background And PPUMask.Render_sprites Then
                         '// The left edge of the screen has specific switches to control
                         '// its appearance. This Is used to smooth inconsistencies when
                         '// scrolling (since sprites x coord must be >= 0)
-                        If Not (PPUMask.render_background_left Or PPUMask.render_sprites_left) Then
+                        If Not (PPUMask.Render_background_left Or PPUMask.Render_sprites_left) Then
                             If cycle >= 9 AndAlso cycle < 258 Then
-                                PPUStatus.sprite_zero_hit = 1
+                                PPUStatus.Sprite_zero_hit = 1
                             End If
                         Else
                             If cycle >= 1 AndAlso cycle < 258 Then
-                                PPUStatus.sprite_zero_hit = 1
+                                PPUStatus.Sprite_zero_hit = 1
                             End If
                         End If
                     End If
@@ -2216,7 +2221,7 @@ Namespace NintendoEntertainmentSystem
 
             '// Advance renderer - it never stops, it's relentless
             cycle += 1
-            If PPUMask.render_background OrElse PPUMask.render_sprites Then
+            If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
                 If cycle = 260 AndAlso scanline < 240 Then
                     Cart.GetMapper.Scanline()
                 End If

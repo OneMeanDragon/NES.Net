@@ -1,7 +1,6 @@
-﻿Imports System.Runtime.CompilerServices
+﻿' The method bodies, field initializers, and property accessor bodies have been eliminated for brevity.
+Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices 'For the pixel union type, [note: dosn't help with bit unions]
-
-
 
 Namespace MathObjects
     Public Class ByteBitField
@@ -36,8 +35,6 @@ Namespace MathObjects
         End Property
     End Class
 End Namespace
-
-
 
 Namespace GraphicsObjects
 #Const OVERDRAW = 0
@@ -209,8 +206,6 @@ Namespace GraphicsObjects
 
 End Namespace
 
-
-
 Namespace NintendoEntertainmentSystem
     Public Module Flags_8Bit_Byte
         Public Const BitFlag0 As UInteger = (1 << 0)
@@ -260,6 +255,17 @@ Namespace NintendoEntertainmentSystem
         Public scanline_trigger As Boolean = False
 
         Private FrameNumber As Integer = 0
+
+        ' Gate PPU log spam: set to True to re-enable internal PPU Debug.WriteLine
+        Private Const PPU_DEBUG As Boolean = True
+        Private Const PPU_SCROLL_HACK As Boolean = False
+
+        Private Shared Sub PPULog(ByVal msg As String)
+            If PPU_DEBUG Then Debug.WriteLine(msg)
+        End Sub
+        Private Shared Sub PPULog(ByVal format As String, ByVal ParamArray args() As Object)
+            If PPU_DEBUG Then Debug.WriteLine(String.Format(format, args))
+        End Sub
 
         Public ReadOnly Property Debug_Scanline As Int16
             Get
@@ -360,7 +366,7 @@ Namespace NintendoEntertainmentSystem
                     Case 2 : Return attribute
                     Case 3 : Return x
                     Case Else
-                        Debug.WriteLine("GetByteAt out of bounds: " & position_index.ToString())
+                        PPULog("GetByteAt out of bounds: {0}", position_index)
                         Return 0 'should throw an error but whatever
                 End Select
             End Function
@@ -371,7 +377,7 @@ Namespace NintendoEntertainmentSystem
                     Case 2 : attribute = data : Return
                     Case 3 : x = data : Return
                     Case Else
-                        Debug.WriteLine("SetByteAt out of bounds: " & position_index.ToString())
+                        PPULog("SetByteAt out of bounds: {0}", position_index)
                         Return 'should throw an error but whatever
                 End Select
             End Sub
@@ -1142,26 +1148,26 @@ Namespace NintendoEntertainmentSystem
         End Sub
 
         Public Sub DiagnoseAttributeTable()
-            Debug.WriteLine("=== Attribute Table Diagnostic ===")
+            PPULog("=== Attribute Table Diagnostic ===")
 
             ' Read first 64 bytes of attribute table for nametable 0
-            Debug.WriteLine("First 64 attribute bytes at $23C0:")
+            PPULog("First 64 attribute bytes at $23C0:")
             For i As Integer = 0 To 63
                 Dim addr As UInt16 = &H23C0US + CUShort(i)
                 Dim value As Byte = ppuRead(addr)
-                Debug.Write(String.Format("{0:X2} ", value))
-                If (i + 1) Mod 8 = 0 Then Debug.WriteLine("")
+                PPULog("{0:X2} ", value)
+                If (i + 1) Mod 8 = 0 Then PPULog("")
             Next
 
-            Debug.WriteLine("")
-            Debug.WriteLine("First 32 nametable tiles:")
+            PPULog("")
+            PPULog("First 32 nametable tiles:")
             For i As Integer = 0 To 31
                 Dim tile As Byte = ppuRead(&H2000US + CUShort(i))
-                Debug.Write(String.Format("{0:X2} ", tile))
-                If (i + 1) Mod 8 = 0 Then Debug.WriteLine("")
+                PPULog("{0:X2} ", tile)
+                If (i + 1) Mod 8 = 0 Then PPULog("")
             Next
 
-            Debug.WriteLine("=== End Diagnostic ===")
+            PPULog("=== End Diagnostic ===")
         End Sub
 
         Protected Overrides Sub Finalize()
@@ -1285,9 +1291,9 @@ Namespace NintendoEntertainmentSystem
                 '// state of the PPU without changing its state. This Is
                 '// really only used in debug mode.
                 Select Case addr
-                    Case &H0US : bytData = PPUControl.reg : Exit Select ' Control
-                    Case &H1US : bytData = PPUMask.reg : Exit Select    ' Mask
-                    Case &H2US : bytData = PPUStatus.reg : Exit Select  ' Status
+                    Case &H0US : bytData = PPUControl.Reg : Exit Select ' Control
+                    Case &H1US : bytData = PPUMask.Reg : Exit Select    ' Mask
+                    Case &H2US : bytData = PPUStatus.Reg : Exit Select  ' Status
                     Case &H3US : Exit Select                         ' OAM Address
                     Case &H4US : Exit Select                         ' OAM Data
                     Case &H5US : Exit Select                         ' Scroll
@@ -1310,9 +1316,9 @@ Namespace NintendoEntertainmentSystem
                         '// represent the last PPU bus transaction. Some games "may"
                         '// use this noise as valid data (even though they probably
                         '// shouldn't)
-                        bytData = (PPUStatus.reg And &HE0UI) Or (ppu_data_buffer And &H1FUI)
+                        bytData = (PPUStatus.Reg And &HE0UI) Or (ppu_data_buffer And &H1FUI)
                         '// Clear the vertical blanking flag
-                        PPUStatus.vertical_blank = 0
+                        PPUStatus.Vertical_blank = 0
                         '// Reset Loopy's Address latch flag
                         address_latch = 0
                         Exit Select
@@ -1338,7 +1344,7 @@ Namespace NintendoEntertainmentSystem
                         '// If set to vertical mode, the increment Is 32, so it skips
                         '// one whole nametable row; in horizontal mode it just increments
                         '// by 1, moving to the next column
-                        If PPUControl.increment_mode Then
+                        If PPUControl.Increment_mode Then
                             vram_addr.Reg = vram_addr.Reg + 32
                         Else
                             vram_addr.Reg = vram_addr.Reg + 1
@@ -1355,17 +1361,17 @@ Namespace NintendoEntertainmentSystem
                     PPUControl.Reg = data
                     tram_addr.NameTable_X = PPUControl.Nametable_x
                     tram_addr.NameTable_Y = PPUControl.Nametable_y
-                    Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2000 write: 0x{2:X2} (NT_X={3}, NT_Y={4}, NMI={5})",
+                    PPULog("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2000 write: 0x{2:X2} (NT_X={3}, NT_Y={4}, NMI={5})",
                                           scanline, cycle, data,
                                           tram_addr.NameTable_X, tram_addr.NameTable_Y,
-                                          PPUControl.Enable_nmi))
+                                          PPUControl.Enable_nmi)
                     Exit Select
 
                 Case &H1US  ' $2001 - PPUMASK
                     PPUMask.Reg = data
-                    Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2001 write: 0x{2:X2} (BG={3}, SPR={4})",
+                    PPULog("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2001 write: 0x{2:X2} (BG={3}, SPR={4})",
                                           scanline, cycle, data,
-                                          PPUMask.Render_background, PPUMask.Render_sprites))
+                                          PPUMask.Render_background, PPUMask.Render_sprites)
                     Exit Select
 
                 Case &H2US  ' $2002 - PPUSTATUS (not writable)
@@ -1384,14 +1390,14 @@ Namespace NintendoEntertainmentSystem
                         fine_x = data And &H7UI
                         tram_addr.Coarse_X = data >> 3
                         address_latch = 1
-                        Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] *** SCROLL X ***: data=0x{2:X2}, fine_x={3}, coarse_x={4}",
-                                              scanline, cycle, data, fine_x, tram_addr.Coarse_X))
+                        PPULog("[SCANLINE {0:D3} CYCLE {1:D3}] *** SCROLL X ***: data=0x{2:X2}, fine_x={3}, coarse_x={4}",
+                                              scanline, cycle, data, fine_x, tram_addr.Coarse_X)
                     Else
                         tram_addr.Fine_Y = data And &H7UI
                         tram_addr.Coarse_Y = data >> 3
                         address_latch = 0
-                        Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] *** SCROLL Y ***: data=0x{2:X2}, fine_y={3}, coarse_y={4}",
-                                              scanline, cycle, data, tram_addr.Fine_Y, tram_addr.Coarse_Y))
+                        PPULog("[SCANLINE {0:D3} CYCLE {1:D3}] *** SCROLL Y ***: data=0x{2:X2}, fine_y={3}, coarse_y={4}",
+                                              scanline, cycle, data, tram_addr.Fine_Y, tram_addr.Coarse_Y)
                     End If
                     Exit Select
 
@@ -1404,13 +1410,13 @@ Namespace NintendoEntertainmentSystem
                         vram_addr.Reg = tram_addr.Reg
                         address_latch = 0
                     End If
-                    Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2006 write: vram_addr=0x{2:X4}, tram_addr=0x{3:X4}",
-                                          scanline, cycle, vram_addr.Reg, tram_addr.Reg))
+                    PPULog("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2006 write: vram_addr=0x{2:X4}, tram_addr=0x{3:X4}",
+                                          scanline, cycle, vram_addr.Reg, tram_addr.Reg)
                     Exit Select
 
                 Case &H7US  ' $2007 - PPUDATA
-                    Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2007 write: addr=0x{2:X4}, data=0x{3:X2}",
-                                          scanline, cycle, vram_addr.Reg, data))
+                    PPULog("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2007 write: addr=0x{2:X4}, data=0x{3:X2}",
+                                          scanline, cycle, vram_addr.Reg, data)
                     ppuWrite(vram_addr.Reg, data)
                     If PPUControl.Increment_mode Then
                         vram_addr.Reg = vram_addr.Reg + 32
@@ -1474,7 +1480,7 @@ Namespace NintendoEntertainmentSystem
                         addr = &HCUS
                         Exit Select
                 End Select
-                If PPUMask.grayscale Then
+                If PPUMask.Grayscale Then
                     data = tblPalette(addr) And &H30UI
                 Else
                     data = tblPalette(addr) And &H3FUI
@@ -1528,8 +1534,8 @@ Namespace NintendoEntertainmentSystem
                     Case &H1CUS : addr = &HCUS
                 End Select
                 tblPalette(addr) = data
-                Debug.WriteLine(String.Format("Palette write: $3F{0:X2} = 0x{1:X2} (color index {2})",
-                                      addr, data, data And &H3F))
+                PPULog("Palette write: $3F{0:X2} = 0x{1:X2} (color index {2})",
+                                      addr, data, data And &H3F)
             End If
         End Sub
 
@@ -1557,26 +1563,26 @@ Namespace NintendoEntertainmentSystem
         End Sub
 
         Public Sub DebugScrollState()
-            Debug.WriteLine("=".PadRight(80, "="))
-            Debug.WriteLine(String.Format("NEW FRAME START (scanline={0}, cycle={1})", scanline, cycle))
-            Debug.WriteLine(String.Format("  vram_addr: 0x{0:X4} (Coarse_X={1:D2}, Coarse_Y={2:D2}, Fine_Y={3}, NT_X={4}, NT_Y={5})",
+            PPULog("=".PadRight(80, "="))
+            PPULog(String.Format("NEW FRAME START (scanline={0}, cycle={1})", scanline, cycle))
+            PPULog(String.Format("  vram_addr: 0x{0:X4} (Coarse_X={1:D2}, Coarse_Y={2:D2}, Fine_Y={3}, NT_X={4}, NT_Y={5})",
                                   vram_addr.Reg, vram_addr.Coarse_X, vram_addr.Coarse_Y,
                                   vram_addr.Fine_Y, vram_addr.NameTable_X, vram_addr.NameTable_Y))
-            Debug.WriteLine(String.Format("  tram_addr: 0x{0:X4} (Coarse_X={1:D2}, Coarse_Y={2:D2}, Fine_Y={3}, NT_X={4}, NT_Y={5})",
+            PPULog(String.Format("  tram_addr: 0x{0:X4} (Coarse_X={1:D2}, Coarse_Y={2:D2}, Fine_Y={3}, NT_X={4}, NT_Y={5})",
                                   tram_addr.Reg, tram_addr.Coarse_X, tram_addr.Coarse_Y,
                                   tram_addr.Fine_Y, tram_addr.NameTable_X, tram_addr.NameTable_Y))
-            Debug.WriteLine(String.Format("  fine_x: {0}", fine_x))
-            Debug.WriteLine(String.Format("  PPUControl: 0x{0:X2} (NMI={1}, BG_Pattern={2})",
+            PPULog(String.Format("  fine_x: {0}", fine_x))
+            PPULog(String.Format("  PPUControl: 0x{0:X2} (NMI={1}, BG_Pattern={2})",
                                   PPUControl.Reg, PPUControl.Enable_nmi, PPUControl.Pattern_background))
-            Debug.WriteLine(String.Format("  PPUMask: 0x{0:X2} (Render_BG={1}, Render_SPR={2})",
+            PPULog(String.Format("  PPUMask: 0x{0:X2} (Render_BG={1}, Render_SPR={2})",
                                   PPUMask.Reg, PPUMask.Render_background, PPUMask.Render_sprites))
-            Debug.WriteLine("=".PadRight(80, "="))
+            PPULog("=".PadRight(80, "="))
         End Sub
 
         Public Sub Clock()
 
             Dim IncrementScrollX = Sub()
-                                       If PPUMask.render_background OrElse PPUMask.render_sprites Then
+                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
                                            If vram_addr.Coarse_X = 31 Then
                                                vram_addr.Coarse_X = 0
                                                vram_addr.NameTable_X = Not vram_addr.NameTable_X 'VBMATH
@@ -1639,14 +1645,14 @@ Namespace NintendoEntertainmentSystem
                                              End If
                                          End Sub
             Dim UpdateShifters = Sub()
-                                     If PPUMask.render_background Then
+                                     If PPUMask.Render_background Then
                                          bg_shifter_pattern_lo <<= 1
                                          bg_shifter_pattern_hi <<= 1
 
                                          bg_shifter_attrib_lo <<= 1
                                          bg_shifter_attrib_hi <<= 1
                                      End If
-                                     If PPUMask.render_sprites AndAlso cycle >= 1 AndAlso cycle < 258 Then
+                                     If PPUMask.Render_sprites AndAlso cycle >= 1 AndAlso cycle < 258 Then
                                          If sprite_count > 0 Then
                                              For i As UInt32 = 0 To (sprite_count - 1)
                                                  If spriteScanline(i).x > 0 Then
@@ -1660,16 +1666,35 @@ Namespace NintendoEntertainmentSystem
                                      End If
                                  End Sub
 
+            ' During pre-render scanline (-1) cycles 280-304 PPU must copy Y from tram -> vram.
+            If scanline = -1 AndAlso cycle >= 280 AndAlso cycle < 305 Then
+                ' Optional temporary compatibility hack used previously to force a 0,0 scroll.
+                If PPU_SCROLL_HACK Then
+                    If cycle = 280 Then
+                        PPULog("!!! FORCING SCROLL TO 0,0 (temporary hack ON) !!!")
+                        tram_addr.Coarse_X = 0
+                        tram_addr.Coarse_Y = 0
+                        tram_addr.Fine_Y = 0
+                        tram_addr.NameTable_X = 0
+                        tram_addr.NameTable_Y = 0
+                        fine_x = 0
+                    End If
+                End If
+
+                ' Perform the normal pre-render Y transfer (this only copies when rendering is enabled).
+                TransferAddressY()
+            End If
+
             If scanline >= -1 AndAlso scanline < 240 Then
                 ' Background Rendering
-                If scanline = 0 AndAlso cycle = 0 AndAlso odd_frame AndAlso (PPUMask.render_background OrElse PPUMask.render_sprites) Then
+                If scanline = 0 AndAlso cycle = 0 AndAlso odd_frame AndAlso (PPUMask.Render_background OrElse PPUMask.Render_sprites) Then
                     ' Odd frame, cycle skip
                     cycle = 1
                 End If
                 '-----------------------------
                 If scanline = -1 AndAlso cycle = 1 Then
                     FrameNumber += 1
-                    Debug.WriteLine(String.Format("*** FRAME {0} ***", FrameNumber))
+                    PPULog("*** FRAME {0} ***", FrameNumber)
                     DebugScrollState()
 
                     '// Effectively start of new frame, so clear vertical blank flag
@@ -1685,388 +1710,339 @@ Namespace NintendoEntertainmentSystem
                     Next
                 End If
                 '-----------------------------
-                'Temp force scrolls
-                '-----------------------------
+                ' During pre-render scanline (-1) cycles 280-304 PPU must copy Y from tram -> vram.
                 If scanline = -1 AndAlso cycle >= 280 AndAlso cycle < 305 Then
-                    ' This is when TransferAddressY should happen
-                    ' Force it to transfer 0,0 scroll
-                    If cycle = 280 Then
-                        Debug.WriteLine("!!! FORCING SCROLL TO 0,0 (improved) !!!")
-                        tram_addr.Coarse_X = 0
-                        tram_addr.Coarse_Y = 0
-                        tram_addr.Fine_Y = 0
-                        tram_addr.NameTable_X = 0
-                        tram_addr.NameTable_Y = 0
-                        fine_x = 0
-                    End If
-
-                    ' Let the normal TransferAddressY happen during cycles 280-304
-                    ' This will copy tram_addr → vram_addr
+                    ' TransferAddressY will only copy when rendering is enabled (PPUMask)
                     TransferAddressY()
                 End If
                 '-----------------------------
                 If (cycle >= 2 AndAlso cycle < 258) OrElse (cycle >= 321 AndAlso cycle < 338) Then
-                        UpdateShifters()
+                    UpdateShifters()
 
-                        '// In these cycles we are collecting And working with visible data
-                        '// The "shifters" have been preloaded by the end of the previous
-                        '// scanline with the data for the start of this scanline. Once we
-                        '// leave the visible region, we go dormant until the shifters are
-                        '// preloaded for the next scanline.
+                    '// In these cycles we are collecting And working with visible data
+                    '// The "shifters" have been preloaded by the end of the previous
+                    '// scanline with the data for the start of this scanline. Once we
+                    '// leave the visible region, we go dormant until the shifters are
+                    '// preloaded for the next scanline.
 
-                        '// Fortunately, for background rendering, we go through a fairly
-                        '// repeatable sequence of events, every 2 clock cycles.
-                        Select Case ((cycle - 1) Mod 8)
-                            Case 0
-                                '// Load the current background tile pattern and attributes into the "shifter"
-                                LoadBackgroundShifters()
-                                '// Fetch the next background tile ID
-                                '// "(vram_addr.reg & 0x0FFF)" : Mask to 12 bits that are relevant
-                                '// "| 0x2000"                 : Offset into nametable space on PPU address bus
-                                bg_next_tile_id = ppuRead(&H2000US Or (vram_addr.Reg And &HFFFUS))
+                    '// Fortunately, for background rendering, we go through a fairly
+                    '// repeatable sequence of events, every 2 clock cycles.
+                    Select Case ((cycle - 1) Mod 8)
+                        Case 0
+                            '// Load the current background tile pattern and attributes into the "shifter"
+                            LoadBackgroundShifters()
+                            '// Fetch the next background tile ID
+                            '// "(vram_addr.reg & 0x0FFF)" : Mask to 12 bits that are relevant
+                            '// "| 0x2000"                 : Offset into nametable space on PPU address bus
+                            bg_next_tile_id = ppuRead(&H2000US Or (vram_addr.Reg And &HFFFUS))
 
-                                '// Explanation
-                                '// The bottom 12 bits of the loopy register provide an index into
-                                '// the 4 nametables, regardless of nametable mirroring configuration.
-                                '// nametable_y(1) nametable_x(1) coarse_y(5) coarse_x(5)
-                                '//
-                                '// Consider a single nametable Is a 32x32 array, And we have four of them
-                                '//   0                1
-                                '// 0 +----------------+----------------+
-                                '//   |                |                |
-                                '//   |                |                |
-                                '//   |    (32x32)     |    (32x32)     |
-                                '//   |                |                |
-                                '//   |                |                |
-                                '// 1 +----------------+----------------+
-                                '//   |                |                |
-                                '//   |                |                |
-                                '//   |    (32x32)     |    (32x32)     |
-                                '//   |                |                |
-                                '//   |                |                |
-                                '//   +----------------+----------------+
-                                '//
-                                '// This means there are 4096 potential locations in this array, which 
-                                '// just so happens to be 2^12!
-                                Exit Select
-                            Case 2
-                                ' Fetch the next background tile attribute
-                                ' 
-                                ' Attribute memory structure:
-                                ' - Starts at $23C0 (or +$0400 for nametable 1, +$0800 for NT 2, +$0C00 for NT 3)
-                                ' - Each byte controls a 4x4 tile region (32x32 pixels, or 4x4 tiles)
-                                ' - Each 4x4 region is divided into four 2x2 tile quadrants
-                                ' - Each quadrant gets 2 bits (4 possible palettes: 0-3)
-                                '
-                                ' Byte layout: [BR][BL][TR][TL] where T=Top, B=Bottom, L=Left, R=Right
-                                '              bits: 7-6, 5-4, 3-2, 1-0
+                            '// Explanation
+                            '// The bottom 12 bits of the loopy register provide an index into
+                            '// the 4 nametables, regardless of nametable mirroring configuration.
+                            '// nametable_y(1) nametable_x(1) coarse_y(5) coarse_x(5)
+                            '//
+                            '// Consider a single nametable Is a 32x32 array, And we have four of them
+                            '//   0                1
+                            '// 0 +----------------+----------------+
+                            '//   |                |                |
+                            '//   |                |                |
+                            '//   |    (32x32)     |    (32x32)     |
+                            '//   |                |                |
+                            '//   |                |                |
+                            '// 1 +----------------+----------------+
+                            '//   |                |                |
+                            '//   |                |                |
+                            '//   |    (32x32)     |    (32x32)     |
+                            '//   |                |                |
+                            '//   |                |                |
+                            '//   +----------------+----------------+
+                            '//
+                            '// This means there are 4096 potential locations in this array, which 
+                            '// just so happens to be 2^12!
+                            Exit Select
+                        Case 2
+                            ' Fetch the next background tile attribute
+                            ' (instrumented to log address, raw byte and extraction)
+                            Dim attrAddr As UInt16 = CUShort(&H23C0US Or
+                              (vram_addr.NameTable_Y << 11) Or
+                              (vram_addr.NameTable_X << 10) Or
+                              ((vram_addr.Coarse_Y >> 2) << 3) Or
+                              (vram_addr.Coarse_X >> 2))
 
-                                ' Calculate attribute table address
-                                ' The attribute table is 8x8 bytes (covering 32x32 tiles = 256x240 pixels)
-                                bg_next_tile_attrib = ppuRead(&H23C0US Or
-                                  (vram_addr.NameTable_Y << 11) Or
-                                  (vram_addr.NameTable_X << 10) Or
-                                  ((vram_addr.Coarse_Y >> 2) << 3) Or
-                                  (vram_addr.Coarse_X >> 2))
+                            Dim rawAttr As Byte = ppuRead(attrAddr)
 
-                                ' Now extract the correct 2 bits based on which quadrant we're in
-                                ' within the 4x4 tile region
-                                '
-                                ' Quadrant determination:
-                                ' - Bit 1 of Coarse_Y determines top (0) or bottom (1) half
-                                ' - Bit 1 of Coarse_X determines left (0) or right (1) half
-                                '
-                                ' Truth table:
-                                ' Coarse_Y[1] | Coarse_X[1] | Quadrant | Bits | Shift
-                                ' ------------|-------------|----------|------|-------
-                                '      0      |      0      | Top-Left |  1-0 |   0
-                                '      0      |      1      | Top-Right|  3-2 |   2
-                                '      1      |      0      | Bot-Left |  5-4 |   4
-                                '      1      |      1      | Bot-Right|  7-6 |   6
+                            ' Log diagnostic info (only prints if PPU_DEBUG = True)
+                            PPULog("[ATTR FETCH] scanline={0} cycle={1} vram=0x{2:X4} CoarseX={3} CoarseY={4} NTX={5} NTY={6} -> addr=0x{7:X4} raw=0x{8:X2}",
+                                   scanline, cycle, vram_addr.Reg, vram_addr.Coarse_X, vram_addr.Coarse_Y, vram_addr.NameTable_X, vram_addr.NameTable_Y, attrAddr, rawAttr)
 
-                                ' Method 1: Using conditional shifts (CLEAREST)
-                                Dim y_bit As Integer = If((vram_addr.Coarse_Y And &H2US) <> 0, 1, 0)
-                                Dim x_bit As Integer = If((vram_addr.Coarse_X And &H2US) <> 0, 1, 0)
-                                Dim shift_amount As Byte = attr_shift_table(y_bit, x_bit)
+                            Dim y_bit As Integer = If((vram_addr.Coarse_Y And &H2US) <> 0, 1, 0)
+                            Dim x_bit As Integer = If((vram_addr.Coarse_X And &H2US) <> 0, 1, 0)
+                            Dim shift_amount As Byte = attr_shift_table(y_bit, x_bit)
 
-                                bg_next_tile_attrib = (bg_next_tile_attrib >> shift_amount) And &H3UI
+                            bg_next_tile_attrib = CByte((rawAttr >> shift_amount) And &H3UI)
 
-                                ' DEBUG: Log first few attributes on scanline 0
-                                'Static debugCount As Integer = 0
-                                'If scanline = 0 AndAlso cycle < 100 AndAlso (cycle - 2) Mod 8 = 0 Then
-                                '    Debug.WriteLine(String.Format("Tile pos ({0},{1}), attr byte=0x{2:X2}, extracted={3}, " &
-                                '          "coarse_y[1]={4}, coarse_x[1]={5}",
-                                '          vram_addr.Coarse_X, vram_addr.Coarse_Y,
-                                '          ppuRead(&H23C0US Or (vram_addr.NameTable_Y << 11) Or
-                                '                 (vram_addr.NameTable_X << 10) Or
-                                '                 ((vram_addr.Coarse_Y >> 2) << 3) Or
-                                '                 (vram_addr.Coarse_X >> 2)),
-                                '          bg_next_tile_attrib,
-                                '          (vram_addr.Coarse_Y And &H2US) >> 1,
-                                '          (vram_addr.Coarse_X And &H2US) >> 1))
-                                '    debugCount += 1
-                                '    If debugCount > 10 Then debugCount = 0  ' Reset to avoid spam
-                                'End If
+                            PPULog("[ATTR EXTRACT] y_bit={0} x_bit={1} shift={2} -> attrib={3:X2}",
+                                   y_bit, x_bit, shift_amount, bg_next_tile_attrib)
+                            Exit Select
+                            '// Compared to the last two, the next two are the easy ones... :P
+                        Case 4
+                            '// Fetch the next background tile LSB bit plane from the pattern memory
+                            '// The Tile ID has been read from the nametable. We will use this id to 
+                            '// index into the pattern memory to find the correct sprite (assuming
+                            '// the sprites lie on 8x8 pixel boundaries in that memory, which they do
+                            '// even though 8x16 sprites exist, as background tiles are always 8x8).
+                            '//
+                            '// Since the sprites are effectively 1 bit deep, but 8 pixels wide, we 
+                            '// can represent a whole sprite row as a single byte, so offsetting
+                            '// into the pattern memory Is easy. In total there Is 8KB so we need a 
+                            '// 13 bit address.
 
-                                Exit Select                            '// Compared to the last two, the next two are the easy ones... :P
-                            Case 4
-                                '// Fetch the next background tile LSB bit plane from the pattern memory
-                                '// The Tile ID has been read from the nametable. We will use this id to 
-                                '// index into the pattern memory to find the correct sprite (assuming
-                                '// the sprites lie on 8x8 pixel boundaries in that memory, which they do
-                                '// even though 8x16 sprites exist, as background tiles are always 8x8).
-                                '//
-                                '// Since the sprites are effectively 1 bit deep, but 8 pixels wide, we 
-                                '// can represent a whole sprite row as a single byte, so offsetting
-                                '// into the pattern memory Is easy. In total there Is 8KB so we need a 
-                                '// 13 bit address.
-
-                                '// "(control.pattern_background << 12)"   the pattern memory selector 
-                                '//                                         from control register, either 0K
-                                '//                                         Or 4K offset
-                                '// "((uint16_t)bg_next_tile_id << 4)"    : the tile id multiplied by 16, as
-                                '//                                         2 lots of 8 rows of 8 bit pixels
-                                '// "(vram_addr.fine_y)"                  : Offset into which row based on
-                                '//                                         vertical scroll offset
-                                '// "+ 0"                                 : Mental clarity for plane offset
-                                '// Note: No PPU address bus offset required as it starts at 0x0000
-                                'bg_next_tile_lsb = ppuRead((PPUControl.pattern_background << 12) + (bg_next_tile_id << 4) + (vram_addr.Fine_Y) + 0) 'VBMATH checkme
-                                bg_next_tile_lsb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(PPUControl.Pattern_background, 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), vram_addr.Fine_Y + 0))
-                                Exit Select
-                            Case 6
-                                '// Fetch the next background tile MSB bit plane from the pattern memory
-                                '// This Is the same as above, but has a +8 offset to select the next bit plane
-                                'bg_next_tile_msb = ppuRead((PPUControl.pattern_background << 12) + (bg_next_tile_id << 4) + (vram_addr.Fine_Y) + 8) 'VBMATH checkme
-                                bg_next_tile_msb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(PPUControl.Pattern_background, 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), MathHelpers.SafeAddition16((vram_addr.Fine_Y), 8))) 'VBMATH checkme
-                                Exit Select
-                            Case 7
-                                '// Increment the background tile "pointer" to the next tile horizontally
-                                '// in the nametable memory. Note this may cross nametable boundaries which
-                                '// Is a little complex, but essential to implement scrolling
-                                IncrementScrollX()
-                                Exit Select
-                        End Select
-                    End If
-                    '-----------------------------
-                    '// End of a visible scanline, so increment downwards...
-                    If cycle = 256 Then
-                        IncrementScrollY()
-                    End If
-                    '-----------------------------
-                    '//...and reset the x position
-                    If cycle = 257 Then
-                        LoadBackgroundShifters()
-                        TransferAddressX()
-                    End If
-                    '-----------------------------
-                    '// Superfluous reads of tile id at end of scanline
-                    If cycle = 338 OrElse cycle = 340 Then
-                        bg_next_tile_id = ppuRead(&H2000US Or (vram_addr.Reg And &HFFFUS))
-                    End If
-                    '-----------------------------
-                    ' In the Clock() method, around scanline -1, cycle 280-304:
-                    If scanline = -1 AndAlso cycle >= 280 AndAlso cycle < 305 Then
-                        '// End of vertical blank period so reset the Y address ready for rendering
-                        TransferAddressY()
-                    End If
-                    '-----------------------------
-                    '// Foreground Rendering ========================================================
-                    '// I'm gonna cheat a bit here, which may reduce compatibility, but greatly
-                    '// simplifies delivering an intuitive understanding of what exactly Is going
-                    '// on. The PPU loads sprite information successively during the region that
-                    '// background tiles are Not being drawn. Instead, I'm going to perform
-                    '// all sprite evaluation in one hit. THE NES DOES Not DO IT Like THIS! This makes
-                    '// it easier to see the process of sprite evaluation.
-                    If cycle = 257 AndAlso scanline >= 0 Then
-                        '// We've reached the end of a visible scanline. It is now time to determine
-                        '// which sprites are visible on the next scanline, And preload this info
-                        '// into buffers that we can work with while the scanline scans the row.
-
-                        '// Firstly, clear out the sprite memory. This memory Is used to store the
-                        '// sprites to be rendered. It Is Not the OAM.
-                        For i As UInt32 = 0 To spriteScanline.Length() - 1 'VB [std::memset(spriteScanline, 0xFF, 8 * sizeof(sObjectAttributeEntry));]
-                            spriteScanline(i).MemorySet(&H7FUI)
-                        Next
-
-                        '// The NES supports a maximum number of sprites per scanline. Nominally
-                        '// this Is 8 Or fewer sprites. This Is why in some games you see sprites
-                        '// flicker Or disappear when the scene gets busy.
-                        sprite_count = 0
-
-                        '// Secondly, clear out any residual information in sprite pattern shifters
-                        For i As UInt32 = 0 To 7 'VB
-                            sprite_shifter_pattern_lo(i) = 0
-                            sprite_shifter_pattern_hi(i) = 0
-                        Next
-
-                        '// Thirdly, Evaluate which sprites are visible in the next scanline. We need
-                        '// to iterate through the OAM until we have found 8 sprites that have Y-positions
-                        '// And heights that are within vertical range of the next scanline. Once we have
-                        '// found 8 Or exhausted the OAM we stop. Now, notice I count to 9 sprites. This
-                        '// Is so I can set the sprite overflow flag in the event of there being > 8 sprites.
-                        Dim nOAMEntry As Byte = 0
-
-                        '// New set of sprites. Sprite zero may Not exist in the New set, so clear this
-                        '// flag.
-                        bSpriteZeroHitPossible = False
-
-                        'Dim diff As Int16 = 0
-                        While ((nOAMEntry < 64) AndAlso (sprite_count < 9))
-                            '// Note the conversion to signed numbers here
-                            Dim diff As Int16 = scanline - OAM(nOAMEntry).y
-
-                            '// If the difference Is positive then the scanline Is at least at the
-                            '// same height as the sprite, so check if it resides in the sprite vertically
-                            '// depending on the current "sprite height mode"
-                            '// FLAGGED
-
-                            'Dim iif_var As Integer = IIf(PPUControl.sprite_size, 16, 8) 'was checking
-                            If diff >= 0 AndAlso diff < IIf(PPUControl.Sprite_size, 16, 8) AndAlso sprite_count < 8 Then
-                                '// Sprite Is visible, so copy the attribute entry over to our
-                                '// scanline sprite cache. Ive added < 8 here to guard the array
-                                '// being written to.
-                                If sprite_count < 8 Then
-                                    '// Is this sprite sprite zero?
-                                    If nOAMEntry = 0 Then
-                                        '// It Is, so its possible it may trigger a 
-                                        '// sprite zero hit when drawn
-                                        bSpriteZeroHitPossible = True
-                                    End If
-                                    spriteScanline(sprite_count).Copy(OAM(nOAMEntry)) 'Copied
-                                End If
-                                sprite_count += 1
-                            End If
-                            nOAMEntry += 1
-                        End While '// End of sprite evaluation for next scanline
-
-                        '// Set sprite overflow flag
-                        PPUStatus.Sprite_overflow = (sprite_count >= 8)
-
-                        '// Now we have an array of the 8 visible sprites for the next scanline. By 
-                        '// the nature of this search, they are also ranked in priority, because
-                        '// those lower down in the OAM have the higher priority.
-
-                        '// We also guarantee that "Sprite Zero" will exist in spriteScanline[0] if
-                        '// it Is evaluated to be visible. 
-                    End If
-                    '-----------------------------
-                    If cycle = 340 Then
-                        '// Now we're at the very end of the scanline, I'm going to prepare the 
-                        '// sprite shifters with the 8 Or less selected sprites.
-
-                        If sprite_count > 0 Then 'Because if left as 0 the sprite count will throw an over flow when sprite_count = 0 (VB For Loops Problem not being able to if i < value)
-                            For i As Byte = 0 To sprite_count - 1 'VB because vb has no for i = 0; i < spritecount; i++;
-                                '// We need to extract the 8-bit row patterns of the sprite with the
-                                '// correct vertical offset. The "Sprite Mode" also affects this as
-                                '// the sprites may be 8 Or 16 rows high. Additionally, the sprite
-                                '// can be flipped both vertically And horizontally. So there's a lot
-                                '// going on here :P
-
-                                Dim sprite_pattern_bits_lo, sprite_pattern_bits_hi As Byte
-                                Dim sprite_pattern_addr_lo, sprite_pattern_addr_hi As UInt16
-
-                                '// Determine the memory addresses that contain the byte of pattern data. We
-                                '// only need the lo pattern address, because the hi pattern address Is always
-                                '// offset by 8 from the lo address.
-                                If Not PPUControl.Sprite_size Then
-                                    '// 8x8 Sprite Mode - The control register determines the pattern table
-                                    If Not (spriteScanline(i).attribute And &H80UI) Then
-                                        '// Sprite is NOT flipped vertically, i.e. normal    
-                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or  '// Which Pattern Table? 0KB or 4KB offset
-                                                         MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or        '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                         ((scanline - spriteScanline(i).y) And 7)                '// Which Row in cell? (0->7) [shouldent there be an & 0x7 here]
-                                    Else
-                                        '// Sprite is flipped vertically, i.e. upside down
-                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or                  '// Which Pattern Table? 0KB or 4KB offset
-                                                         MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or                        '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                         MathHelpers.SafeSubtract16(7, ((scanline - spriteScanline(i).y) And 7)) '// Which Row in cell? (7->0)
-                                    End If
-                                Else
-                                    '// 8x16 Sprite Mode - The sprite attribute determines the pattern table
-                                    If Not (spriteScanline(i).attribute And &H80UI) Then
-                                        '// Sprite is NOT flipped vertically, i.e. normal
-                                        If (scanline - spriteScanline(i).y) < 8 Then
-                                            '// Reading Top half Tile
-                                            sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or   '// Which Pattern Table? 0KB or 4KB offset
-                                                             MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &HFEUI), 4) Or   '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                             ((scanline - spriteScanline(i).y) And &H7UI)                           '// Which Row in cell? (0->7)
-                                        Else
-                                            '// Reading Bottom Half Tile
-                                            sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or                                   '// Which Pattern Table? 0KB or 4KB offset
-                                                             MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16((spriteScanline(i).id And &HFEUI), 1), 4) Or    '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                             ((scanline - spriteScanline(i).y) And &H7UI)                                                           '// Which Row in cell? (0->7)
-                                        End If
-                                    Else
-                                        '// Sprite is flipped vertically, i.e. upside down
-                                        If (scanline - spriteScanline(i).y < 8) Then
-                                            sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or                                   '// Which Pattern Table? 0KB or 4KB offset
-                                                             MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16((spriteScanline(i).id And &HFEUI), 1), 4) Or    '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                             MathHelpers.SafeSubtract16(7, (scanline - spriteScanline(i).y) And &H7UI)                              '// Which Row in cell? (0->7)
-
-                                        Else
-                                            sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or       '// Which Pattern Table? 0KB or 4KB offset
-                                                             MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &HFEUI), 4) Or       '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                             MathHelpers.SafeSubtract16(7, (scanline - spriteScanline(i).y) And &H7UI)  '// Which Row in cell? (0->7)
-                                        End If
-                                    End If
-                                End If
-
-                                '// Phew... XD I'm absolutely certain you can use some fantastic bit 
-                                '// manipulation to reduce all of that to a few one liners, but in this
-                                '// form it's easy to see the processes required for the different
-                                '// sizes And vertical orientations
-
-                                '// Hi bit plane equivalent Is always offset by 8 bytes from lo bit plane
-                                sprite_pattern_addr_hi = MathHelpers.SafeAddition16(sprite_pattern_addr_lo, 8)
-
-                                '// Now we have the address of the sprite patterns, we can read them
-                                sprite_pattern_bits_lo = ppuRead(sprite_pattern_addr_lo)
-                                sprite_pattern_bits_hi = ppuRead(sprite_pattern_addr_hi)
-
-                                '// If the sprite Is flipped horizontally, we need to flip the 
-                                '// pattern bytes.
-                                If spriteScanline(i).attribute And &H40UI Then
-                                    '// This little lambda function "flips" a byte
-                                    '// so 0b11100000 becomes 0b00000111. It's very
-                                    '// clever, And stolen completely from here:
-                                    '// https//stackoverflow.com/a/2602885
-                                    Dim flipbyte = Function(ByVal b1 As Byte) As Byte
-                                                       If b1 = 0 Then Return 0
-                                                       Dim b As Byte = b1
-                                                       b = ((b And &HF0UI) >> 4) Or ((b And &HFUI) << 4)
-                                                       b = ((b And &HCCUI) >> 2) Or ((b And &H33UI) << 2)
-                                                       b = ((b And &HAAUI) >> 1) Or ((b And &H55UI) << 1)
-                                                       Return b
-                                                   End Function
-                                    '// Flip Patterns Horizontally
-                                    sprite_pattern_bits_lo = flipbyte(sprite_pattern_bits_lo)
-                                    sprite_pattern_bits_hi = flipbyte(sprite_pattern_bits_hi)
-                                End If
-                                '// Finally! We can load the pattern into our sprite shift registers
-                                '// ready for rendering on the next scanline
-                                sprite_shifter_pattern_lo(i) = sprite_pattern_bits_lo
-                                sprite_shifter_pattern_hi(i) = sprite_pattern_bits_hi
-
-                            Next
-                        End If
-                    End If
+                            '// "(control.pattern_background << 12)"   the pattern memory selector 
+                            '//                                         from control register, either 0K
+                            '//                                         Or 4K offset
+                            '// "((uint16_t)bg_next_tile_id << 4)"    : the tile id multiplied by 16, as
+                            '//                                         2 lots of 8 rows of 8 bit pixels
+                            '// "(vram_addr.fine_y)"                  : Offset into which row based on
+                            '//                                         vertical scroll offset
+                            '// "+ 0"                                 : Mental clarity for plane offset
+                            '// Note: No PPU address bus offset required as it starts at 0x0000
+                            'bg_next_tile_lsb = ppuRead((PPUControl.pattern_background << 12) + (bg_next_tile_id << 4) + (vram_addr.Fine_Y) + 0) 'VBMATH checkme
+                            bg_next_tile_lsb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(PPUControl.Pattern_background, 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), vram_addr.Fine_Y + 0))
+                            Exit Select
+                        Case 6
+                            '// Fetch the next background tile MSB bit plane from the pattern memory
+                            '// This Is the same as above, but has a +8 offset to select the next bit plane
+                            'bg_next_tile_msb = ppuRead((PPUControl.pattern_background << 12) + (bg_next_tile_id << 4) + (vram_addr.Fine_Y) + 8) 'VBMATH checkme
+                            bg_next_tile_msb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(PPUControl.Pattern_background, 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), MathHelpers.SafeAddition16((vram_addr.Fine_Y), 8))) 'VBMATH checkme
+                            Exit Select
+                        Case 7
+                            '// Increment the background tile "pointer" to the next tile horizontally
+                            '// in the nametable memory. Note this may cross nametable boundaries which
+                            '// Is a little complex, but essential to implement scrolling
+                            IncrementScrollX()
+                            Exit Select
+                    End Select
                 End If
                 '-----------------------------
-                If scanline = 240 Then
+                '// End of a visible scanline, so increment downwards...
+                If cycle = 256 Then
+                    IncrementScrollY()
+                End If
+                '-----------------------------
+                '//...and reset the x position
+                If cycle = 257 Then
+                    LoadBackgroundShifters()
+                    TransferAddressX()
+                End If
+                '-----------------------------
+                '// Superfluous reads of tile id at end of scanline
+                If cycle = 338 OrElse cycle = 340 Then
+                    bg_next_tile_id = ppuRead(&H2000US Or (vram_addr.Reg And &HFFFUS))
+                End If
+                '-----------------------------
+                ' In the Clock() method, around scanline -1, cycle 280-304:
+                If scanline = -1 AndAlso cycle >= 280 AndAlso cycle < 305 Then
+                    '// End of vertical blank period so reset the Y address ready for rendering
+                    TransferAddressY()
+                End If
+                '-----------------------------
+                '// Foreground Rendering ========================================================
+                '// I'm gonna cheat a bit here, which may reduce compatibility, but greatly
+                '// simplifies delivering an intuitive understanding of what exactly Is going
+                '// on. The PPU loads sprite information successively during the region that
+                '// background tiles are Not being drawn. Instead, I'm going to perform
+                '// all sprite evaluation in one hit. THE NES DOES Not DO IT Like THIS! This makes
+                '// it easier to see the process of sprite evaluation.
+                If cycle = 257 AndAlso scanline >= 0 Then
+                    '// We've reached the end of a visible scanline. It is now time to determine
+                    '// which sprites are visible on the next scanline, And preload this info
+                    '// into buffers that we can work with while the scanline scans the row.
+
+                    '// Firstly, clear out the sprite memory. This memory Is used to store the
+                    '// sprites to be rendered. It Is Not the OAM.
+                    For i As UInt32 = 0 To spriteScanline.Length() - 1 'VB [std::memset(spriteScanline, 0xFF, 8 * sizeof(sObjectAttributeEntry));]
+                        spriteScanline(i).MemorySet(&H7FUI)
+                    Next
+
+                    '// The NES supports a maximum number of sprites per scanline. Nominally
+                    '// this Is 8 Or fewer sprites. This Is why in some games you see sprites
+                    '// flicker Or disappear when the scene gets busy.
+                    sprite_count = 0
+
+                    '// Secondly, clear out any residual information in sprite pattern shifters
+                    For i As UInt32 = 0 To 7 'VB
+                        sprite_shifter_pattern_lo(i) = 0
+                        sprite_shifter_pattern_hi(i) = 0
+                    Next
+
+                    '// Thirdly, Evaluate which sprites are visible in the next scanline. We need
+                    '// to iterate through the OAM until we have found 8 sprites that have Y-positions
+                    '// And heights that are within vertical range of the next scanline. Once we have
+                    '// found 8 Or exhausted the OAM we stop. Now, notice I count to 9 sprites. This
+                    '// Is so I can set the sprite overflow flag in the event of there being > 8 sprites.
+                    Dim nOAMEntry As Byte = 0
+
+                    '// New set of sprites. Sprite zero may Not exist in the New set, so clear this
+                    '// flag.
+                    bSpriteZeroHitPossible = False
+
+                    'Dim diff As Int16 = 0
+                    While ((nOAMEntry < 64) AndAlso (sprite_count < 9))
+                        '// Note the conversion to signed numbers here
+                        Dim diff As Int16 = scanline - OAM(nOAMEntry).y
+
+                        '// If the difference Is positive then the scanline Is at least at the
+                        '// same height as the sprite, so check if it resides in the sprite vertically
+                        '// depending on the current "sprite height mode"
+                        '// FLAGGED
+
+                        'Dim iif_var As Integer = IIf(PPUControl.sprite_size, 16, 8) 'was checking
+                        If diff >= 0 AndAlso diff < IIf(PPUControl.Sprite_size, 16, 8) AndAlso sprite_count < 8 Then
+                            '// Sprite Is visible, so copy the attribute entry over to our
+                            '// scanline sprite cache. Ive added < 8 here to guard the array
+                            '// being written to.
+                            If sprite_count < 8 Then
+                                '// Is this sprite sprite zero?
+                                If nOAMEntry = 0 Then
+                                    '// It Is, so its possible it may trigger a 
+                                    '// sprite zero hit when drawn
+                                    bSpriteZeroHitPossible = True
+                                End If
+                                spriteScanline(sprite_count).Copy(OAM(nOAMEntry)) 'Copied
+                            End If
+                            sprite_count += 1
+                        End If
+                        nOAMEntry += 1
+                    End While '// End of sprite evaluation for next scanline
+
+                    '// Set sprite overflow flag
+                    PPUStatus.Sprite_overflow = (sprite_count >= 8)
+
+                    '// Now we have an array of the 8 visible sprites for the next scanline. By 
+                    '// the nature of this search, they are also ranked in priority, because
+                    '// those lower down in the OAM have the higher priority.
+
+                    '// We also guarantee that "Sprite Zero" will exist in spriteScanline[0] if
+                    '// it Is evaluated to be visible. 
+                End If
+                '-----------------------------
+                If cycle = 340 Then
+                    '// Now we're at the very end of the scanline, I'm going to prepare the 
+                    '// sprite shifters with the 8 Or less selected sprites.
+
+                    If sprite_count > 0 Then 'Because if left as 0 the sprite count will throw an over flow when sprite_count = 0 (VB For Loops Problem not being able to if i < value)
+                        For i As Byte = 0 To sprite_count - 1 'VB because vb has no for i = 0; i < spritecount; i++;
+                            '// We need to extract the 8-bit row patterns of the sprite with the
+                            '// correct vertical offset. The "Sprite Mode" also affects this as
+                            '// the sprites may be 8 Or 16 rows high. Additionally, the sprite
+                            '// can be flipped both vertically And horizontally. So there's a lot
+                            '// going on here :P
+
+                            Dim sprite_pattern_bits_lo, sprite_pattern_bits_hi As Byte
+                            Dim sprite_pattern_addr_lo, sprite_pattern_addr_hi As UInt16
+
+                            '// Determine the memory addresses that contain the byte of pattern data. We
+                            '// only need the lo pattern address, because the hi pattern address Is always
+                            '// offset by 8 from the lo address.
+                            If Not PPUControl.Sprite_size Then
+                                '// 8x8 Sprite Mode - The control register determines the pattern table
+                                If Not (spriteScanline(i).attribute And &H80UI) Then
+                                    '// Sprite is NOT flipped vertically, i.e. normal    
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or  '// Which Pattern Table? 0KB or 4KB offset
+                                                     MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or        '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                     ((scanline - spriteScanline(i).y) And 7)                '// Which Row in cell? (0->7) [shouldent there be an & 0x7 here]
+                                Else
+                                    '// Sprite is flipped vertically, i.e. upside down
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or                  '// Which Pattern Table? 0KB or 4KB offset
+                                                     MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or                        '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                     MathHelpers.SafeSubtract16(7, ((scanline - spriteScanline(i).y) And 7)) '// Which Row in cell? (7->0)
+                                End If
+                            Else
+                                '// 8x16 Sprite Mode - The sprite attribute determines the pattern table
+                                If Not (spriteScanline(i).attribute And &H80UI) Then
+                                    '// Sprite is NOT flipped vertically, i.e. normal
+                                    If (scanline - spriteScanline(i).y) < 8 Then
+                                        '// Reading Top half Tile
+                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or   '// Which Pattern Table? 0KB or 4KB offset
+                                                         MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &HFEUI), 4) Or   '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                         ((scanline - spriteScanline(i).y) And &H7UI)                           '// Which Row in cell? (0->7)
+                                    Else
+                                        '// Reading Bottom Half Tile
+                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or                                   '// Which Pattern Table? 0KB or 4KB offset
+                                                         MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16((spriteScanline(i).id And &HFEUI), 1), 4) Or    '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                         ((scanline - spriteScanline(i).y) And &H7UI)                                                           '// Which Row in cell? (0->7)
+                                    End If
+                                Else
+                                    '// Sprite is flipped vertically, i.e. upside down
+                                    If (scanline - spriteScanline(i).y < 8) Then
+                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or                                   '// Which Pattern Table? 0KB or 4KB offset
+                                                         MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16((spriteScanline(i).id And &HFEUI), 1), 4) Or    '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                         MathHelpers.SafeSubtract16(7, (scanline - spriteScanline(i).y) And &H7UI)                              '// Which Row in cell? (0->7)
+
+                                    Else
+                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or       '// Which Pattern Table? 0KB or 4KB offset
+                                                         MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &HFEUI), 4) Or       '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                         MathHelpers.SafeSubtract16(7, (scanline - spriteScanline(i).y) And &H7UI)  '// Which Row in cell? (0->7)
+                                    End If
+                                End If
+                            End If
+
+                            '// Phew... XD I'm absolutely certain you can use some fantastic bit 
+                            '// manipulation to reduce all of that to a few one liners, but in this
+                            '// form it's easy to see the processes required for the different
+                            '// sizes And vertical orientations
+
+                            '// Hi bit plane equivalent Is always offset by 8 bytes from lo bit plane
+                            sprite_pattern_addr_hi = MathHelpers.SafeAddition16(sprite_pattern_addr_lo, 8)
+
+                            '// Now we have the address of the sprite patterns, we can read them
+                            sprite_pattern_bits_lo = ppuRead(sprite_pattern_addr_lo)
+                            sprite_pattern_bits_hi = ppuRead(sprite_pattern_addr_hi)
+
+                            '// If the sprite Is flipped horizontally, we need to flip the 
+                            '// pattern bytes.
+                            If spriteScanline(i).attribute And &H40UI Then
+                                '// This little lambda function "flips" a byte
+                                '// so 0b11100000 becomes 0b00000111. It's very
+                                '// clever, And stolen completely from here:
+                                '// https//stackoverflow.com/a/2602885
+                                Dim flipbyte = Function(ByVal b1 As Byte) As Byte
+                                                   If b1 = 0 Then Return 0
+                                                   Dim b As Byte = b1
+                                                   b = ((b And &HF0UI) >> 4) Or ((b And &HFUI) << 4)
+                                                   b = ((b And &HCCUI) >> 2) Or ((b And &H33UI) << 2)
+                                                   b = ((b And &HAAUI) >> 1) Or ((b And &H55UI) << 1)
+                                                   Return b
+                                               End Function
+                                '// Flip Patterns Horizontally
+                                sprite_pattern_bits_lo = flipbyte(sprite_pattern_bits_lo)
+                                sprite_pattern_bits_hi = flipbyte(sprite_pattern_bits_hi)
+                            End If
+                            '// Finally! We can load the pattern into our sprite shift registers
+                            '// ready for rendering on the next scanline
+                            sprite_shifter_pattern_lo(i) = sprite_pattern_bits_lo
+                            sprite_shifter_pattern_hi(i) = sprite_pattern_bits_hi
+
+                        Next
+                    End If
+                End If
+            End If
+            '-----------------------------
+            If scanline = 240 Then
                 '// Post Render Scanline - Do Nothing!
             End If
             '-----------------------------
             If scanline >= 241 AndAlso scanline < 261 Then
                 If scanline = 241 AndAlso cycle = 1 Then
                     '// Effectively end of frame, so set vertical blank flag
-                    PPUStatus.vertical_blank = 1
+                    PPUStatus.Vertical_blank = 1
 
                     '// If the control register tells us to emit a NMI when
                     '// entering vertical blanking period, do it! The CPU
                     '// will be informed that rendering Is complete so it can
                     '// perform operations with the PPU knowing it wont
                     '// produce visible artefacts
-                    If PPUControl.enable_nmi Then nmi = True
+                    If PPUControl.Enable_nmi Then nmi = True
                 End If
             End If
             '-----------------------------
@@ -2079,8 +2055,8 @@ Namespace NintendoEntertainmentSystem
             '// background rendering Is disabled, the pixel And palette combine
             '// to form 0x00. This will fall through the colour tables to yield
             '// the current background colour in effect
-            If PPUMask.render_background Then
-                If PPUMask.render_background_left OrElse (cycle >= 9) Then
+            If PPUMask.Render_background Then
+                If PPUMask.Render_background_left OrElse (cycle >= 9) Then
                     Dim bit_mux As UInt16 = &H8000US >> fine_x
 
                     ' Extract 2-bit pixel value
@@ -2102,11 +2078,11 @@ Namespace NintendoEntertainmentSystem
             Dim fg_priority As Byte = 0 '// A bit of the sprite attribute indicates if its
             '                           '// more important than the background
 
-            If PPUMask.render_sprites Then
+            If PPUMask.Render_sprites Then
                 '// Iterate through all sprites for this scanline. This Is to maintain
                 '// sprite priority. As soon as we find a non transparent pixel of
                 '// a sprite we can abort
-                If PPUMask.render_sprites_left OrElse (cycle >= 9) Then
+                If PPUMask.Render_sprites_left OrElse (cycle >= 9) Then
 
                     bSpriteZeroBeingRendered = False
 
@@ -2197,17 +2173,17 @@ Namespace NintendoEntertainmentSystem
                 If bSpriteZeroHitPossible AndAlso bSpriteZeroBeingRendered Then
                     '// Sprite zero Is a collision between foreground And background
                     '// so they must both be enabled
-                    If PPUMask.render_background And PPUMask.render_sprites Then
+                    If PPUMask.Render_background And PPUMask.Render_sprites Then
                         '// The left edge of the screen has specific switches to control
                         '// its appearance. This Is used to smooth inconsistencies when
                         '// scrolling (since sprites x coord must be >= 0)
-                        If Not (PPUMask.render_background_left Or PPUMask.render_sprites_left) Then
+                        If Not (PPUMask.Render_background_left Or PPUMask.Render_sprites_left) Then
                             If cycle >= 9 AndAlso cycle < 258 Then
-                                PPUStatus.sprite_zero_hit = 1
+                                PPUStatus.Sprite_zero_hit = 1
                             End If
                         Else
                             If cycle >= 1 AndAlso cycle < 258 Then
-                                PPUStatus.sprite_zero_hit = 1
+                                PPUStatus.Sprite_zero_hit = 1
                             End If
                         End If
                     End If
@@ -2221,7 +2197,7 @@ Namespace NintendoEntertainmentSystem
 
             '// Advance renderer - it never stops, it's relentless
             cycle += 1
-            If PPUMask.render_background OrElse PPUMask.render_sprites Then
+            If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
                 If cycle = 260 AndAlso scanline < 240 Then
                     Cart.GetMapper.Scanline()
                 End If
@@ -2243,8 +2219,8 @@ Namespace NintendoEntertainmentSystem
 
             ' Only log when vram changes and we're NOT in visible rendering area
             If vram_addr.Reg <> lastVramAddr AndAlso Not (scanline >= 0 AndAlso scanline < 240 AndAlso cycle >= 1 AndAlso cycle < 257) Then
-                Debug.WriteLine(String.Format("VRAM changed outside rendering: scanline={0}, cycle={1}, old=0x{2:X4}, new=0x{3:X4}",
-                                              scanline, cycle, lastVramAddr, vram_addr.Reg))
+                PPULog("VRAM changed outside rendering: scanline={0}, cycle={1}, old=0x{2:X4}, new=0x{3:X4}",
+                                              scanline, cycle, lastVramAddr, vram_addr.Reg)
             End If
 
             lastVramAddr = vram_addr.Reg
