@@ -120,11 +120,22 @@ Namespace NintendoEntertainmentSystem
         End Sub
         Public Function cpuRead(ByVal addr As UInt16, Optional bReadOnly As Boolean = False) As Byte
             Dim data As Byte = &H0
+
+            ' Add debug for ROM area reads
+            'Static debugCount As Integer = 0
+            'If addr >= &H8000US AndAlso debugCount < 10 Then
+            '    debugCount += 1
+            '    Debug.WriteLine(String.Format("Bus.cpuRead(${0:X4}) before cart check", addr))
+            'End If
+
             If Cart.cpuRead(addr, data) Then
-                ' Cartridge address space
+                ' Cartridge handled it
+                'If addr >= &H8000US AndAlso debugCount <= 10 Then
+                '    Debug.WriteLine(String.Format("  Cart handled, returned 0x{0:X2}", data))
+                'End If
             ElseIf addr >= &H0US AndAlso addr <= &H1FFFUS Then
                 data = cpuRam(addr And &H7FFUS)
-            ElseIf addr >= &H2000US AndAlso addr <= &H3FFF Then
+            ElseIf addr >= &H2000US AndAlso addr <= &H3FFFUS Then
                 ' PPU Address Space
                 data = PPU.cpuRead(addr And &H7US, bReadOnly)
             ElseIf addr = &H4015US Then
@@ -132,7 +143,7 @@ Namespace NintendoEntertainmentSystem
 #If APU_IMPLEMENTED >= 1 Then
                 data = APU.cpuRead(addr)
 #End If
-            ElseIf addr >= &H4016US AndAlso addr <= &H4017 Then
+            ElseIf addr >= &H4016US AndAlso addr <= &H4017US Then
                 '// Read out the MSB of the controller status word
                 data = (controller_state(addr And &H1US) And &H80) > 0
                 controller_state(addr And &H1US) <<= 1

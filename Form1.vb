@@ -127,12 +127,6 @@ Public Class Form1
             strFilepath = Path.GetDirectoryName(dlgOpenFile.FileName)
             WriteConfig.SetValue("LastDirectory", strFilepath)
             Me.Text = strProgramTitle & " - " & strFilename
-            'LoadNESROM(dlgOpenFile.FileName)
-            'SYS.Reset()
-            'PPU.PPUFrames = 0 : intFrames = 0
-            'tmrSpeed.Enabled = True
-            'StartEmulation()
-            'StartVideo()
         End If
 
         'Need to Check if were currently emulating
@@ -150,7 +144,32 @@ Public Class Form1
 
         ' Reset the system
         emNES.Reset()
-        DiagnoseReset()
+
+        '----------- debug shit
+        ' Test the full read path
+        Debug.WriteLine("=== FULL PATH TEST ===")
+
+        ' Test 1: Read $FFFC via Bus
+        Dim testByte As Byte = emNES.cpuRead(&HFFFCUS)
+        Debug.WriteLine(String.Format("Bus.cpuRead($FFFC) = ${0:X2}", testByte))
+
+        ' Test 2: Read $FFFC via Cart directly
+        Dim cartByte As Byte = 0
+        Dim cartHandled As Boolean = Cart.cpuRead(&HFFFCUS, cartByte)
+        Debug.WriteLine(String.Format("Cart.cpuRead($FFFC) = handled:{0}, data:${1:X2}", cartHandled, cartByte))
+
+        ' Test 3: Read $8000
+        testByte = emNES.cpuRead(&H8000US)
+        Debug.WriteLine(String.Format("Bus.cpuRead($8000) = ${0:X2}", testByte))
+
+        Debug.WriteLine("=== END FULL PATH TEST ===")
+        Debug.WriteLine("")
+
+        ' just a ref not actual data
+        ' 78 D8 A9 10 8D 00 20 A9 00 8D 01 20 8D 05 20 8D
+        ' Last 16 bytes of PRG (contains vectors):
+        ' ... (some bytes) ... 00 C0 82 80 F0 FF
+
 
         ' DON'T call diagnostics here - nothing has run yet!
         ' Instead, set a flag to call it after some frames

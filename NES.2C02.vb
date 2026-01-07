@@ -709,159 +709,100 @@ Namespace NintendoEntertainmentSystem
                 MyBase.Finalize()
             End Sub
 
+            ' Bit 0
             Public Property Nametable_x() As Byte
                 Get
-                    If BitField(0) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
+                    If BitField(0) Then Return 1 Else Return 0
                 End Get
                 Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(0) = True
-                    Else
-                        BitField(0) = False
-                    End If
+                    BitField(0) = (value And &H1) <> 0
                 End Set
             End Property
 
+            ' Bit 1
             Public Property Nametable_y() As Byte
                 Get
-                    If BitField(1) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
+                    If BitField(1) Then Return 1 Else Return 0
                 End Get
                 Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(1) = True
-                    Else
-                        BitField(1) = False
-                    End If
+                    BitField(1) = (value And &H1) <> 0
                 End Set
             End Property
 
+            ' Bit 2
             Public Property Increment_mode() As Byte
                 Get
-                    If BitField(2) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
+                    If BitField(2) Then Return 1 Else Return 0
                 End Get
                 Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(2) = True
-                    Else
-                        BitField(2) = False
-                    End If
+                    BitField(2) = (value And &H1) <> 0
                 End Set
             End Property
 
+            ' Bit 3
             Public Property Pattern_sprite() As Byte
                 Get
-                    If BitField(3) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
+                    If BitField(3) Then Return 1 Else Return 0
                 End Get
                 Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(3) = True
-                    Else
-                        BitField(3) = False
-                    End If
+                    BitField(3) = (value And &H1) <> 0
                 End Set
             End Property
 
+            ' Bit 4
             Public Property Pattern_background() As Byte
                 Get
-                    If BitField(4) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
+                    If BitField(4) Then Return 1 Else Return 0
                 End Get
                 Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(4) = True
-                    Else
-                        BitField(4) = False
-                    End If
+                    BitField(4) = (value And &H1) <> 0
                 End Set
             End Property
 
+            ' Bit 5
             Public Property Sprite_size() As Byte
                 Get
-                    If BitField(5) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
+                    If BitField(5) Then Return 1 Else Return 0
                 End Get
                 Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(5) = True
-                    Else
-                        BitField(5) = False
-                    End If
+                    BitField(5) = (value And &H1) <> 0
                 End Set
             End Property
 
+            ' Bit 6
             Public Property Slave_mode() As Byte
                 Get
-                    If BitField(6) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
+                    If BitField(6) Then Return 1 Else Return 0
                 End Get
                 Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(6) = True
-                    Else
-                        BitField(6) = False
-                    End If
+                    BitField(6) = (value And &H1) <> 0
                 End Set
             End Property
 
+            ' Bit 7 - THIS IS THE CRITICAL ONE!
             Public Property Enable_nmi() As Byte
                 Get
-                    If BitField(7) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
+                    If BitField(7) Then Return 1 Else Return 0
                 End Get
                 Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(7) = True
-                    Else
-                        BitField(7) = False
-                    End If
+                    BitField(7) = (value And &H1) <> 0
                 End Set
             End Property
 
+            ' The full register
             Public Property Reg() As Byte
                 Get
                     Dim ReturnValue As Byte = 0
                     For i As Integer = 0 To 7
                         If BitField(i) Then
-                            ReturnValue += (1 << i)
+                            ReturnValue = ReturnValue Or CByte(1 << i)
                         End If
                     Next
                     Return ReturnValue
                 End Get
                 Set(value As Byte)
                     For i As Integer = 0 To 7
-                        If value And (1 << i) Then
-                            BitField(i) = True
-                        Else
-                            BitField(i) = False
-                        End If
+                        BitField(i) = (value And (1 << i)) <> 0
                     Next
                 End Set
             End Property
@@ -1352,20 +1293,28 @@ Namespace NintendoEntertainmentSystem
         Public Sub cpuWrite(ByVal addr As UInt16, ByVal data As Byte)
             Select Case addr
                 Case &H0US  ' $2000 - PPUCTRL
+                    Debug.WriteLine(String.Format("$2000 write: 0x{0:X2} = {1}", data, Convert.ToString(data, 2).PadLeft(8, "0")))
+
                     PPUControl.Reg = data
+
+                    Debug.WriteLine(String.Format("  After: Enable_nmi={0}, NT_X={1}, NT_Y={2}, Inc={3}, PatBG={4}, PatSPR={5}, Size={6}",
+                                  PPUControl.Enable_nmi,
+                                  PPUControl.Nametable_x,
+                                  PPUControl.Nametable_y,
+                                  PPUControl.Increment_mode,
+                                  PPUControl.Pattern_background,
+                                  PPUControl.Pattern_sprite,
+                                  PPUControl.Sprite_size))
+
                     tram_addr.NameTable_X = PPUControl.Nametable_x
                     tram_addr.NameTable_Y = PPUControl.Nametable_y
-                    Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2000 write: 0x{2:X2} (NT_X={3}, NT_Y={4}, NMI={5})",
-                                          scanline, cycle, data,
-                                          tram_addr.NameTable_X, tram_addr.NameTable_Y,
-                                          PPUControl.Enable_nmi))
                     Exit Select
 
                 Case &H1US  ' $2001 - PPUMASK
                     PPUMask.Reg = data
-                    Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2001 write: 0x{2:X2} (BG={3}, SPR={4})",
-                                          scanline, cycle, data,
-                                          PPUMask.Render_background, PPUMask.Render_sprites))
+                    'Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2001 write: 0x{2:X2} (BG={3}, SPR={4})",
+                    '                      scanline, cycle, data,
+                    '                      PPUMask.Render_background, PPUMask.Render_sprites))
                     Exit Select
 
                 Case &H2US  ' $2002 - PPUSTATUS (not writable)
@@ -1384,14 +1333,14 @@ Namespace NintendoEntertainmentSystem
                         fine_x = data And &H7UI
                         tram_addr.Coarse_X = data >> 3
                         address_latch = 1
-                        Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] *** SCROLL X ***: data=0x{2:X2}, fine_x={3}, coarse_x={4}",
-                                              scanline, cycle, data, fine_x, tram_addr.Coarse_X))
+                        'Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] *** SCROLL X ***: data=0x{2:X2}, fine_x={3}, coarse_x={4}",
+                        '                      scanline, cycle, data, fine_x, tram_addr.Coarse_X))
                     Else
                         tram_addr.Fine_Y = data And &H7UI
                         tram_addr.Coarse_Y = data >> 3
                         address_latch = 0
-                        Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] *** SCROLL Y ***: data=0x{2:X2}, fine_y={3}, coarse_y={4}",
-                                              scanline, cycle, data, tram_addr.Fine_Y, tram_addr.Coarse_Y))
+                        'Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] *** SCROLL Y ***: data=0x{2:X2}, fine_y={3}, coarse_y={4}",
+                        '                      scanline, cycle, data, tram_addr.Fine_Y, tram_addr.Coarse_Y))
                     End If
                     Exit Select
 
@@ -1404,13 +1353,13 @@ Namespace NintendoEntertainmentSystem
                         vram_addr.Reg = tram_addr.Reg
                         address_latch = 0
                     End If
-                    Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2006 write: vram_addr=0x{2:X4}, tram_addr=0x{3:X4}",
-                                          scanline, cycle, vram_addr.Reg, tram_addr.Reg))
+                    'Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2006 write: vram_addr=0x{2:X4}, tram_addr=0x{3:X4}",
+                    '                      scanline, cycle, vram_addr.Reg, tram_addr.Reg))
                     Exit Select
 
                 Case &H7US  ' $2007 - PPUDATA
-                    Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2007 write: addr=0x{2:X4}, data=0x{3:X2}",
-                                          scanline, cycle, vram_addr.Reg, data))
+                    'Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2007 write: addr=0x{2:X4}, data=0x{3:X2}",
+                    '                      scanline, cycle, vram_addr.Reg, data))
                     ppuWrite(vram_addr.Reg, data)
                     If PPUControl.Increment_mode Then
                         vram_addr.Reg = vram_addr.Reg + 32
@@ -1528,8 +1477,8 @@ Namespace NintendoEntertainmentSystem
                     Case &H1CUS : addr = &HCUS
                 End Select
                 tblPalette(addr) = data
-                Debug.WriteLine(String.Format("Palette write: $3F{0:X2} = 0x{1:X2} (color index {2})",
-                                      addr, data, data And &H3F))
+                'Debug.WriteLine(String.Format("Palette write: $3F{0:X2} = 0x{1:X2} (color index {2})",
+                '                      addr, data, data And &H3F))
             End If
         End Sub
 
@@ -1668,6 +1617,12 @@ Namespace NintendoEntertainmentSystem
                 End If
                 '-----------------------------
                 If scanline = -1 AndAlso cycle = 1 Then
+                    '' TEMPORARY HACK: Force NMI enable
+                    'If PPUControl.Reg = &H11 Then
+                    '    Debug.WriteLine("!!! FORCING NMI ENABLE (changing $11 to $91) !!!")
+                    '    PPUControl.Reg = &H91
+                    'End If
+
                     FrameNumber += 1
                     Debug.WriteLine(String.Format("*** FRAME {0} ***", FrameNumber))
                     DebugScrollState()
@@ -2238,17 +2193,17 @@ Namespace NintendoEntertainmentSystem
             End If
 
             '---------------------
-            Static lastVramAddr As UInt16 = 0
-            Static lastScanline As Int16 = -2
-
+            'Static lastVramAddr As UInt16 = 0
+            'Static lastScanline As Int16 = -2
+            '
             ' Only log when vram changes and we're NOT in visible rendering area
-            If vram_addr.Reg <> lastVramAddr AndAlso Not (scanline >= 0 AndAlso scanline < 240 AndAlso cycle >= 1 AndAlso cycle < 257) Then
-                Debug.WriteLine(String.Format("VRAM changed outside rendering: scanline={0}, cycle={1}, old=0x{2:X4}, new=0x{3:X4}",
-                                              scanline, cycle, lastVramAddr, vram_addr.Reg))
-            End If
-
-            lastVramAddr = vram_addr.Reg
-            lastScanline = scanline
+            'If vram_addr.Reg <> lastVramAddr AndAlso Not (scanline >= 0 AndAlso scanline < 240 AndAlso cycle >= 1 AndAlso cycle < 257) Then
+            '    Debug.WriteLine(String.Format("VRAM changed outside rendering: scanline={0}, cycle={1}, old=0x{2:X4}, new=0x{3:X4}",
+            '                                  scanline, cycle, lastVramAddr, vram_addr.Reg))
+            'End If
+            '
+            'lastVramAddr = vram_addr.Reg
+            'lastScanline = scanline
         End Sub 'pretty sure the entire clock sub needs a look over
 
     End Class

@@ -34,10 +34,10 @@ Namespace NintendoEntertainmentSystem
 #End Region
 
     Public Class clsCartridge
-        Private Const iNES_HEADER_SIZE As UInt32 = (16 - ZeroBasedArrays)
-        Private Const PRGBANK_SIZE As UInt32 = ((16 * KB_SIZE) - ZeroBasedArrays)    '16kb bank size
-        Private Const CHRBANK_SIZE As UInt32 = ((8 * KB_SIZE) - ZeroBasedArrays)     ' 8kb bank size
-        Private Const TRAINER_SIZE As UInt32 = (512 - ZeroBasedArrays)
+        Private Const iNES_HEADER_SIZE As UInt32 = (16)
+        Private Const PRGBANK_SIZE As UInt32 = ((16 * KB_SIZE))    '16kb bank size
+        Private Const CHRBANK_SIZE As UInt32 = ((8 * KB_SIZE))     ' 8kb bank size
+        Private Const TRAINER_SIZE As UInt32 = (512)
 
         Private vTrainerMemory() As Byte
         Private vPRGMemory() As Byte
@@ -233,10 +233,10 @@ Namespace NintendoEntertainmentSystem
         Public Function PopulateTrainerData() As Boolean
             Try
                 ' Check size vs. file length
-                If ((iNES_HEADER_SIZE + ZeroBasedArrays) + (TRAINER_SIZE + ZeroBasedArrays)) < FileContents.Length() Then Return False
+                If ((iNES_HEADER_SIZE) + (TRAINER_SIZE)) < FileContents.Length() Then Return False
                 ReDim vTrainerMemory(TRAINER_SIZE)
                 For Offset As UInt32 = 0 To TRAINER_SIZE : vTrainerMemory(Offset) = FileContents(Offset + CurrentFilePosition()) : Next
-                CurrentFilePosition = CurrentFilePosition + (TRAINER_SIZE + ZeroBasedArrays)
+                CurrentFilePosition = CurrentFilePosition + (TRAINER_SIZE)
                 Return True
             Catch ex As Exception
                 Return False
@@ -247,9 +247,9 @@ Namespace NintendoEntertainmentSystem
             Try
                 'Test length of both banks at the same time
                 If ContainsTrainer() Then 'account for trainer size
-                    If ((PRGBanks * (PRGBANK_SIZE + ZeroBasedArrays)) + (CHRBanks * (CHRBANK_SIZE + ZeroBasedArrays)) + (iNES_HEADER_SIZE + ZeroBasedArrays) + (TRAINER_SIZE + ZeroBasedArrays)) < FileContents.Length() Then Return False
+                    If ((PRGBanks * (PRGBANK_SIZE)) + (CHRBanks * (CHRBANK_SIZE)) + (iNES_HEADER_SIZE) + (TRAINER_SIZE)) < FileContents.Length() Then Return False
                 Else
-                    If ((PRGBanks * (PRGBANK_SIZE + ZeroBasedArrays)) + (CHRBanks * (CHRBANK_SIZE + ZeroBasedArrays)) + (iNES_HEADER_SIZE + ZeroBasedArrays)) < FileContents.Length() Then Return False
+                    If ((PRGBanks * (PRGBANK_SIZE)) + (CHRBanks * (CHRBANK_SIZE)) + (iNES_HEADER_SIZE)) < FileContents.Length() Then Return False
                 End If
 
                 Dim CurrentIndex As UInt32
@@ -309,13 +309,13 @@ Namespace NintendoEntertainmentSystem
 
             ' Fill the game file data array
             FileContents = File.ReadAllBytes(GameCart) 'My.Computer.FileSystem.ReadAllBytes(GameCart)
-            If FileContents.Length() < (iNES_HEADER_SIZE + ZeroBasedArrays) Then
+            If FileContents.Length() < (iNES_HEADER_SIZE) Then
                 Return ErInvalidHeader & " EID=S({" & FileContents.Length().ToString() & ", 16})"
             End If
 
             ' populate the header
             PopulateHeader()
-            CurrentFilePosition = (iNES_HEADER_SIZE + ZeroBasedArrays)
+            CurrentFilePosition = (iNES_HEADER_SIZE)
 
             ' Validate game
             If Not FileValidation() Then
@@ -370,6 +370,110 @@ Namespace NintendoEntertainmentSystem
 
             ' Valid iNES ROM Cartridge
             m_ValidImage = True
+
+            '---------- debug shit
+            ' ========== ADD THIS DIAGNOSTIC CODE HERE ==========
+            Debug.WriteLine("")
+            Debug.WriteLine("=".PadRight(80, "="))
+            Debug.WriteLine("CARTRIDGE LOAD DIAGNOSTIC")
+            Debug.WriteLine("=".PadRight(80, "="))
+
+            ' Header info
+            Debug.WriteLine(String.Format("Mapper ID: {0}", nMapperID))
+            Debug.WriteLine(String.Format("PRG Banks: {0} ({1} KB)", PRGBanks, PRGBanks * 16))
+            Debug.WriteLine(String.Format("CHR Banks: {0} ({1} KB)", CHRBanks, CHRBanks * 8))
+            Debug.WriteLine(String.Format("Mirror Mode: {0}", hw_mirror.ToString()))
+
+            ' Check PRG Memory
+            If IsNothing(vPRGMemory) Then
+                Debug.WriteLine("✗ CRITICAL: vPRGMemory is Nothing!")
+            ElseIf vPRGMemory.Length = 0 Then
+                Debug.WriteLine("✗ CRITICAL: vPRGMemory length is 0!")
+            Else
+                Debug.WriteLine(String.Format("✓ vPRGMemory allocated: {0} bytes", vPRGMemory.Length))
+
+                ' Show first 16 bytes
+                Debug.WriteLine("First 16 bytes of PRG:")
+                For i As Integer = 0 To Math.Min(15, vPRGMemory.Length - 1)
+                    Debug.Write(String.Format("{0:X2} ", vPRGMemory(i)))
+                Next
+                Debug.WriteLine("")
+
+                ' Show last 16 bytes (where reset vector is)
+                If vPRGMemory.Length >= 16 Then
+                    Debug.WriteLine("Last 16 bytes of PRG (contains vectors):")
+                    For i As Integer = vPRGMemory.Length - 16 To vPRGMemory.Length - 1
+                        Debug.Write(String.Format("{0:X2} ", vPRGMemory(i)))
+                    Next
+                    Debug.WriteLine("")
+
+                    ' Decode the vectors from PRG ROM
+                    Dim nmiLo As Byte = vPRGMemory(vPRGMemory.Length - 6)  ' $FFFA
+                    Dim nmiHi As Byte = vPRGMemory(vPRGMemory.Length - 5)  ' $FFFB
+                    Dim rstLo As Byte = vPRGMemory(vPRGMemory.Length - 4)  ' $FFFC
+                    Dim rstHi As Byte = vPRGMemory(vPRGMemory.Length - 3)  ' $FFFD
+                    Dim irqLo As Byte = vPRGMemory(vPRGMemory.Length - 2)  ' $FFFE
+                    Dim irqHi As Byte = vPRGMemory(vPRGMemory.Length - 1)  ' $FFFF
+
+                    Dim nmiVec As UInt16 = CUShort((nmiHi << 8) Or nmiLo)
+                    Dim rstVec As UInt16 = CUShort((rstHi << 8) Or rstLo)
+                    Dim irqVec As UInt16 = CUShort((irqHi << 8) Or irqLo)
+
+                    Debug.WriteLine(String.Format("Vectors in PRG ROM:"))
+                    Debug.WriteLine(String.Format("  NMI: ${0:X4}", nmiVec))
+                    Debug.WriteLine(String.Format("  RST: ${0:X4}", rstVec))
+                    Debug.WriteLine(String.Format("  IRQ: ${0:X4}", irqVec))
+                End If
+            End If
+
+            ' Check CHR Memory
+            If IsNothing(vCHRMemory) Then
+                Debug.WriteLine("✗ CRITICAL: vCHRMemory is Nothing!")
+            ElseIf vCHRMemory.Length = 0 Then
+                Debug.WriteLine("✗ CRITICAL: vCHRMemory length is 0!")
+            Else
+                Debug.WriteLine(String.Format("✓ vCHRMemory allocated: {0} bytes", vCHRMemory.Length))
+            End If
+
+            ' Test the mapper
+            Debug.WriteLine("")
+            Debug.WriteLine("Testing Mapper:")
+
+            Dim testData As Byte = 0
+            Dim mapped As UInt32 = 0
+
+            ' Test read at $FFFC (reset vector low byte)
+            Dim handled As Boolean = pMAPPER.cpuMapRead(&HFFFCUS, mapped, testData)
+            Debug.WriteLine(String.Format("  Mapper.cpuMapRead($FFFC) → handled={0}, mapped=${1:X}, data from mapper param=${2:X2}",
+                                  handled, mapped, testData))
+
+            If handled AndAlso mapped <> &HFFFFFFFFUI Then
+                ' Mapper gave us an address, read from PRG
+                If mapped < vPRGMemory.Length Then
+                    Dim actualData As Byte = vPRGMemory(mapped)
+                    Debug.WriteLine(String.Format("  vPRGMemory[${0:X}] = ${1:X2}", mapped, actualData))
+                Else
+                    Debug.WriteLine(String.Format("  ✗ Mapped address ${0:X} is OUT OF BOUNDS! (PRG size = {1})",
+                                          mapped, vPRGMemory.Length))
+                End If
+            ElseIf Not handled Then
+                Debug.WriteLine("  ✗ Mapper did NOT handle $FFFC!")
+            End If
+
+            ' Also test $8000 (start of PRG ROM)
+            handled = pMAPPER.cpuMapRead(&H8000US, mapped, testData)
+            Debug.WriteLine(String.Format("  Mapper.cpuMapRead($8000) → handled={0}, mapped=${1:X}", handled, mapped))
+            If handled AndAlso mapped <> &HFFFFFFFFUI AndAlso mapped < vPRGMemory.Length Then
+                Debug.WriteLine(String.Format("  vPRGMemory[${0:X}] = ${1:X2}", mapped, vPRGMemory(mapped)))
+            End If
+
+            Debug.WriteLine("=".PadRight(80, "="))
+            Debug.WriteLine("")
+            ' ========== END DIAGNOSTIC CODE ==========
+
+            Return ""
+
+
             Return ""
         End Function
 
