@@ -210,6 +210,9 @@ Public Class Form1
     End Sub
 
     Private Sub OpenToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles OpenToolStripMenuItem.Click
+        If running Then
+            Exit Sub
+        End If
         'check if currently emulating..
 
         'Close old nes file
@@ -282,22 +285,34 @@ Public Class Form1
         If Not IsNothing(VideoThread) Then : VideoThread = Nothing : End If
         VideoThread = New System.Threading.Thread(AddressOf Run)
         VideoThread.IsBackground = True
+        running = True
         VideoThread.Start()
     End Sub
     Public Shared nSelectedPalette As UInteger = 0
 
+    '-----
+    Private m_timepoint1 As DateTime = DateTime.Now
+    Private m_timepoint2 As DateTime
+    '-----
+
     Private VideoThread As Thread
-    'Private ReadOnly TargetTicksPerFrame As Long = Stopwatch.Frequency / 60
     Public Sub Run()
-        'Const FRAMERATE_LOCK As UInteger = (1000 / 60)
-        'Dim CapTimer As New myTimer()
-        'Dim sw As New Stopwatch()
+        '----- hrrmm
+        'While running
+        '    m_timepoint2 = DateTime.Now
+        '    Dim elapsedTime As TimeSpan = m_timepoint2 - m_timepoint1
+        '    m_timepoint1 = m_timepoint2
+        '
+        '    Dim elapsedSeconds As Single = CSng(elapsedTime.TotalSeconds)
+        '    Debug.WriteLine($"Elapsed Time: {elapsedSeconds}")
+        '
+        'End While
+        'Exit Sub
+        '-----
 
         Dim frame_start, frame_end As Integer
 
         Dim n_PrevSelectedPallet As Integer = nSelectedPalette
-        running = True
-
 
         DrawClear(PixelColors.DARK_GREY) 'if left in the main loop screen flashes
         'Draw the Base Screen
@@ -315,8 +330,15 @@ Public Class Form1
         Dim audioSample As Boolean
         Dim localBatch As New List(Of Byte)
         While running
-            'sw.Restart()
-            'CapTimer.StartMe()
+
+            m_timepoint2 = DateTime.Now
+            Dim elapsedTime As TimeSpan = m_timepoint2 - m_timepoint1
+            m_timepoint1 = m_timepoint2
+
+            ' To get elapsed time as float in seconds (like C++ does)
+            Dim elapsedSeconds As Single = CSng(elapsedTime.TotalSeconds)
+            Debug.WriteLine($"Elapsed Time: {elapsedSeconds}")
+
             frame_start = Environment.TickCount
 
             emNES.PPU.frame_complete = False
