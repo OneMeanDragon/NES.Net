@@ -90,20 +90,20 @@ Namespace NintendoEntertainmentSystem
                 'GOBACK
                 cpuRam(addr And &H7FFUS) = data ' this should probably be (& 2047) since thats the max buffer size
             ElseIf addr >= &H2000US AndAlso addr <= &H3FFFUS Then
-                Static writeCount As Integer = 0
-                writeCount += 1
+                'Static writeCount As Integer = 0
+                'writeCount += 1
                 ' Only log first 100 writes to avoid spam
-                If writeCount <= 100 Then
-                    Dim msg As String = String.Format("PPU Write #{0}: ${1:X4} (reg ${2:X1}) = 0x{3:X2}",
-                                              writeCount, addr, addr And &H7, data)
-                    Debug.WriteLine(msg)
-                End If
+                'If writeCount <= 100 Then
+                '    Dim msg As String = String.Format("PPU Write #{0}: ${1:X4} (reg ${2:X1}) = 0x{3:X2}",
+                '                              writeCount, addr, addr And &H7, data)
+                '    Debug.WriteLine(msg)
+                'End If
 
                 '// PPU Address range. The PPU only has 8 primary registers
                 '// And these are repeated throughout this range. We can
                 '// use bitwise And operation to mask the bottom 3 bits, 
                 '// which Is the equivalent of addr % 8.
-                Debug.WriteLine(String.Format("CPU → PPU register ${0:X4} = 0x{1:X2}", addr, data))
+                'Debug.WriteLine(String.Format("CPU → PPU register ${0:X4} = 0x{1:X2}", addr, data))
                 PPU.cpuWrite(addr And &H7US, data)
             ElseIf (addr >= &H4000US AndAlso addr <= &H4013US) OrElse addr = &H4015US OrElse addr = &H4017US Then
 #If APU_IMPLEMENTED >= 1 Then
@@ -210,7 +210,13 @@ Namespace NintendoEntertainmentSystem
                             dma_data = cpuRead(dma_page << 8 Or dma_addr) 'par
                         Else
                             '// On odd clock cycles, write to PPU OAM
-                            PPU.OAM(dma_addr \ 4).SetByteAt(dma_addr, dma_data)
+                            'PPU.OAM(dma_addr \ 4).SetByteAt(dma_addr, dma_data)
+                            Dim oamIndex As Byte = dma_addr \ CByte(4)
+                            Dim byteOffset As Byte = dma_addr Mod CByte(4)
+                            If oamIndex < 64 Then
+                                PPU.OAM(oamIndex).SetByteAt(byteOffset, dma_data)
+                            End If
+
                             '// Increment the lo byte of the address
                             dma_addr = MathHelpers.SafeIncrementByte(dma_addr)
                             '// If this wraps around, we know that 256
@@ -248,14 +254,14 @@ Namespace NintendoEntertainmentSystem
                 Static nmiCount As Integer = 0
                 nmiCount += 1
 
-                Debug.WriteLine(String.Format("========== NMI #{0} at scanline {1}, PC=${2:X4} ==========",
-                                  nmiCount, PPU.Debug_Scanline, CPU.Debug_PC))
+                'Debug.WriteLine(String.Format("========== NMI #{0} at scanline {1}, PC=${2:X4} ==========",
+                '                  nmiCount, PPU.Debug_Scanline, CPU.Debug_PC))
 
                 PPU.nmi = False
                 CPU.NMI()
 
                 ' After NMI, check where we jumped to
-                Debug.WriteLine(String.Format("           After NMI: PC=${0:X4}", CPU.Debug_PC))
+                'Debug.WriteLine(String.Format("           After NMI: PC=${0:X4}", CPU.Debug_PC))
             End If
             '// Check if cartridge is requesting IRQ
             If Cart.GetMapper.irqState() Then

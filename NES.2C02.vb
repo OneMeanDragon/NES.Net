@@ -1293,21 +1293,19 @@ Namespace NintendoEntertainmentSystem
         Public Sub cpuWrite(ByVal addr As UInt16, ByVal data As Byte)
             Select Case addr
                 Case &H0US  ' $2000 - PPUCTRL
-                    Debug.WriteLine(String.Format("$2000 write: 0x{0:X2} = {1}", data, Convert.ToString(data, 2).PadLeft(8, "0")))
-
+                    Dim oldControl As Byte = PPUControl.Reg
                     PPUControl.Reg = data
-
-                    Debug.WriteLine(String.Format("  After: Enable_nmi={0}, NT_X={1}, NT_Y={2}, Inc={3}, PatBG={4}, PatSPR={5}, Size={6}",
-                                  PPUControl.Enable_nmi,
-                                  PPUControl.Nametable_x,
-                                  PPUControl.Nametable_y,
-                                  PPUControl.Increment_mode,
-                                  PPUControl.Pattern_background,
-                                  PPUControl.Pattern_sprite,
-                                  PPUControl.Sprite_size))
-
                     tram_addr.NameTable_X = PPUControl.Nametable_x
                     tram_addr.NameTable_Y = PPUControl.Nametable_y
+
+                    ' LOG EVERY WRITE TO $2000
+                    'Debug.WriteLine(String.Format("[Frame {0}] $2000 write: ${1:X2} (was ${2:X2}) - NMI: {3}→{4}, PC=${5:X4}",
+                    '              frameCount,
+                    '              data,
+                    '              oldControl,
+                    '              (oldControl And &H80) >> 7,
+                    '              (data And &H80) >> 7,
+                    '              CPU.Debug_PC))
                     Exit Select
 
                 Case &H1US  ' $2001 - PPUMASK
@@ -1483,6 +1481,10 @@ Namespace NintendoEntertainmentSystem
         End Sub
 
         Public Sub Reset()
+            For i As Integer = 0 To 63
+                OAM(i).MemorySet(&HFFUI)
+            Next
+            oam_addr = 0
             fine_x = 0
             address_latch = 0
             ppu_data_buffer = 0
@@ -1522,7 +1524,7 @@ Namespace NintendoEntertainmentSystem
             Debug.WriteLine("=".PadRight(80, "="))
         End Sub
 
-        Public Sub Clock()
+        Public Sub ClockOld()
 
             Dim IncrementScrollX = Sub()
                                        If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
@@ -1597,7 +1599,7 @@ Namespace NintendoEntertainmentSystem
                                      End If
                                      If PPUMask.Render_sprites AndAlso cycle >= 1 AndAlso cycle < 258 Then
                                          If sprite_count > 0 Then
-                                             For i As UInt32 = 0 To (sprite_count - 1)
+                                             For i As Byte = 0 To (sprite_count - 1)
                                                  If spriteScanline(i).x > 0 Then
                                                      spriteScanline(i).x = spriteScanline(i).x - 1
                                                  Else
@@ -1624,8 +1626,8 @@ Namespace NintendoEntertainmentSystem
                     'End If
 
                     FrameNumber += 1
-                    Debug.WriteLine(String.Format("*** FRAME {0} ***", FrameNumber))
-                    DebugScrollState()
+                    'Debug.WriteLine(String.Format("*** FRAME {0} ***", FrameNumber))
+                    'DebugScrollState()
 
                     '// Effectively start of new frame, so clear vertical blank flag
                     PPUStatus.Vertical_blank = 0
@@ -1638,26 +1640,6 @@ Namespace NintendoEntertainmentSystem
                         sprite_shifter_pattern_lo(i) = 0
                         sprite_shifter_pattern_hi(i) = 0
                     Next
-                End If
-                '-----------------------------
-                'Temp force scrolls
-                '-----------------------------
-                If scanline = -1 AndAlso cycle >= 280 AndAlso cycle < 305 Then
-                    ' This is when TransferAddressY should happen
-                    ' Force it to transfer 0,0 scroll
-                    If cycle = 280 Then
-                        Debug.WriteLine("!!! FORCING SCROLL TO 0,0 (improved) !!!")
-                        tram_addr.Coarse_X = 0
-                        tram_addr.Coarse_Y = 0
-                        tram_addr.Fine_Y = 0
-                        tram_addr.NameTable_X = 0
-                        tram_addr.NameTable_Y = 0
-                        fine_x = 0
-                    End If
-
-                    ' Let the normal TransferAddressY happen during cycles 280-304
-                    ' This will copy tram_addr → vram_addr
-                    TransferAddressY()
                 End If
                 '-----------------------------
                 If (cycle >= 2 AndAlso cycle < 258) OrElse (cycle >= 321 AndAlso cycle < 338) Then
@@ -1822,6 +1804,18 @@ Namespace NintendoEntertainmentSystem
                 ' In the Clock() method, around scanline -1, cycle 280-304:
                 If scanline = -1 AndAlso cycle >= 280 AndAlso cycle < 305 Then
                     '// End of vertical blank period so reset the Y address ready for rendering
+                    '-----------------------------
+                    'Temp force scrolls
+                    '-----------------------------
+                    'If cycle = 280 Then
+                    '    Debug.WriteLine("!!! FORCING SCROLL TO 0,0 (improved) !!!")
+                    '    tram_addr.Coarse_X = 0
+                    '    tram_addr.Coarse_Y = 0
+                    '    tram_addr.Fine_Y = 0
+                    '    tram_addr.NameTable_X = 0
+                    '    tram_addr.NameTable_Y = 0
+                    '    fine_x = 0
+                    'End If
                     TransferAddressY()
                 End If
                 '-----------------------------
@@ -1840,7 +1834,7 @@ Namespace NintendoEntertainmentSystem
                     '// Firstly, clear out the sprite memory. This memory Is used to store the
                     '// sprites to be rendered. It Is Not the OAM.
                     For i As UInt32 = 0 To spriteScanline.Length() - 1 'VB [std::memset(spriteScanline, 0xFF, 8 * sizeof(sObjectAttributeEntry));]
-                        spriteScanline(i).MemorySet(&H7FUI)
+                        spriteScanline(i).MemorySet(&HFFUI) '&H7FUI) why did i use 7F again?
                     Next
 
                     '// The NES supports a maximum number of sprites per scanline. Nominally
@@ -2061,46 +2055,71 @@ Namespace NintendoEntertainmentSystem
                 '// Iterate through all sprites for this scanline. This Is to maintain
                 '// sprite priority. As soon as we find a non transparent pixel of
                 '// a sprite we can abort
-                If PPUMask.Render_sprites_left OrElse (cycle >= 9) Then
+                'If PPUMask.Render_sprites_left OrElse (cycle >= 9) Then
+                '
+                '    bSpriteZeroBeingRendered = False
+                '
+                '    If sprite_count > 0 Then 'same reason as further up the chain sprite_count = 0 = overflow in vb (the c++ counterpart just skips this vb does not)
+                '        For i As Byte = 0 To (sprite_count - 1) 'VB
+                '            '// Scanline cycle has "collided" with sprite, shifters taking over
+                '            If spriteScanline(i).x = 0 Then
+                '                '// Note Fine X scrolling does Not apply to sprites, the game
+                '                '// should maintain their relationship with the background. So
+                '                '// we'll just use the MSB of the shifter
+                '
+                '                '// Determine the pixel value...
+                '                'Dim fg_pixel_lo As Byte = (sprite_shifter_pattern_lo(i) And &H80UI) > 0
+                '                'Dim fg_pixel_hi As Byte = (sprite_shifter_pattern_hi(i) And &H80UI) > 0
+                '                'fg_pixel = MathHelpers.SafeShiftLeft8(fg_pixel_hi, 1) Or fg_pixel_lo
+                '                Dim fg_pixel_lo As Byte = If((sprite_shifter_pattern_lo(i) And &H80UI) <> 0, 1, 0)
+                '                Dim fg_pixel_hi As Byte = If((sprite_shifter_pattern_hi(i) And &H80UI) <> 0, 1, 0)
+                '                fg_pixel = (fg_pixel_hi << 1) Or fg_pixel_lo
+                '
+                '                '// Extract the palette from the bottom two bits. Recall
+                '                '// that foreground palettes are the latter 4 in the 
+                '                '// palette memory.
+                '                'fg_palette = (spriteScanline(i).attribute And &H3UI) + &H4UI
+                '                'fg_priority = ((spriteScanline(i).attribute And &H20UI) = 0)
+                '                fg_palette = (spriteScanline(i).attribute And &H3UI) + &H4UI
+                '                fg_priority = If((spriteScanline(i).attribute And &H20UI) = 0, 1, 0)
+                '
+                '                '// If pixel Is Not transparent, we render it, And dont
+                '                '// bother checking the rest because the earlier sprites
+                '                '// in the list are higher priority
+                '                If fg_pixel <> 0 Then
+                '                    If i = 0 Then '// Is this sprite zero?
+                '                        bSpriteZeroBeingRendered = True
+                '                    End If
+                '                    Exit For 'break;
+                '                End If
+                '                '-----------------------------
+                '            End If
+                '        Next
+                '    End If
+                'End If
+                If PPUMask.Render_sprites Then
+                    If PPUMask.Render_sprites_left OrElse (cycle >= 9) Then
+                        bSpriteZeroBeingRendered = False
 
-                    bSpriteZeroBeingRendered = False
+                        If sprite_count > 0 Then
+                            For i As Byte = 0 To (sprite_count - 1)
+                                If spriteScanline(i).x = 0 Then
+                                    Dim fg_pixel_lo As Byte = If((sprite_shifter_pattern_lo(i) And &H80UI) <> 0, 1, 0)
+                                    Dim fg_pixel_hi As Byte = If((sprite_shifter_pattern_hi(i) And &H80UI) <> 0, 1, 0)
+                                    fg_pixel = (fg_pixel_hi << 1) Or fg_pixel_lo
 
-                    If sprite_count > 0 Then 'same reason as further up the chain sprite_count = 0 = overflow in vb (the c++ counterpart just skips this vb does not)
-                        For i As Byte = 0 To (sprite_count - 1) 'VB
-                            '// Scanline cycle has "collided" with sprite, shifters taking over
-                            If spriteScanline(i).x = 0 Then
-                                '// Note Fine X scrolling does Not apply to sprites, the game
-                                '// should maintain their relationship with the background. So
-                                '// we'll just use the MSB of the shifter
+                                    fg_palette = (spriteScanline(i).attribute And &H3UI) + &H4UI
+                                    fg_priority = If((spriteScanline(i).attribute And &H20UI) = 0, 1, 0)
 
-                                '// Determine the pixel value...
-                                'Dim fg_pixel_lo As Byte = (sprite_shifter_pattern_lo(i) And &H80UI) > 0
-                                'Dim fg_pixel_hi As Byte = (sprite_shifter_pattern_hi(i) And &H80UI) > 0
-                                'fg_pixel = MathHelpers.SafeShiftLeft8(fg_pixel_hi, 1) Or fg_pixel_lo
-                                Dim fg_pixel_lo As Byte = If((sprite_shifter_pattern_lo(i) And &H80UI) <> 0, 1, 0)
-                                Dim fg_pixel_hi As Byte = If((sprite_shifter_pattern_hi(i) And &H80UI) <> 0, 1, 0)
-                                fg_pixel = (fg_pixel_hi << 1) Or fg_pixel_lo
-
-                                '// Extract the palette from the bottom two bits. Recall
-                                '// that foreground palettes are the latter 4 in the 
-                                '// palette memory.
-                                'fg_palette = (spriteScanline(i).attribute And &H3UI) + &H4UI
-                                'fg_priority = ((spriteScanline(i).attribute And &H20UI) = 0)
-                                fg_palette = (spriteScanline(i).attribute And &H3UI) + &H4UI
-                                fg_priority = If((spriteScanline(i).attribute And &H20UI) = 0, 1, 0)
-
-                                '// If pixel Is Not transparent, we render it, And dont
-                                '// bother checking the rest because the earlier sprites
-                                '// in the list are higher priority
-                                If fg_pixel <> 0 Then
-                                    If i = 0 Then '// Is this sprite zero?
-                                        bSpriteZeroBeingRendered = True
+                                    If fg_pixel <> 0 Then
+                                        If i = 0 Then
+                                            bSpriteZeroBeingRendered = True
+                                        End If
+                                        Exit For
                                     End If
-                                    Exit For 'break;
                                 End If
-                                '-----------------------------
-                            End If
-                        Next
+                            Next
+                        End If
                     End If
                 End If
             End If
@@ -2156,11 +2175,23 @@ Namespace NintendoEntertainmentSystem
                         '// The left edge of the screen has specific switches to control
                         '// its appearance. This Is used to smooth inconsistencies when
                         '// scrolling (since sprites x coord must be >= 0)
-                        If Not (PPUMask.Render_background_left Or PPUMask.Render_sprites_left) Then
+                        'If Not (PPUMask.Render_background_left Or PPUMask.Render_sprites_left) Then
+                        '    If cycle >= 9 AndAlso cycle < 258 Then
+                        '        PPUStatus.Sprite_zero_hit = 1
+                        '    End If
+                        'Else
+                        '    If cycle >= 1 AndAlso cycle < 258 Then
+                        '        PPUStatus.Sprite_zero_hit = 1
+                        '    End If
+                        'End If
+                        'if (~(mask.render_background_left | mask.render_sprites_left))
+                        If (PPUMask.Render_background_left Or PPUMask.Render_sprites_left) = 0 Then
+                            ' Neither flag set - use stricter range
                             If cycle >= 9 AndAlso cycle < 258 Then
                                 PPUStatus.Sprite_zero_hit = 1
                             End If
                         Else
+                            ' At least one flag set - use full range
                             If cycle >= 1 AndAlso cycle < 258 Then
                                 PPUStatus.Sprite_zero_hit = 1
                             End If
@@ -2206,6 +2237,425 @@ Namespace NintendoEntertainmentSystem
             'lastScanline = scanline
         End Sub 'pretty sure the entire clock sub needs a look over
 
+        Public Sub Clock()
+            ' Helper lambdas for scroll operations
+            Dim IncrementScrollX = Sub()
+                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
+                                           If vram_addr.Coarse_X = 31 Then
+                                               vram_addr.Coarse_X = 0
+                                               vram_addr.NameTable_X = Not vram_addr.NameTable_X
+                                           Else
+                                               vram_addr.Coarse_X += 1
+                                           End If
+                                       End If
+                                   End Sub
+
+            Dim IncrementScrollY = Sub()
+                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
+                                           If vram_addr.Fine_Y < 7 Then
+                                               vram_addr.Fine_Y += 1
+                                           Else
+                                               vram_addr.Fine_Y = 0
+                                               If vram_addr.Coarse_Y = 29 Then
+                                                   vram_addr.Coarse_Y = 0
+                                                   vram_addr.NameTable_Y = Not vram_addr.NameTable_Y
+                                               ElseIf vram_addr.Coarse_Y = 31 Then
+                                                   vram_addr.Coarse_Y = 0
+                                               Else
+                                                   vram_addr.Coarse_Y += 1
+                                               End If
+                                           End If
+                                       End If
+                                   End Sub
+
+            Dim TransferAddressX = Sub()
+                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
+                                           vram_addr.NameTable_X = tram_addr.NameTable_X
+                                           vram_addr.Coarse_X = tram_addr.Coarse_X
+                                       End If
+                                   End Sub
+
+            Dim TransferAddressY = Sub()
+                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
+                                           vram_addr.Fine_Y = tram_addr.Fine_Y
+                                           vram_addr.NameTable_Y = tram_addr.NameTable_Y
+                                           vram_addr.Coarse_Y = tram_addr.Coarse_Y
+                                       End If
+                                   End Sub
+
+            Dim LoadBackgroundShifters = Sub()
+                                             bg_shifter_pattern_lo = (bg_shifter_pattern_lo And &HFF00US) Or CUShort(bg_next_tile_lsb)
+                                             bg_shifter_pattern_hi = (bg_shifter_pattern_hi And &HFF00US) Or CUShort(bg_next_tile_msb)
+
+                                             If (bg_next_tile_attrib And &H1) <> 0 Then
+                                                 bg_shifter_attrib_lo = (bg_shifter_attrib_lo And &HFF00US) Or &HFFUS
+                                             Else
+                                                 bg_shifter_attrib_lo = (bg_shifter_attrib_lo And &HFF00US)
+                                             End If
+
+                                             If (bg_next_tile_attrib And &H2) <> 0 Then
+                                                 bg_shifter_attrib_hi = (bg_shifter_attrib_hi And &HFF00US) Or &HFFUS
+                                             Else
+                                                 bg_shifter_attrib_hi = (bg_shifter_attrib_hi And &HFF00US)
+                                             End If
+                                         End Sub
+
+            Dim UpdateShifters = Sub()
+                                     If PPUMask.Render_background Then
+                                         bg_shifter_pattern_lo <<= 1
+                                         bg_shifter_pattern_hi <<= 1
+                                         bg_shifter_attrib_lo <<= 1
+                                         bg_shifter_attrib_hi <<= 1
+                                     End If
+
+                                     If PPUMask.Render_sprites AndAlso cycle >= 1 AndAlso cycle < 258 Then
+                                         For i As Integer = 0 To Math.Min(sprite_count - 1, 7)
+                                             If spriteScanline(i).x > 0 Then
+                                                 spriteScanline(i).x -= 1
+                                             Else
+                                                 sprite_shifter_pattern_lo(i) <<= 1
+                                                 sprite_shifter_pattern_hi(i) <<= 1
+                                             End If
+                                         Next
+                                     End If
+                                 End Sub
+
+            ' ============================================================================
+            ' VISIBLE SCANLINES + PRE-RENDER SCANLINE (-1 to 239)
+            ' ============================================================================
+            If scanline >= -1 AndAlso scanline < 240 Then
+
+                ' Skip cycle 0 on odd frames when rendering is enabled
+                If scanline = 0 AndAlso cycle = 0 AndAlso odd_frame AndAlso (PPUMask.Render_background OrElse PPUMask.Render_sprites) Then
+                    cycle = 1
+                End If
+
+                ' Start of new frame - clear flags
+                If scanline = -1 AndAlso cycle = 1 Then
+                    FrameNumber += 1
+                    PPUStatus.Vertical_blank = 0
+                    PPUStatus.Sprite_overflow = 0
+                    PPUStatus.Sprite_zero_hit = 0
+
+                    For i As Integer = 0 To 7
+                        sprite_shifter_pattern_lo(i) = 0
+                        sprite_shifter_pattern_hi(i) = 0
+                    Next
+                End If
+
+                ' Background tile fetching cycles
+                If (cycle >= 2 AndAlso cycle < 258) OrElse (cycle >= 321 AndAlso cycle < 338) Then
+                    UpdateShifters()
+
+                    Select Case ((cycle - 1) Mod 8)
+                        Case 0
+                            LoadBackgroundShifters()
+                            bg_next_tile_id = ppuRead(&H2000US Or (vram_addr.Reg And &HFFFUS))
+
+                        Case 2
+                            ' Fetch attribute byte
+                            bg_next_tile_attrib = ppuRead(&H23C0US Or
+                                                           (vram_addr.NameTable_Y << 11) Or
+                                                           (vram_addr.NameTable_X << 10) Or
+                                                           ((vram_addr.Coarse_Y >> 2) << 3) Or
+                                                           (vram_addr.Coarse_X >> 2))
+
+                            ' Extract correct 2 bits based on position within 4x4 tile block
+                            Dim shift_amount As Integer = 0
+                            If (vram_addr.Coarse_Y And &H2US) <> 0 Then shift_amount += 4
+                            If (vram_addr.Coarse_X And &H2US) <> 0 Then shift_amount += 2
+                            bg_next_tile_attrib = (bg_next_tile_attrib >> shift_amount) And &H3UI
+
+                        Case 4
+                            ' Fetch tile LSB
+                            bg_next_tile_lsb = ppuRead(MathHelpers.SafeAddition16(
+                                MathHelpers.SafeAddition16(
+                                    MathHelpers.SafeShiftLeft16(PPUControl.Pattern_background, 12),
+                                    MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)),
+                                vram_addr.Fine_Y))
+
+                        Case 6
+                            ' Fetch tile MSB
+                            bg_next_tile_msb = ppuRead(MathHelpers.SafeAddition16(
+                                MathHelpers.SafeAddition16(
+                                    MathHelpers.SafeShiftLeft16(PPUControl.Pattern_background, 12),
+                                    MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)),
+                                MathHelpers.SafeAddition16(vram_addr.Fine_Y, 8)))
+
+                        Case 7
+                            IncrementScrollX()
+                    End Select
+                End If
+
+                ' End of visible scanline - increment Y
+                If cycle = 256 Then
+                    IncrementScrollY()
+                End If
+
+                ' Reset X position
+                If cycle = 257 Then
+                    LoadBackgroundShifters()
+                    TransferAddressX()
+                End If
+
+                ' Superfluous nametable fetches
+                If cycle = 338 OrElse cycle = 340 Then
+                    bg_next_tile_id = ppuRead(&H2000US Or (vram_addr.Reg And &HFFFUS))
+                End If
+
+                ' Pre-render scanline - reset Y position
+                If scanline = -1 AndAlso cycle >= 280 AndAlso cycle < 305 Then
+                    TransferAddressY()
+                End If
+
+                ' ========================================================================
+                ' SPRITE EVALUATION (cycle 257)
+                ' ========================================================================
+                If cycle = 257 AndAlso scanline >= 0 Then
+                    ' Clear sprite scanline buffer
+                    For i As Integer = 0 To 7
+                        spriteScanline(i).MemorySet(&HFFUI)
+                    Next
+
+                    sprite_count = 0
+
+                    ' Clear sprite shifters
+                    For i As Integer = 0 To 7
+                        sprite_shifter_pattern_lo(i) = 0
+                        sprite_shifter_pattern_hi(i) = 0
+                    Next
+
+                    ' Evaluate sprites for next scanline
+                    Dim nOAMEntry As Byte = 0
+                    bSpriteZeroHitPossible = False
+
+                    While nOAMEntry < 64 AndAlso sprite_count < 9
+                        Dim diff As Integer = scanline - CInt(OAM(nOAMEntry).y)
+                        Dim spriteHeight As Integer = If(PPUControl.Sprite_size <> 0, 16, 8)
+
+                        If diff >= 0 AndAlso diff < spriteHeight Then
+                            If sprite_count < 8 Then
+                                If nOAMEntry = 0 Then
+                                    bSpriteZeroHitPossible = True
+                                End If
+                                spriteScanline(sprite_count).Copy(OAM(nOAMEntry))
+                            End If
+                            sprite_count += 1
+                        End If
+                        nOAMEntry += 1
+                    End While
+
+                    PPUStatus.Sprite_overflow = If(sprite_count >= 8, 1, 0)
+                End If
+
+                ' ========================================================================
+                ' SPRITE PATTERN LOADING (cycle 340)
+                ' ========================================================================
+                If cycle = 340 Then
+                    For i As Integer = 0 To Math.Min(sprite_count - 1, 7)
+                        Dim sprite_pattern_bits_lo, sprite_pattern_bits_hi As Byte
+                        Dim sprite_pattern_addr_lo, sprite_pattern_addr_hi As UInt16
+
+                        If PPUControl.Sprite_size = 0 Then
+                            ' 8x8 sprite mode
+                            If (spriteScanline(i).attribute And &H80UI) = 0 Then
+                                ' Not flipped vertically
+                                sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or
+                                                         MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or
+                                                         CUShort((scanline - spriteScanline(i).y) And 7)
+                            Else
+                                ' Flipped vertically
+                                sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or
+                                                         MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or
+                                                         MathHelpers.SafeSubtract16(7, CUShort((scanline - spriteScanline(i).y) And 7))
+                            End If
+                        Else
+                            ' 8x16 sprite mode
+                            If (spriteScanline(i).attribute And &H80UI) = 0 Then
+                                ' Not flipped vertically
+                                If (scanline - spriteScanline(i).y) < 8 Then
+                                    ' Top half
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).id And &H1UI), 12) Or
+                                                             MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).id And &HFEUI), 4) Or
+                                                             CUShort((scanline - spriteScanline(i).y) And &H7UI)
+                                Else
+                                    ' Bottom half
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).id And &H1UI), 12) Or
+                                                             MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16(CUShort(spriteScanline(i).id And &HFEUI), 1), 4) Or
+                                                             CUShort((scanline - spriteScanline(i).y) And &H7UI)
+                                End If
+                            Else
+                                ' Flipped vertically
+                                If (scanline - spriteScanline(i).y) < 8 Then
+                                    ' Top half (which is bottom when flipped)
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).id And &H1UI), 12) Or
+                                                             MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16(CUShort(spriteScanline(i).id And &HFEUI), 1), 4) Or
+                                                             MathHelpers.SafeSubtract16(7, CUShort((scanline - spriteScanline(i).y) And &H7UI))
+                                Else
+                                    ' Bottom half (which is top when flipped)
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).id And &H1UI), 12) Or
+                                                             MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).id And &HFEUI), 4) Or
+                                                             MathHelpers.SafeSubtract16(7, CUShort((scanline - spriteScanline(i).y) And &H7UI))
+                                End If
+                            End If
+                        End If
+
+                        sprite_pattern_addr_hi = MathHelpers.SafeAddition16(sprite_pattern_addr_lo, 8)
+
+                        sprite_pattern_bits_lo = ppuRead(sprite_pattern_addr_lo)
+                        sprite_pattern_bits_hi = ppuRead(sprite_pattern_addr_hi)
+
+                        ' Flip horizontally if needed
+                        If (spriteScanline(i).attribute And &H40UI) <> 0 Then
+                            Dim flipbyte = Function(b As Byte) As Byte
+                                               If b = 0 Then Return 0
+                                               b = ((b And &HF0UI) >> 4) Or ((b And &HFUI) << 4)
+                                               b = ((b And &HCCUI) >> 2) Or ((b And &H33UI) << 2)
+                                               b = ((b And &HAAUI) >> 1) Or ((b And &H55UI) << 1)
+                                               Return b
+                                           End Function
+                            sprite_pattern_bits_lo = flipbyte(sprite_pattern_bits_lo)
+                            sprite_pattern_bits_hi = flipbyte(sprite_pattern_bits_hi)
+                        End If
+
+                        sprite_shifter_pattern_lo(i) = sprite_pattern_bits_lo
+                        sprite_shifter_pattern_hi(i) = sprite_pattern_bits_hi
+                    Next
+                End If
+
+            End If ' End visible/pre-render scanlines
+
+            ' ============================================================================
+            ' POST-RENDER SCANLINE (240) - Do nothing
+            ' ============================================================================
+            If scanline = 240 Then
+                ' Idle scanline
+            End If
+
+            ' ============================================================================
+            ' VERTICAL BLANK SCANLINES (241-260)
+            ' ============================================================================
+            If scanline >= 241 AndAlso scanline < 261 Then
+                If scanline = 241 AndAlso cycle = 1 Then
+                    PPUStatus.Vertical_blank = 1
+                    If PPUControl.Enable_nmi <> 0 Then
+                        nmi = True
+                    End If
+                End If
+            End If
+
+            ' ============================================================================
+            ' PIXEL RENDERING - Happens every cycle during visible scanlines
+            ' ============================================================================
+            Dim bg_pixel As Byte = 0
+            Dim bg_palette As Byte = 0
+            Dim fg_pixel As Byte = 0
+            Dim fg_palette As Byte = 0
+            Dim fg_priority As Byte = 0
+
+            ' Render background pixel
+            If PPUMask.Render_background <> 0 Then
+                If PPUMask.Render_background_left <> 0 OrElse (cycle >= 9) Then
+                    Dim bit_mux As UInt16 = &H8000US >> fine_x
+
+                    Dim p0_pixel As Byte = If((bg_shifter_pattern_lo And bit_mux) <> 0, 1, 0)
+                    Dim p1_pixel As Byte = If((bg_shifter_pattern_hi And bit_mux) <> 0, 1, 0)
+                    bg_pixel = (p1_pixel << 1) Or p0_pixel
+
+                    Dim bg_pal0 As Byte = If((bg_shifter_attrib_lo And bit_mux) <> 0, 1, 0)
+                    Dim bg_pal1 As Byte = If((bg_shifter_attrib_hi And bit_mux) <> 0, 1, 0)
+                    bg_palette = (bg_pal1 << 1) Or bg_pal0
+                End If
+            End If
+
+            ' Render foreground (sprite) pixel
+            If PPUMask.Render_sprites <> 0 Then
+                If PPUMask.Render_sprites_left <> 0 OrElse (cycle >= 9) Then
+                    bSpriteZeroBeingRendered = False
+
+                    For i As Integer = 0 To Math.Min(sprite_count - 1, 7)
+                        If spriteScanline(i).x = 0 Then
+                            Dim fg_pixel_lo As Byte = If((sprite_shifter_pattern_lo(i) And &H80UI) <> 0, 1, 0)
+                            Dim fg_pixel_hi As Byte = If((sprite_shifter_pattern_hi(i) And &H80UI) <> 0, 1, 0)
+                            fg_pixel = (fg_pixel_hi << 1) Or fg_pixel_lo
+
+                            fg_palette = (spriteScanline(i).attribute And &H3UI) + &H4UI
+                            fg_priority = If((spriteScanline(i).attribute And &H20UI) = 0, 1, 0)
+
+                            If fg_pixel <> 0 Then
+                                If i = 0 Then
+                                    bSpriteZeroBeingRendered = True
+                                End If
+                                Exit For
+                            End If
+                        End If
+                    Next
+                End If
+            End If
+
+            ' Combine background and foreground
+            Dim pixel As Byte = 0
+            Dim palette As Byte = 0
+
+            If bg_pixel = 0 AndAlso fg_pixel = 0 Then
+                pixel = 0
+                palette = 0
+            ElseIf bg_pixel = 0 AndAlso fg_pixel > 0 Then
+                pixel = fg_pixel
+                palette = fg_palette
+            ElseIf bg_pixel > 0 AndAlso fg_pixel = 0 Then
+                pixel = bg_pixel
+                palette = bg_palette
+            ElseIf bg_pixel > 0 AndAlso fg_pixel > 0 Then
+                If fg_priority <> 0 Then
+                    pixel = fg_pixel
+                    palette = fg_palette
+                Else
+                    pixel = bg_pixel
+                    palette = bg_palette
+                End If
+
+                ' Sprite zero hit detection
+                If bSpriteZeroHitPossible AndAlso bSpriteZeroBeingRendered Then
+                    If (PPUMask.Render_background <> 0) AndAlso (PPUMask.Render_sprites <> 0) Then
+                        If (PPUMask.Render_background_left Or PPUMask.Render_sprites_left) = 0 Then
+                            If cycle >= 9 AndAlso cycle < 258 Then
+                                PPUStatus.Sprite_zero_hit = 1
+                            End If
+                        Else
+                            If cycle >= 1 AndAlso cycle < 258 Then
+                                PPUStatus.Sprite_zero_hit = 1
+                            End If
+                        End If
+                    End If
+                End If
+            End If
+
+            ' Draw the pixel (only during visible area)
+            If scanline >= 0 AndAlso scanline < 240 AndAlso cycle >= 1 AndAlso cycle < 257 Then
+                sprScreen.SetPixel(cycle - 1, scanline, GetColorFromPaletteRam(palette, pixel))
+            End If
+
+            ' Advance cycle and scanline
+            cycle += 1
+
+            If PPUMask.Render_background <> 0 OrElse PPUMask.Render_sprites <> 0 Then
+                If cycle = 260 AndAlso scanline < 240 Then
+                    Cart.GetMapper.Scanline()
+                End If
+            End If
+
+            If cycle >= 341 Then
+                cycle = 0
+                scanline += 1
+                If scanline >= 261 Then
+                    scanline = -1
+                    frame_complete = True
+                    odd_frame = Not odd_frame
+                End If
+            End If
+
+        End Sub
     End Class
 
 End Namespace

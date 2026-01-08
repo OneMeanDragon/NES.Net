@@ -234,9 +234,15 @@ Namespace NintendoEntertainmentSystem
             Try
                 ' Check size vs. file length
                 If ((iNES_HEADER_SIZE) + (TRAINER_SIZE)) < FileContents.Length() Then Return False
-                ReDim vTrainerMemory(TRAINER_SIZE)
-                For Offset As UInt32 = 0 To TRAINER_SIZE : vTrainerMemory(Offset) = FileContents(Offset + CurrentFilePosition()) : Next
+
+                ReDim vTrainerMemory(TRAINER_SIZE - 1)
+
+                For Offset As UInt32 = 0 To TRAINER_SIZE - 1  ' ← CHANGED: Added - 1 to loop end
+                    vTrainerMemory(Offset) = FileContents(Offset + CurrentFilePosition())
+                Next
+
                 CurrentFilePosition = CurrentFilePosition + (TRAINER_SIZE)
+
                 Return True
             Catch ex As Exception
                 Return False
@@ -255,17 +261,23 @@ Namespace NintendoEntertainmentSystem
                 Dim CurrentIndex As UInt32
                 Dim EndIndex As UInt32
                 If iNESVersion = enVersion.iNES1 Then
-                    ReDim vPRGMemory(PRGBanks * 16384) 'VB ~
+                    ' FIX #1: Subtract 1 from array size
+                    ReDim vPRGMemory((PRGBanks * 16384) - 1)
+
                     CurrentIndex = CurrentFilePosition()
                     EndIndex = CurrentFilePosition() + (PRGBanks * 16384) - 1
                     For Offset As UInt32 = CurrentIndex To EndIndex
                         vPRGMemory(Offset - CurrentIndex) = FileContents(Offset) : CurrentFilePosition() += 1
                     Next
+
                     If CHRBanks = 0 Then
-                        ReDim vCHRMemory(8192) 'VB
+                        ' FIX #2: Subtract 1 from array size
+                        ReDim vCHRMemory(8192 - 1)  ' ← CHANGED: Added - 1
                     Else
-                        ReDim vCHRMemory(CHRBanks * 8192) 'VB
+                        ' FIX #3: Subtract 1 from array size
+                        ReDim vCHRMemory((CHRBanks * 8192) - 1)  ' ← CHANGED: Added - 1
                     End If
+
                     CurrentIndex = CurrentFilePosition()
                     EndIndex = CurrentFilePosition() + (IIf(CHRBanks = 0, 1, CHRBanks) * 8192) - 1
                     If CurrentIndex = FileContents.Length() Then
@@ -278,13 +290,18 @@ Namespace NintendoEntertainmentSystem
                         Next
                     End If
                 Else
-                    ReDim vPRGMemory(PRGBanks * 16384) 'VB ~
+                    ' FIX #4: iNES 2.0 - Subtract 1 from array size
+                    ReDim vPRGMemory((PRGBanks * 16384) - 1)
+
                     CurrentIndex = CurrentFilePosition()
                     EndIndex = CurrentFilePosition() + (PRGBanks * 16384) - 1
                     For Offset As UInt32 = CurrentIndex To EndIndex
                         vPRGMemory(Offset - CurrentIndex) = FileContents(Offset) : CurrentFilePosition() += 1
                     Next
-                    ReDim vCHRMemory(CHRBanks * 8192) 'VB
+
+                    ' FIX #5: iNES 2.0 CHR - Subtract 1 from array size
+                    ReDim vCHRMemory((CHRBanks * 8192) - 1)
+
                     CurrentIndex = CurrentFilePosition()
                     EndIndex = CurrentFilePosition() + (IIf(PRGBanks = 0, 1, PRGBanks) * 8192) - 1
                     For Offset As UInt32 = CurrentIndex To EndIndex
@@ -378,6 +395,47 @@ Namespace NintendoEntertainmentSystem
             Debug.WriteLine("CARTRIDGE LOAD DIAGNOSTIC")
             Debug.WriteLine("=".PadRight(80, "="))
 
+            If vPRGMemory.Length >= 16 Then
+                Debug.WriteLine("Last 16 bytes of PRG (contains vectors):")
+                For i As Integer = vPRGMemory.Length - 16 To vPRGMemory.Length - 1
+                    Debug.Write(String.Format("{0:X2} ", vPRGMemory(i)))
+                Next
+                Debug.WriteLine("")
+
+                ' OLD (WRONG) - These indices are backwards!
+                ' Dim nmiLo As Byte = vPRGMemory(vPRGMemory.Length - 6)  ' $FFFA
+                ' Dim nmiHi As Byte = vPRGMemory(vPRGMemory.Length - 5)  ' $FFFB
+
+                ' NEW (CORRECT) - Read from the actual vector locations
+                ' The vectors are at the LAST 6 bytes of PRG ROM:
+                ' Length-6, Length-5 = $FFFA/$FFFB (NMI)
+                ' Length-4, Length-3 = $FFFC/$FFFD (RST)
+                ' Length-2, Length-1 = $FFFE/$FFFF (IRQ)
+
+                Dim nmiLo As Byte = vPRGMemory(vPRGMemory.Length - 6)  ' Byte at $FFFA
+                Dim nmiHi As Byte = vPRGMemory(vPRGMemory.Length - 5)  ' Byte at $FFFB
+                Dim rstLo As Byte = vPRGMemory(vPRGMemory.Length - 4)  ' Byte at $FFFC
+                Dim rstHi As Byte = vPRGMemory(vPRGMemory.Length - 3)  ' Byte at $FFFD
+                Dim irqLo As Byte = vPRGMemory(vPRGMemory.Length - 2)  ' Byte at $FFFE
+                Dim irqHi As Byte = vPRGMemory(vPRGMemory.Length - 1)  ' Byte at $FFFF
+
+                ' Build 16-bit addresses (little-endian: low byte first!)
+                Dim nmiVec As UInt16 = CUShort((nmiHi << 8) Or nmiLo)
+                Dim rstVec As UInt16 = CUShort((rstHi << 8) Or rstLo)
+                Dim irqVec As UInt16 = CUShort((irqHi << 8) Or irqLo)
+
+                Debug.WriteLine(String.Format("Vectors in PRG ROM:"))
+                Debug.WriteLine(String.Format("  NMI: ${0:X4} (bytes: ${1:X2} ${2:X2})", nmiVec, nmiLo, nmiHi))
+                Debug.WriteLine(String.Format("  RST: ${0:X4} (bytes: ${1:X2} ${2:X2})", rstVec, rstLo, rstHi))
+                Debug.WriteLine(String.Format("  IRQ: ${0:X4} (bytes: ${1:X2} ${2:X2})", irqVec, irqLo, irqHi))
+
+                ' Verify they're in ROM range
+                If rstVec >= &H8000US Then
+                    Debug.WriteLine("✓ Reset vector is in ROM range!")
+                Else
+                    Debug.WriteLine("✗ Reset vector is NOT in ROM range!")
+                End If
+            End If
             ' Header info
             Debug.WriteLine(String.Format("Mapper ID: {0}", nMapperID))
             Debug.WriteLine(String.Format("PRG Banks: {0} ({1} KB)", PRGBanks, PRGBanks * 16))
@@ -470,9 +528,6 @@ Namespace NintendoEntertainmentSystem
             Debug.WriteLine("=".PadRight(80, "="))
             Debug.WriteLine("")
             ' ========== END DIAGNOSTIC CODE ==========
-
-            Return ""
-
 
             Return ""
         End Function

@@ -34,6 +34,7 @@ Public Class Form1
     Private lastPC As UInt16 = 0
     Private pcSameCount As Integer = 0
     Private pcChangeCount As Integer = 0
+    Private pcStuckCount As Integer = 0
 
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         ' Initalize Everything that we need
@@ -167,8 +168,10 @@ Public Class Form1
 
         ' just a ref not actual data
         ' 78 D8 A9 10 8D 00 20 A9 00 8D 01 20 8D 05 20 8D
+        ' 78A9118D02804C00809AAD022010FBAD
         ' Last 16 bytes of PRG (contains vectors):
         ' ... (some bytes) ... 00 C0 82 80 F0 FF
+        ' FFFFFFFFFFFFFFFFFF86C0008000C000
 
 
         ' DON'T call diagnostics here - nothing has run yet!
@@ -221,71 +224,53 @@ Public Class Form1
 
             frameCount += 1
 
+
             ' Run diagnostic after some frames have elapsed
-            If frameCount = 60 AndAlso Not diagnosticRun Then
-                Debug.WriteLine("")
-                Debug.WriteLine("=".PadRight(80, "="))
-                Debug.WriteLine("DIAGNOSTIC AFTER 60 FRAMES")
-                Debug.WriteLine("=".PadRight(80, "="))
-
-                ' CPU State
-                Debug.WriteLine("")
-                Debug.WriteLine("--- CPU STATE ---")
-                Debug.WriteLine(String.Format("CPU Clock Cycles: {0:N0}", emNES.CPU.clock_count))
-
-                ' Calculate approximate instructions (avg 3-4 cycles per instruction)
-                Dim approxInstructions As UInteger = emNES.CPU.clock_count \ 4
-                Debug.WriteLine(String.Format("Approx Instructions: ~{0:N0}", approxInstructions))
-
-                ' Expected for 60 frames at 1.79 MHz:
-                ' 60 frames * 29,780 CPU cycles per frame = ~1,786,800 cycles
-                Dim expected As UInteger = 1786800
-                Dim percentage As Double = (emNES.CPU.clock_count / expected) * 100
-                Debug.WriteLine(String.Format("Expected cycles: ~{0:N0} (actual is {1:F1}%)", expected, percentage))
-
-                Debug.WriteLine(String.Format("Program Counter: ${0:X4}", emNES.CPU.Debug_PC))
-                Debug.WriteLine(String.Format("Stack Pointer: ${0:X2}", emNES.CPU.Debug_SP))
-
-                ' Analysis
-                If emNES.CPU.clock_count > 1000000 Then
-                    Debug.WriteLine("/ CPU is running normally")
-                ElseIf emNES.CPU.clock_count > 10000 Then
-                    Debug.WriteLine("! CPU is running but SLOWER than expected")
+            If frameCount <= 10 Then
+                Debug.WriteLine(String.Format("Frame {0}: Mask=${1:X2}, Control=${2:X2}, VRAM=${3:X4}",
+                                  frameCount,
+                                  emNES.PPU.Debug_PPUMaskReg,
+                                  emNES.PPU.Debug_PPUControlReg,
+                                  emNES.PPU.Debug_VramReg))
+            End If
+            If frameCount <= 20 Then
+                Dim currentPC As UInt16 = emNES.CPU.Debug_PC
+                If currentPC = lastPC Then
+                    pcStuckCount += 1
+                    If pcStuckCount > 5 Then
+                        Debug.WriteLine(String.Format("✗ CPU STUCK at PC=${0:X4} for {1} frames!",
+                                          currentPC, pcStuckCount))
+                    End If
                 Else
-                    Debug.WriteLine("x CPU is NOT running properly!")
-                    Debug.WriteLine("  Possible causes:")
-                    Debug.WriteLine("  - CPU is stuck in a loop")
-                    Debug.WriteLine("  - CPU.Clock() not being called")
-                    Debug.WriteLine("  - DMA transfer is blocking CPU")
+                    If pcStuckCount > 0 Then
+                        Debug.WriteLine(String.Format("PC changed: ${0:X4} → ${1:X4} (was stuck for {2} frames)",
+                                          lastPC, currentPC, pcStuckCount))
+                    End If
+                    pcStuckCount = 0
+                    lastPC = currentPC
                 End If
-
-                ' PPU State
+            End If
+            If frameCount Mod 60 = 0 Then  ' Every 60 frames
                 Debug.WriteLine("")
-                Debug.WriteLine("--- PPU STATE ---")
-                Debug.WriteLine(String.Format("PPU Control: ${0:X2} (NMI enabled: {1})",
-                                              emNES.PPU.Debug_PPUControlReg,
-                                              (emNES.PPU.Debug_PPUControlReg And &H80) <> 0))
-                Debug.WriteLine(String.Format("PPU Mask: ${0:X2} (BG: {1}, SPR: {2})",
-                                              emNES.PPU.Debug_PPUMaskReg,
-                                              (emNES.PPU.Debug_PPUMaskReg And &H8) <> 0,
-                                              (emNES.PPU.Debug_PPUMaskReg And &H10) <> 0))
-                Debug.WriteLine(String.Format("PPU Status: ${0:X2}", emNES.PPU.Debug_PPUStatusReg))
+                Debug.WriteLine("=== FRAME " & frameCount & " STATUS ===")
+                Debug.WriteLine(String.Format("PPU Control: ${0:X2} (NMI={1}, BG_enabled={2})",
+                                      emNES.PPU.Debug_PPUControlReg,
+                                      (emNES.PPU.Debug_PPUControlReg And &H80) >> 7,
+                                      (emNES.PPU.Debug_PPUControlReg And &H10) >> 4))
+                Debug.WriteLine(String.Format("PPU Mask: ${0:X2} (Show_BG={1}, Show_SPR={2})",
+                                      emNES.PPU.Debug_PPUMaskReg,
+                                      (emNES.PPU.Debug_PPUMaskReg And &H8) >> 3,
+                                      (emNES.PPU.Debug_PPUMaskReg And &H10) >> 4))
                 Debug.WriteLine(String.Format("VRAM addr: ${0:X4}", emNES.PPU.Debug_VramReg))
                 Debug.WriteLine(String.Format("TRAM addr: ${0:X4}", emNES.PPU.Debug_TramReg))
+                Debug.WriteLine(String.Format("CPU PC: ${0:X4}", emNES.CPU.Debug_PC))
 
-                ' Memory State
-                Debug.WriteLine("")
-                Debug.WriteLine("--- MEMORY STATE ---")
-                emNES.PPU.DiagnoseAttributeTable()
-
-                ' System State
-                Debug.WriteLine("")
-                Debug.WriteLine("--- SYSTEM STATE ---")
-                Debug.WriteLine(String.Format("System Clock Counter: {0:N0}", emNES.Debug_SystemClockCounter))
-                Debug.WriteLine(String.Format("DMA Active: {0}", emNES.dma_transfer))
-
-                Debug.WriteLine("=".PadRight(80, "="))
-                diagnosticRun = True
+                ' Check if rendering is enabled
+                If (emNES.PPU.Debug_PPUMaskReg And &H18) = 0 Then
+                    Debug.WriteLine("✗ WARNING: Rendering is DISABLED! (PPU Mask bits 3-4 are off)")
+                Else
+                    Debug.WriteLine("✓ Rendering is enabled")
+                End If
             End If
 
             frame_end = Environment.TickCount
@@ -345,7 +330,7 @@ Public Class Form1
             ' Render the screen every frame
             DrawSprite(2, 2, emNES.PPU.GetScreen())
 
-            Debug.WriteLine(String.Format("FPS: {0:F2}", CapTimer.CalculateFPS()))
+            'Debug.WriteLine(String.Format("FPS: {0:F2}", CapTimer.CalculateFPS()))
             'Sleep Frames or not (Not needed ever since adding the draw procedure, was running 900FPS without it, now its lucky to make 3FPS at times lol, though my calculation in the timer is likely wrong aswell)
             'Dim frameticks As UInteger = CapTimer.GetDelta()
             'If frameticks < FRAMERATE_LOCK Then 

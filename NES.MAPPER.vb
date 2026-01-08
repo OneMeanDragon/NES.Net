@@ -134,14 +134,46 @@ Namespace NintendoEntertainmentSystem
             MyBase.Finalize()
         End Sub
 
+        'Public Overrides Sub Reset()
+        '    nCHRBankSelect = &H0UI
+        '    nPRGBankSelect = &H0UI
+        'End Sub
         Public Overrides Sub Reset()
             nCHRBankSelect = &H0UI
-            nPRGBankSelect = &H0UI
+
+            ' FIX: Initialize to last bank
+            ' Mapper 66 uses 32KB banks, so divide by 2
+            If m_PRGBanks >= 2 Then
+                nPRGBankSelect = CByte((m_PRGBanks \ 2) - 1)
+            Else
+                nPRGBankSelect = 0
+            End If
+
+            Debug.WriteLine(String.Format("Mapper 66 Reset: m_PRGBanks={0}, nPRGBankSelect={1}",
+                                      m_PRGBanks, nPRGBankSelect))
         End Sub
 
+        'Public Overrides Function cpuMapRead(addr As UShort, ByRef mapped_addr As UInteger, ByRef data As Byte) As Boolean
+        '    If addr >= &H8000US AndAlso addr <= &HFFFFUS Then
+        '        mapped_addr = MathHelpers.SafeAddition32(MathHelpers.SafeMul32(nPRGBankSelect, &H8000US), (addr And &H7FFFUS))
+        '        Return True
+        '    Else
+        '        Return False
+        '    End If
+        'End Function
         Public Overrides Function cpuMapRead(addr As UShort, ByRef mapped_addr As UInteger, ByRef data As Byte) As Boolean
             If addr >= &H8000US AndAlso addr <= &HFFFFUS Then
-                mapped_addr = MathHelpers.SafeAddition32(MathHelpers.SafeMul32(nPRGBankSelect, &H8000US), (addr And &H7FFFUS))
+                ' Map to selected 32KB bank
+                mapped_addr = (nPRGBankSelect * &H8000UI) + (addr And &H7FFFUS)
+
+                ' Add bounds check for safety
+                Dim maxAddr As UInteger = m_PRGBanks * 16384UI
+                If mapped_addr >= maxAddr Then
+                    Debug.WriteLine(String.Format("Mapper 66: Address ${0:X4} mapped to ${1:X} (OUT OF BOUNDS, max=${2:X})",
+                                              addr, mapped_addr, maxAddr))
+                    mapped_addr = mapped_addr Mod maxAddr  ' Wrap around
+                End If
+
                 Return True
             Else
                 Return False
