@@ -218,11 +218,11 @@
             InitializeHandler(128, "???", AddressOf NOP, AddressOf IMP, 2)
             InitializeHandler(129, "STA", AddressOf STA, AddressOf IZX, 6)
             InitializeHandler(130, "???", AddressOf NOP, AddressOf IMP, 2)
-            InitializeHandler(131, "???", AddressOf XXX, AddressOf IMP, 6)
+            InitializeHandler(131, "???", AddressOf XXX, AddressOf IMP, 6) 'SAX 83 2 bytes 6 cycles
             InitializeHandler(132, "STY", AddressOf STY, AddressOf ZP0, 3)
             InitializeHandler(133, "STA", AddressOf STA, AddressOf ZP0, 3)
             InitializeHandler(134, "STX", AddressOf STX, AddressOf ZP0, 3)
-            InitializeHandler(135, "???", AddressOf XXX, AddressOf IMP, 3)
+            InitializeHandler(135, "???", AddressOf XXX, AddressOf IMP, 3) 'SAX 87 2 bytes 3 cycles
             InitializeHandler(136, "DEY", AddressOf DEY, AddressOf IMP, 2)
             InitializeHandler(137, "???", AddressOf NOP, AddressOf IMP, 2)
             InitializeHandler(138, "TXA", AddressOf TXA, AddressOf IMP, 2)
@@ -230,7 +230,7 @@
             InitializeHandler(140, "STY", AddressOf STY, AddressOf ABS, 4)
             InitializeHandler(141, "STA", AddressOf STA, AddressOf ABS, 4)
             InitializeHandler(142, "STX", AddressOf STX, AddressOf ABS, 4)
-            InitializeHandler(143, "???", AddressOf XXX, AddressOf IMP, 4)
+            InitializeHandler(143, "???", AddressOf XXX, AddressOf IMP, 4) 'SAX 8F 3 bytes 4 cycles
             InitializeHandler(144, "BCC", AddressOf BCC, AddressOf REL, 2)
             InitializeHandler(145, "STA", AddressOf STA, AddressOf IZY, 6)
             InitializeHandler(146, "???", AddressOf XXX, AddressOf IMP, 2)
@@ -238,7 +238,7 @@
             InitializeHandler(148, "STY", AddressOf STY, AddressOf ZPX, 4)
             InitializeHandler(149, "STA", AddressOf STA, AddressOf ZPX, 4)
             InitializeHandler(150, "STX", AddressOf STX, AddressOf ZPY, 4)
-            InitializeHandler(151, "???", AddressOf XXX, AddressOf IMP, 4)
+            InitializeHandler(151, "???", AddressOf XXX, AddressOf IMP, 4) 'SAX 97 2 bytes 4 cycles
             InitializeHandler(152, "TYA", AddressOf TYA, AddressOf IMP, 2)
             InitializeHandler(153, "STA", AddressOf STA, AddressOf ABY, 5)
             InitializeHandler(154, "TXS", AddressOf TXS, AddressOf IMP, 2)
@@ -250,11 +250,11 @@
             InitializeHandler(160, "LDY", AddressOf LDY, AddressOf IMM, 2)
             InitializeHandler(161, "LDA", AddressOf LDA, AddressOf IZX, 6)
             InitializeHandler(162, "LDX", AddressOf LDX, AddressOf IMM, 2)
-            InitializeHandler(163, "???", AddressOf XXX, AddressOf IMP, 6)
+            InitializeHandler(163, "???", AddressOf XXX, AddressOf IMP, 6) 'LAX A3 2 bytes 6 cycles
             InitializeHandler(164, "LDY", AddressOf LDY, AddressOf ZP0, 3)
             InitializeHandler(165, "LDA", AddressOf LDA, AddressOf ZP0, 3)
             InitializeHandler(166, "LDX", AddressOf LDX, AddressOf ZP0, 3)
-            InitializeHandler(167, "???", AddressOf XXX, AddressOf IMP, 3)
+            InitializeHandler(167, "???", AddressOf XXX, AddressOf IMP, 3) 'LAX A7 2 bytes 3 cycles
             InitializeHandler(168, "TAY", AddressOf TAY, AddressOf IMP, 2)
             InitializeHandler(169, "LDA", AddressOf LDA, AddressOf IMM, 2)
             InitializeHandler(170, "TAX", AddressOf TAX, AddressOf IMP, 2)
@@ -262,15 +262,15 @@
             InitializeHandler(172, "LDY", AddressOf LDY, AddressOf ABS, 4)
             InitializeHandler(173, "LDA", AddressOf LDA, AddressOf ABS, 4)
             InitializeHandler(174, "LDX", AddressOf LDX, AddressOf ABS, 4)
-            InitializeHandler(175, "???", AddressOf XXX, AddressOf IMP, 4)
+            InitializeHandler(175, "???", AddressOf XXX, AddressOf IMP, 4) 'LAX AF 3 bytes 4 cycles
             InitializeHandler(176, "BCS", AddressOf BCS, AddressOf REL, 2)
             InitializeHandler(177, "LDA", AddressOf LDA, AddressOf IZY, 5)
             InitializeHandler(178, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(179, "???", AddressOf XXX, AddressOf IMP, 5)
+            InitializeHandler(179, "???", AddressOf XXX, AddressOf IMP, 5) 'LAX B3 2 bytes 5 cycles (+1 if crosses boundry)
             InitializeHandler(180, "LDY", AddressOf LDY, AddressOf ZPX, 4)
             InitializeHandler(181, "LDA", AddressOf LDA, AddressOf ZPX, 4)
             InitializeHandler(182, "LDX", AddressOf LDX, AddressOf ZPY, 4)
-            InitializeHandler(183, "???", AddressOf XXX, AddressOf IMP, 4)
+            InitializeHandler(183, "???", AddressOf XXX, AddressOf IMP, 4) 'LAX B7 2 bytes 4 cycles
             InitializeHandler(184, "CLV", AddressOf CLV, AddressOf IMP, 2)
             InitializeHandler(185, "LDA", AddressOf LDA, AddressOf ABY, 4)
             InitializeHandler(186, "TSX", AddressOf TSX, AddressOf IMP, 2)
@@ -278,7 +278,7 @@
             InitializeHandler(188, "LDY", AddressOf LDY, AddressOf ABX, 4)
             InitializeHandler(189, "LDA", AddressOf LDA, AddressOf ABX, 4)
             InitializeHandler(190, "LDX", AddressOf LDX, AddressOf ABY, 4)
-            InitializeHandler(191, "???", AddressOf XXX, AddressOf IMP, 4)
+            InitializeHandler(191, "???", AddressOf XXX, AddressOf IMP, 4) 'LAX BF 3 bytes 4 cycles (+1 if crosses boundry)
             InitializeHandler(192, "CPY", AddressOf CPY, AddressOf IMM, 2)
             InitializeHandler(193, "CMP", AddressOf CMP, AddressOf IZX, 6)
             InitializeHandler(194, "???", AddressOf NOP, AddressOf IMP, 2)
@@ -344,6 +344,19 @@
             InitializeHandler(254, "INC", AddressOf INC, AddressOf ABX, 7)
             InitializeHandler(255, "???", AddressOf XXX, AddressOf IMP, 7)
         End Sub
+
+        ' masswerk.at/6502/6502_instruction_set.html (another time perhaps)
+        ' un official op codes listed in the NESTEST cartridge
+        ' NOP (opcode EA)
+        ' LAX (opcodes noted above) 
+        ' SAX (opcode noted above)
+        ' SBC (opcode EB)
+        ' DCP (opcode ??)
+        ' ISB (opcode ??)
+        ' SLO (opcode ??)
+        ' RLA (opcode ??)
+        ' SRE (opcode ??)
+        ' RRA (opcode ??)
 
         Protected Overrides Sub Finalize()
             MyBase.Finalize()
