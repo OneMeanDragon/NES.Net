@@ -169,8 +169,8 @@ Namespace NintendoEntertainmentSystem
                 ' Add bounds check for safety
                 Dim maxAddr As UInteger = m_PRGBanks * 16384UI
                 If mapped_addr >= maxAddr Then
-                    Debug.WriteLine(String.Format("Mapper 66: Address ${0:X4} mapped to ${1:X} (OUT OF BOUNDS, max=${2:X})",
-                                              addr, mapped_addr, maxAddr))
+                    'Debug.WriteLine(String.Format("Mapper 66: Address ${0:X4} mapped to ${1:X} (OUT OF BOUNDS, max=${2:X})",
+                    '                          addr, mapped_addr, maxAddr))
                     mapped_addr = mapped_addr Mod maxAddr  ' Wrap around
                 End If
 

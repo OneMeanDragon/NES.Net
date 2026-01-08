@@ -7,6 +7,9 @@ Imports Nintendo.FOREVERLOOP_HELPERS
 Imports Nintendo.GraphicsObjects
 Imports Nintendo.NintendoEntertainmentSystem
 
+'Audio Importing
+Imports NAudio.Wave
+
 Public Class Form1
 #Region "Project Registry Information"
     'Since I already have this registry key im just going to use it.
@@ -24,6 +27,102 @@ Public Class Form1
 #Region "Emulation Information"
     Private emNES As New NintendoEntertainmentSystem.clsBus
     'Private Shared emCart As New NintendoEntertainmentSystem.clsCartridge()
+#End Region
+
+#Region "Audio Setup"
+    'Imports NAudio.Wave
+    ' Class-level variables
+    'Private waveOut As WaveOut
+    Private waveOut As WaveOutEvent
+    Private audioProvider As BufferedWaveProvider
+
+    ' In your form load or initialization:
+    Private Sub InitializeAudio()
+        Try
+            ' Set up audio output - 44.1kHz, mono, 16-bit
+            Dim format As New WaveFormat(44100, 16, 1) '44100 22050
+            audioProvider = New BufferedWaveProvider(format) With
+                {.BufferLength = 88200, ' 2 seconds buffer
+                    .DiscardOnBufferOverflow = True}
+
+            waveOut = New WaveOutEvent()
+            'waveOut = New WaveOut()
+            waveOut.DeviceNumber = -1 ' = default device
+
+            waveOut.Init(audioProvider)
+            waveOut.Play()
+
+            Debug.WriteLine("Audio initialized successfully!")
+        Catch ex As Exception
+            Debug.WriteLine("Audio initialization failed: " & ex.Message)
+        End Try
+    End Sub
+
+    ' Add these class-level variables at the top of your form
+    Private audioSampleCount As Integer = 0
+    Private nonZeroSamples As Integer = 0
+    Private lastSampleValue As Double = 0
+
+    ' Modify your PlayAudioSample to include debugging
+    'Private Sub PlayAudioSample(sample As Double)
+    '    If Math.Abs(sample + 0.26) < 0.01 Then ' Check if it's close to the DC offset value
+    '        sample = 0.0
+    '    End If
+    '
+    '    'audioSampleCount += 1
+    '
+    '    '' Log first 100 samples
+    '    'If audioSampleCount <= 100 Then
+    '    '    Debug.WriteLine($"Sample {audioSampleCount}: {sample:F6}")
+    '    'End If
+    '    '
+    '    '' Count non-zero samples
+    '    'If Math.Abs(sample) > 0.0001 Then
+    '    '    nonZeroSamples += 1
+    '    'End If
+    '    '
+    '    '' Every 1000 samples, report status
+    '    'If audioSampleCount Mod 1000 = 0 Then
+    '    '    Debug.WriteLine($"Audio Stats: {audioSampleCount} total, {nonZeroSamples} non-zero ({(nonZeroSamples * 100.0 / audioSampleCount):F1}%)")
+    '    '    If audioProvider IsNot Nothing Then
+    '    '        Debug.WriteLine($"Buffer: {audioProvider.BufferedBytes} bytes buffered")
+    '    '    End If
+    '    'End If
+    '    '
+    '    'lastSampleValue = sample
+    '    '
+    '    '' Original audio code
+    '    'If audioProvider Is Nothing Then
+    '    '    Debug.WriteLine("WARNING: audioProvider is Nothing!")
+    '    '    Return
+    '    'End If
+    '
+    '    Dim sample16 As Int16 = CShort(Math.Max(-32768, Math.Min(32767, sample * 32767.0)))
+    '    Dim bytes() As Byte = BitConverter.GetBytes(sample16)
+    '    audioProvider.AddSamples(bytes, 0, 2)
+    'End Sub
+
+    Private sampleBatch As New List(Of Byte)
+    Private Sub PlayAudioSample(sample As Double)
+        ' 1. Apply your silencer
+        If Math.Abs(sample + 0.26) < 0.01 Then sample = 0.0
+
+        ' 2. Convert to 16-bit
+        Dim sample16 As Int16 = CShort(Math.Max(-32768, Math.Min(32767, sample * 32767.0)))
+        Dim bytes() As Byte = BitConverter.GetBytes(sample16)
+
+        ' 3. ADD TO BATCH (No locking here)
+        sampleBatch.AddRange(bytes)
+
+        ' 4. PUSH TO PROVIDER IN BULK (Only locks once per chunk)
+        If sampleBatch.Count >= 1000 Then
+            ' Only add if there is room to avoid "Buffer Full" crashes
+            If audioProvider.BufferedBytes < (audioProvider.BufferLength - 1000) Then
+                audioProvider.AddSamples(sampleBatch.ToArray(), 0, sampleBatch.Count)
+            End If
+            sampleBatch.Clear()
+        End If
+    End Sub
 #End Region
 
     Public Shared running As Boolean = False
@@ -188,9 +287,12 @@ Public Class Form1
     Public Shared nSelectedPalette As UInteger = 0
 
     Private VideoThread As Thread
+    'Private ReadOnly TargetTicksPerFrame As Long = Stopwatch.Frequency / 60
     Public Sub Run()
-        'Const FRAMERATE_LOCK As UInteger = (1000 / 100)
-        Dim CapTimer As New myTimer()
+        'Const FRAMERATE_LOCK As UInteger = (1000 / 60)
+        'Dim CapTimer As New myTimer()
+        'Dim sw As New Stopwatch()
+
         Dim frame_start, frame_end As Integer
 
         Dim n_PrevSelectedPallet As Integer = nSelectedPalette
@@ -206,14 +308,32 @@ Public Class Form1
 
         Dim frameCount As Integer = 0
 
+        InitializeAudio()
+        ' Before While running
+        Debug.WriteLine($"WaveOut State: {waveOut.PlaybackState}")
+        Debug.WriteLine($"WaveOut Volume: {waveOut.Volume}")
+        Dim audioSample As Boolean
+        Dim localBatch As New List(Of Byte)
         While running
-            CapTimer.StartMe()
+            'sw.Restart()
+            'CapTimer.StartMe()
             frame_start = Environment.TickCount
 
             emNES.PPU.frame_complete = False
             Do
-                emNES.Clock()
+                'emNES.Clock()
+                audioSample = emNES.Clock()
                 ClockCounter += 1
+
+                If (ClockCounter Mod 31) = 0 Then
+                    ' 1. Convert and Add to a local List(Of Byte), NOT the provider
+                    Dim smp As Double = emNES.dAudioSample
+                    If Math.Abs(smp + 0.26) < 0.01 Then smp = 0.0
+
+                    Dim s16 As Int16 = CShort(Math.Max(-32768, Math.Min(32767, smp * 32767.0)))
+                    localBatch.AddRange(BitConverter.GetBytes(s16))
+                End If
+
                 If running = False Then
                     emNES.Reset()
                     Exit While
@@ -224,119 +344,151 @@ Public Class Form1
 
             frameCount += 1
 
+            If localBatch.Count > 0 Then
+                audioProvider.AddSamples(localBatch.ToArray(), 0, localBatch.Count)
+                localBatch.Clear()
+            End If
+            If waveOut.PlaybackState <> PlaybackState.Playing AndAlso audioProvider.BufferedDuration.TotalMilliseconds > 50 Then
+                waveOut.Play()
+            End If
+            'PlayAudioSample(emNES.dAudioSample)
+            'If (frameCount Mod 81) = 0 Then ' once every 81 frames..
+            '    If audioSample Then
+            '        ' Audio sample is ready - add it to your audio buffer
+            '        PlayAudioSample(emNES.dAudioSample)
+            '        'Debug.WriteLine($"WaveOut State after Play(): {emNES.dAudioSample}")
+            '        'If waveOut.PlaybackState <> PlaybackState.Playing Then
+            '        '    Debug.WriteLine("Starting WaveOut playback...")
+            '        '    waveOut.Play()
+            '        '    Threading.Thread.Sleep(100) ' Give it a moment
+            '        '    Debug.WriteLine($"WaveOut State after Play(): {waveOut.PlaybackState}")
+            '        'End If
+            '    End If
+            'End If
 
             ' Run diagnostic after some frames have elapsed
-            If frameCount <= 10 Then
-                Debug.WriteLine(String.Format("Frame {0}: Mask=${1:X2}, Control=${2:X2}, VRAM=${3:X4}",
-                                  frameCount,
-                                  emNES.PPU.Debug_PPUMaskReg,
-                                  emNES.PPU.Debug_PPUControlReg,
-                                  emNES.PPU.Debug_VramReg))
-            End If
-            If frameCount <= 20 Then
-                Dim currentPC As UInt16 = emNES.CPU.Debug_PC
-                If currentPC = lastPC Then
-                    pcStuckCount += 1
-                    If pcStuckCount > 5 Then
-                        Debug.WriteLine(String.Format("✗ CPU STUCK at PC=${0:X4} for {1} frames!",
-                                          currentPC, pcStuckCount))
-                    End If
-                Else
-                    If pcStuckCount > 0 Then
-                        Debug.WriteLine(String.Format("PC changed: ${0:X4} → ${1:X4} (was stuck for {2} frames)",
-                                          lastPC, currentPC, pcStuckCount))
-                    End If
-                    pcStuckCount = 0
-                    lastPC = currentPC
-                End If
-            End If
-            If frameCount Mod 60 = 0 Then  ' Every 60 frames
-                Debug.WriteLine("")
-                Debug.WriteLine("=== FRAME " & frameCount & " STATUS ===")
-                Debug.WriteLine(String.Format("PPU Control: ${0:X2} (NMI={1}, BG_enabled={2})",
-                                      emNES.PPU.Debug_PPUControlReg,
-                                      (emNES.PPU.Debug_PPUControlReg And &H80) >> 7,
-                                      (emNES.PPU.Debug_PPUControlReg And &H10) >> 4))
-                Debug.WriteLine(String.Format("PPU Mask: ${0:X2} (Show_BG={1}, Show_SPR={2})",
-                                      emNES.PPU.Debug_PPUMaskReg,
-                                      (emNES.PPU.Debug_PPUMaskReg And &H8) >> 3,
-                                      (emNES.PPU.Debug_PPUMaskReg And &H10) >> 4))
-                Debug.WriteLine(String.Format("VRAM addr: ${0:X4}", emNES.PPU.Debug_VramReg))
-                Debug.WriteLine(String.Format("TRAM addr: ${0:X4}", emNES.PPU.Debug_TramReg))
-                Debug.WriteLine(String.Format("CPU PC: ${0:X4}", emNES.CPU.Debug_PC))
-
-                ' Check if rendering is enabled
-                If (emNES.PPU.Debug_PPUMaskReg And &H18) = 0 Then
-                    Debug.WriteLine("✗ WARNING: Rendering is DISABLED! (PPU Mask bits 3-4 are off)")
-                Else
-                    Debug.WriteLine("✓ Rendering is enabled")
-                End If
-            End If
+            'If frameCount <= 10 Then
+            '    Debug.WriteLine(String.Format("Frame {0}: Mask=${1:X2}, Control=${2:X2}, VRAM=${3:X4}",
+            '                      frameCount,
+            '                      emNES.PPU.Debug_PPUMaskReg,
+            '                      emNES.PPU.Debug_PPUControlReg,
+            '                      emNES.PPU.Debug_VramReg))
+            'End If
+            'If frameCount <= 20 Then
+            '    Dim currentPC As UInt16 = emNES.CPU.Debug_PC
+            '    If currentPC = lastPC Then
+            '        pcStuckCount += 1
+            '        If pcStuckCount > 5 Then
+            '            Debug.WriteLine(String.Format("✗ CPU STUCK at PC=${0:X4} for {1} frames!",
+            '                              currentPC, pcStuckCount))
+            '        End If
+            '    Else
+            '        If pcStuckCount > 0 Then
+            '            Debug.WriteLine(String.Format("PC changed: ${0:X4} → ${1:X4} (was stuck for {2} frames)",
+            '                              lastPC, currentPC, pcStuckCount))
+            '        End If
+            '        pcStuckCount = 0
+            '        lastPC = currentPC
+            '    End If
+            'End If
+            'If frameCount Mod 60 = 0 Then  ' Every 60 frames
+            '    Debug.WriteLine("")
+            '    Debug.WriteLine("=== FRAME " & frameCount & " STATUS ===")
+            '    Debug.WriteLine(String.Format("PPU Control: ${0:X2} (NMI={1}, BG_enabled={2})",
+            '                          emNES.PPU.Debug_PPUControlReg,
+            '                          (emNES.PPU.Debug_PPUControlReg And &H80) >> 7,
+            '                          (emNES.PPU.Debug_PPUControlReg And &H10) >> 4))
+            '    Debug.WriteLine(String.Format("PPU Mask: ${0:X2} (Show_BG={1}, Show_SPR={2})",
+            '                          emNES.PPU.Debug_PPUMaskReg,
+            '                          (emNES.PPU.Debug_PPUMaskReg And &H8) >> 3,
+            '                          (emNES.PPU.Debug_PPUMaskReg And &H10) >> 4))
+            '    Debug.WriteLine(String.Format("VRAM addr: ${0:X4}", emNES.PPU.Debug_VramReg))
+            '    Debug.WriteLine(String.Format("TRAM addr: ${0:X4}", emNES.PPU.Debug_TramReg))
+            '    Debug.WriteLine(String.Format("CPU PC: ${0:X4}", emNES.CPU.Debug_PC))
+            '
+            '    ' Check if rendering is enabled
+            '    If (emNES.PPU.Debug_PPUMaskReg And &H18) = 0 Then
+            '        Debug.WriteLine("✗ WARNING: Rendering is DISABLED! (PPU Mask bits 3-4 are off)")
+            '    Else
+            '        Debug.WriteLine("✓ Rendering is enabled")
+            '    End If
+            'End If
 
             frame_end = Environment.TickCount
 
             'check PC every 10 frames:
-            If frameCount Mod 10 = 0 Then
-                Dim currentPC As UInt16 = emNES.CPU.Debug_PC
-                If currentPC = lastPC Then
-                    pcSameCount += 1
-                Else
-                    pcChangeCount += 1
-                    lastPC = currentPC
-                End If
-
-                If frameCount = 60 Then
-                    Debug.WriteLine(String.Format("PC Analysis: Changed {0} times, Same {1} times",
-                                      pcChangeCount, pcSameCount))
-                    If pcChangeCount < 2 Then
-                        Debug.WriteLine("✗ PC is STUCK - CPU is in infinite loop or not executing!")
-                    End If
-                End If
-            End If
+            'If frameCount Mod 10 = 0 Then
+            '    Dim currentPC As UInt16 = emNES.CPU.Debug_PC
+            '    If currentPC = lastPC Then
+            '        pcSameCount += 1
+            '    Else
+            '        pcChangeCount += 1
+            '        lastPC = currentPC
+            '    End If
+            '
+            '    If frameCount = 60 Then
+            '        Debug.WriteLine(String.Format("PC Analysis: Changed {0} times, Same {1} times",
+            '                          pcChangeCount, pcSameCount))
+            '        If pcChangeCount < 2 Then
+            '            Debug.WriteLine("✗ PC is STUCK - CPU is in infinite loop or not executing!")
+            '        End If
+            '    End If
+            'End If
             ' Only log every 60th frame to reduce spam
-            If frameCount Mod 60 = 0 Then
-                Debug.WriteLine(String.Format("Frame {0} completed in: {1:F3}s",
-                                         frameCount, (frame_end - frame_start) / 1000.0))
-            End If
+            'If frameCount Mod 60 = 0 Then
+            '    Debug.WriteLine(String.Format("Frame {0} completed in: {1:F3}s",
+            '                             frameCount, (frame_end - frame_start) / 1000.0))
+            'End If
 
             '// Draw rendered output ========================================================
 
+            '-----------------------------------
             ' Draw the Patterns
-            If QueuePatterns AndAlso frameCount Mod 30 = 0 Then
-                DrawSprite(256 + 4, 2, emNES.PPU.GetPatternTable(0, nSelectedPalette))
-                DrawSprite(256 + 4 + (128 + 2), 2, emNES.PPU.GetPatternTable(1, nSelectedPalette))
-                QueuePatterns = False
-            End If
-
-            Const nSwatchSize As Integer = 6
-            ' Handle palette selection changes
-            If n_PrevSelectedPallet <> nSelectedPalette Then
-                FillRect((256 + 4) + 1 + (n_PrevSelectedPallet * (nSwatchSize * 5)), 132, (nSwatchSize * 4), nSwatchSize + 2, PixelColors.DARK_GREY)
-                n_PrevSelectedPallet = nSelectedPalette
-                QueuePatterns = True
-                QueuePalettes = True
-            End If
-
-            If QueuePalettes Then
-                FillRect((256 + 4) + 1 + (nSelectedPalette * (nSwatchSize * 5)), 132, (nSwatchSize * 4), nSwatchSize + 2, PixelColors.CYAN)
-                For p As Integer = 0 To 7
-                    For s As Integer = 0 To 3
-                        FillRect((256 + 4) + 1 + p * (nSwatchSize * 5) + s * nSwatchSize, 133, nSwatchSize, nSwatchSize, emNES.PPU.GetColorFromPaletteRam(p, s))
-                    Next
-                Next
-                QueuePalettes = False
-            End If
+            'If QueuePatterns AndAlso frameCount Mod 30 = 0 Then
+            '    DrawSprite(256 + 4, 2, emNES.PPU.GetPatternTable(0, nSelectedPalette))
+            '    DrawSprite(256 + 4 + (128 + 2), 2, emNES.PPU.GetPatternTable(1, nSelectedPalette))
+            '    QueuePatterns = False
+            'End If
+            '
+            'Const nSwatchSize As Integer = 6
+            '' Handle palette selection changes
+            'If n_PrevSelectedPallet <> nSelectedPalette Then
+            '    FillRect((256 + 4) + 1 + (n_PrevSelectedPallet * (nSwatchSize * 5)), 132, (nSwatchSize * 4), nSwatchSize + 2, PixelColors.DARK_GREY)
+            '    n_PrevSelectedPallet = nSelectedPalette
+            '    QueuePatterns = True
+            '    QueuePalettes = True
+            'End If
+            '
+            'If QueuePalettes Then
+            '    FillRect((256 + 4) + 1 + (nSelectedPalette * (nSwatchSize * 5)), 132, (nSwatchSize * 4), nSwatchSize + 2, PixelColors.CYAN)
+            '    For p As Integer = 0 To 7
+            '        For s As Integer = 0 To 3
+            '            FillRect((256 + 4) + 1 + p * (nSwatchSize * 5) + s * nSwatchSize, 133, nSwatchSize, nSwatchSize, emNES.PPU.GetColorFromPaletteRam(p, s))
+            '        Next
+            '    Next
+            '    QueuePalettes = False
+            'End If
+            '-----------------------------------
 
             ' Render the screen every frame
             DrawSprite(2, 2, emNES.PPU.GetScreen())
 
             'Debug.WriteLine(String.Format("FPS: {0:F2}", CapTimer.CalculateFPS()))
-            'Sleep Frames or not (Not needed ever since adding the draw procedure, was running 900FPS without it, now its lucky to make 3FPS at times lol, though my calculation in the timer is likely wrong aswell)
-            'Dim frameticks As UInteger = CapTimer.GetDelta()
-            'If frameticks < FRAMERATE_LOCK Then 
-            '    Threading.Thread.Sleep(FRAMERATE_LOCK - frameticks)
+            'Dim elapsedMs As Long = sw.ElapsedMilliseconds 'Environment.TickCount - frame_start
+            'If elapsedMs < FRAMERATE_LOCK Then
+            '    ' Sleep for the remaining time minus 1ms safety margin
+            '    Dim sleepTime As Integer = CInt(FRAMERATE_LOCK - elapsedMs) - 1
+            '    If sleepTime > 0 Then
+            '        Threading.Thread.Sleep(sleepTime)
+            '    End If
             'End If
         End While
+
+        If waveOut IsNot Nothing Then
+            waveOut.Stop()
+            waveOut.Dispose()
+        End If
+
         DrawClear(PixelColors.BLACK)
     End Sub
 
@@ -578,139 +730,139 @@ Public Class Form1
     End Sub
 
     ' Diagnostic helper: dump full PPU tables to the Debug output for offline inspection.
-    Private Sub DumpPPUFullDebug()
-        If IsNothing(emNES) OrElse IsNothing(emNES.PPU) Then
-            Debug.WriteLine("DumpPPUFullDebug: emNES.PPU is Nothing")
-            Return
-        End If
+    'Private Sub DumpPPUFullDebug()
+    '    If IsNothing(emNES) OrElse IsNothing(emNES.PPU) Then
+    '        Debug.WriteLine("DumpPPUFullDebug: emNES.PPU is Nothing")
+    '        Return
+    '    End If
+    '
+    '    Try
+    '        Debug.WriteLine("=== PPU FULL DUMP START ===")
+    '        Debug.WriteLine(String.Format("PPUControl={0:X2} PPUMask={1:X2} PPUStatus={2:X2}", emNES.PPU.Debug_PPUControlReg, emNES.PPU.Debug_PPUMaskReg, emNES.PPU.Debug_PPUStatusReg))
+    '        Debug.WriteLine(String.Format("vram_addr=0x{0:X4} tram_addr=0x{1:X4} fine_x={2}", emNES.PPU.Debug_VramReg, emNES.PPU.Debug_TramReg, GetType(NintendoEntertainmentSystem.em2C02).GetField("fine_x", Reflection.BindingFlags.NonPublic Or Reflection.BindingFlags.Instance)?.GetValue(emNES.PPU)))
+    '
+    '        ' Palette dump (32 bytes)
+    '        Dim pal() As Byte = emNES.PPU.Debug_GetTblPalette()
+    '        Dim sbPal As New System.Text.StringBuilder()
+    '        sbPal.Append("tblPalette[0..31]:")
+    '        For i As Integer = 0 To pal.Length - 1
+    '            sbPal.Append(" " & pal(i).ToString("X2"))
+    '        Next
+    '        Debug.WriteLine(sbPal.ToString())
+    '
+    '        ' Dump entire nametable 0 & 1 (1024 bytes each)
+    '        Dim nt0() As Byte = emNES.PPU.Debug_GetNameTableRow(0, 0, 1024)
+    '        Debug.WriteLine("NameTable0 (1024 bytes):")
+    '        For i As Integer = 0 To 1023 Step 32
+    '            Dim line As New System.Text.StringBuilder()
+    '            For j As Integer = 0 To 31
+    '                line.Append(nt0(i + j).ToString("X2") & " ")
+    '            Next
+    '            Debug.WriteLine(line.ToString())
+    '        Next
+    '
+    '        Dim nt1() As Byte = emNES.PPU.Debug_GetNameTableRow(1, 0, 1024)
+    '        Debug.WriteLine("NameTable1 (1024 bytes):")
+    '        For i As Integer = 0 To 1023 Step 32
+    '            Dim line As New System.Text.StringBuilder()
+    '            For j As Integer = 0 To 31
+    '                line.Append(nt1(i + j).ToString("X2") & " ")
+    '            Next
+    '            Debug.WriteLine(line.ToString())
+    '        Next
+    '
+    '        ' Dump attribute table bytes for name table 0 ($23C0..$23FF)
+    '        Debug.WriteLine("Attribute bytes for NT0 ($23C0..$23FF):")
+    '        For i As Integer = 0 To 63 Step 8
+    '            Dim line As New System.Text.StringBuilder()
+    '            For j As Integer = 0 To 7
+    '                Dim addr As UShort = CUShort(&H23C0 + i + j)
+    '                Dim b As Byte = emNES.PPU.ppuRead(addr)
+    '                line.Append(b.ToString("X2") & " ")
+    '            Next
+    '            Debug.WriteLine(line.ToString())
+    '        Next
+    '
+    '        ' Dump pattern bytes around tile ids likely used by title screen
+    '        ' Adjust startTile/count if you want to inspect specific ids
+    '        Dim startTile As Integer = 0 ' change if you know offending tile id
+    '        Dim tileCount As Integer = 128
+    '        Debug.WriteLine(String.Format("Pattern bytes for tiles {0}..{1} (first 16 bytes each):", startTile, startTile + tileCount - 1))
+    '        For t As Integer = startTile To Math.Min(startTile + tileCount - 1, 255)
+    '            Dim addrBase As UShort = CUShort(((t And &HFF) << 4)) ' assume pattern table 0 here
+    '            Dim sbp As New System.Text.StringBuilder()
+    '            sbp.AppendFormat("Tile {0:X2}:", t)
+    '            For k As Integer = 0 To 15
+    '                Dim b As Byte = emNES.PPU.ppuRead(CUShort(&H0US + addrBase + k))
+    '                sbp.Append(" " & b.ToString("X2"))
+    '            Next
+    '            Debug.WriteLine(sbp.ToString())
+    '        Next
+    '
+    '        Debug.WriteLine("=== PPU FULL DUMP END ===")
+    '    Catch ex As Exception
+    '        Debug.WriteLine("DumpPPUFullDebug failed: " & ex.Message)
+    '    End Try
+    'End Sub
 
-        Try
-            Debug.WriteLine("=== PPU FULL DUMP START ===")
-            Debug.WriteLine(String.Format("PPUControl={0:X2} PPUMask={1:X2} PPUStatus={2:X2}", emNES.PPU.Debug_PPUControlReg, emNES.PPU.Debug_PPUMaskReg, emNES.PPU.Debug_PPUStatusReg))
-            Debug.WriteLine(String.Format("vram_addr=0x{0:X4} tram_addr=0x{1:X4} fine_x={2}", emNES.PPU.Debug_VramReg, emNES.PPU.Debug_TramReg, GetType(NintendoEntertainmentSystem.em2C02).GetField("fine_x", Reflection.BindingFlags.NonPublic Or Reflection.BindingFlags.Instance)?.GetValue(emNES.PPU)))
+    'Private Sub DiagnoseReset()
+    '    Debug.WriteLine("=== RESET VECTOR DIAGNOSTIC ===")
+    '
+    '    ' Read reset vector from $FFFC/$FFFD
+    '    Dim resetLow As Byte = emNES.cpuRead(&HFFFCUS)
+    '    Dim resetHigh As Byte = emNES.cpuRead(&HFFFDUS)
+    '    Dim resetVector As UInt16 = CUShort((resetHigh << 8) Or resetLow)
+    '
+    '    Debug.WriteLine(String.Format("Reset Vector: $FFFC=${0:X2}, $FFFD=${1:X2} → Start at ${2:X4}",
+    '                              resetLow, resetHigh, resetVector))
+    '
+    '    ' Read NMI vector
+    '    Dim nmiLow As Byte = emNES.cpuRead(&HFFFAUS)
+    '    Dim nmiHigh As Byte = emNES.cpuRead(&HFFFBUS)
+    '    Dim nmiVector As UInt16 = CUShort((nmiHigh << 8) Or nmiLow)
+    '
+    '    Debug.WriteLine(String.Format("NMI Vector: $FFFA=${0:X2}, $FFFB=${1:X2} → Handler at ${2:X4}",
+    '                              nmiLow, nmiHigh, nmiVector))
+    '
+    '    ' Read IRQ vector
+    '    Dim irqLow As Byte = emNES.cpuRead(&HFFFEUS)
+    '    Dim irqHigh As Byte = emNES.cpuRead(&HFFFFUS)
+    '    Dim irqVector As UInt16 = CUShort((irqHigh << 8) Or irqLow)
+    '
+    '    Debug.WriteLine(String.Format("IRQ Vector: $FFFE=${0:X2}, $FFFF=${1:X2} → Handler at ${2:X4}",
+    '                              irqLow, irqHigh, irqVector))
+    '
+    '    ' Show first 32 bytes of reset code
+    '    Debug.WriteLine("")
+    '    Debug.WriteLine("First 32 bytes at reset vector:")
+    '    For i As Integer = 0 To 31
+    '        Dim b As Byte = emNES.cpuRead(CUShort(resetVector + i))
+    '        Debug.Write(String.Format("{0:X2} ", b))
+    '        If (i + 1) Mod 16 = 0 Then Debug.WriteLine("")
+    '    Next
+    '    Debug.WriteLine("")
+    '
+    '    Debug.WriteLine("=== END RESET DIAGNOSTIC ===")
+    'End Sub
 
-            ' Palette dump (32 bytes)
-            Dim pal() As Byte = emNES.PPU.Debug_GetTblPalette()
-            Dim sbPal As New System.Text.StringBuilder()
-            sbPal.Append("tblPalette[0..31]:")
-            For i As Integer = 0 To pal.Length - 1
-                sbPal.Append(" " & pal(i).ToString("X2"))
-            Next
-            Debug.WriteLine(sbPal.ToString())
-
-            ' Dump entire nametable 0 & 1 (1024 bytes each)
-            Dim nt0() As Byte = emNES.PPU.Debug_GetNameTableRow(0, 0, 1024)
-            Debug.WriteLine("NameTable0 (1024 bytes):")
-            For i As Integer = 0 To 1023 Step 32
-                Dim line As New System.Text.StringBuilder()
-                For j As Integer = 0 To 31
-                    line.Append(nt0(i + j).ToString("X2") & " ")
-                Next
-                Debug.WriteLine(line.ToString())
-            Next
-
-            Dim nt1() As Byte = emNES.PPU.Debug_GetNameTableRow(1, 0, 1024)
-            Debug.WriteLine("NameTable1 (1024 bytes):")
-            For i As Integer = 0 To 1023 Step 32
-                Dim line As New System.Text.StringBuilder()
-                For j As Integer = 0 To 31
-                    line.Append(nt1(i + j).ToString("X2") & " ")
-                Next
-                Debug.WriteLine(line.ToString())
-            Next
-
-            ' Dump attribute table bytes for name table 0 ($23C0..$23FF)
-            Debug.WriteLine("Attribute bytes for NT0 ($23C0..$23FF):")
-            For i As Integer = 0 To 63 Step 8
-                Dim line As New System.Text.StringBuilder()
-                For j As Integer = 0 To 7
-                    Dim addr As UShort = CUShort(&H23C0 + i + j)
-                    Dim b As Byte = emNES.PPU.ppuRead(addr)
-                    line.Append(b.ToString("X2") & " ")
-                Next
-                Debug.WriteLine(line.ToString())
-            Next
-
-            ' Dump pattern bytes around tile ids likely used by title screen
-            ' Adjust startTile/count if you want to inspect specific ids
-            Dim startTile As Integer = 0 ' change if you know offending tile id
-            Dim tileCount As Integer = 128
-            Debug.WriteLine(String.Format("Pattern bytes for tiles {0}..{1} (first 16 bytes each):", startTile, startTile + tileCount - 1))
-            For t As Integer = startTile To Math.Min(startTile + tileCount - 1, 255)
-                Dim addrBase As UShort = CUShort(((t And &HFF) << 4)) ' assume pattern table 0 here
-                Dim sbp As New System.Text.StringBuilder()
-                sbp.AppendFormat("Tile {0:X2}:", t)
-                For k As Integer = 0 To 15
-                    Dim b As Byte = emNES.PPU.ppuRead(CUShort(&H0US + addrBase + k))
-                    sbp.Append(" " & b.ToString("X2"))
-                Next
-                Debug.WriteLine(sbp.ToString())
-            Next
-
-            Debug.WriteLine("=== PPU FULL DUMP END ===")
-        Catch ex As Exception
-            Debug.WriteLine("DumpPPUFullDebug failed: " & ex.Message)
-        End Try
-    End Sub
-
-    Private Sub DiagnoseReset()
-        Debug.WriteLine("=== RESET VECTOR DIAGNOSTIC ===")
-
-        ' Read reset vector from $FFFC/$FFFD
-        Dim resetLow As Byte = emNES.cpuRead(&HFFFCUS)
-        Dim resetHigh As Byte = emNES.cpuRead(&HFFFDUS)
-        Dim resetVector As UInt16 = CUShort((resetHigh << 8) Or resetLow)
-
-        Debug.WriteLine(String.Format("Reset Vector: $FFFC=${0:X2}, $FFFD=${1:X2} → Start at ${2:X4}",
-                                  resetLow, resetHigh, resetVector))
-
-        ' Read NMI vector
-        Dim nmiLow As Byte = emNES.cpuRead(&HFFFAUS)
-        Dim nmiHigh As Byte = emNES.cpuRead(&HFFFBUS)
-        Dim nmiVector As UInt16 = CUShort((nmiHigh << 8) Or nmiLow)
-
-        Debug.WriteLine(String.Format("NMI Vector: $FFFA=${0:X2}, $FFFB=${1:X2} → Handler at ${2:X4}",
-                                  nmiLow, nmiHigh, nmiVector))
-
-        ' Read IRQ vector
-        Dim irqLow As Byte = emNES.cpuRead(&HFFFEUS)
-        Dim irqHigh As Byte = emNES.cpuRead(&HFFFFUS)
-        Dim irqVector As UInt16 = CUShort((irqHigh << 8) Or irqLow)
-
-        Debug.WriteLine(String.Format("IRQ Vector: $FFFE=${0:X2}, $FFFF=${1:X2} → Handler at ${2:X4}",
-                                  irqLow, irqHigh, irqVector))
-
-        ' Show first 32 bytes of reset code
-        Debug.WriteLine("")
-        Debug.WriteLine("First 32 bytes at reset vector:")
-        For i As Integer = 0 To 31
-            Dim b As Byte = emNES.cpuRead(CUShort(resetVector + i))
-            Debug.Write(String.Format("{0:X2} ", b))
-            If (i + 1) Mod 16 = 0 Then Debug.WriteLine("")
-        Next
-        Debug.WriteLine("")
-
-        Debug.WriteLine("=== END RESET DIAGNOSTIC ===")
-    End Sub
-
-    Private Sub DiagnoseNMI()
-        ' Read NMI vector from $FFFA/$FFFB
-        Dim nmiLow As Byte = emNES.cpuRead(&HFFFAUS)
-        Dim nmiHigh As Byte = emNES.cpuRead(&HFFFBUS)
-        Dim nmiVector As UInt16 = CUShort((nmiHigh << 8) Or nmiLow)
-
-        Debug.WriteLine(String.Format("NMI Vector: $FFFA=${0:X2}, $FFFB=${1:X2} → NMI handler at ${2:X4}",
-                                  nmiLow, nmiHigh, nmiVector))
-
-        ' Read first few bytes of NMI handler
-        Debug.WriteLine("First 16 bytes of NMI handler:")
-        For i As Integer = 0 To 15
-            Dim b As Byte = emNES.cpuRead(CUShort(nmiVector + i))
-            Debug.Write(String.Format("{0:X2} ", b))
-            If (i + 1) Mod 8 = 0 Then Debug.WriteLine("")
-        Next
-        Debug.WriteLine("")
-    End Sub
+    'Private Sub DiagnoseNMI()
+    '    ' Read NMI vector from $FFFA/$FFFB
+    '    Dim nmiLow As Byte = emNES.cpuRead(&HFFFAUS)
+    '    Dim nmiHigh As Byte = emNES.cpuRead(&HFFFBUS)
+    '    Dim nmiVector As UInt16 = CUShort((nmiHigh << 8) Or nmiLow)
+    '
+    '    Debug.WriteLine(String.Format("NMI Vector: $FFFA=${0:X2}, $FFFB=${1:X2} → NMI handler at ${2:X4}",
+    '                              nmiLow, nmiHigh, nmiVector))
+    '
+    '    ' Read first few bytes of NMI handler
+    '    Debug.WriteLine("First 16 bytes of NMI handler:")
+    '    For i As Integer = 0 To 15
+    '        Dim b As Byte = emNES.cpuRead(CUShort(nmiVector + i))
+    '        Debug.Write(String.Format("{0:X2} ", b))
+    '        If (i + 1) Mod 8 = 0 Then Debug.WriteLine("")
+    '    Next
+    '    Debug.WriteLine("")
+    'End Sub
 
     Private Delegate Sub DoStuffDelegate(bg As Bitmap)
     Sub picScreenDel(bg As Bitmap)
@@ -751,106 +903,106 @@ Public Class Form1
     End Sub
 
     ' Update DebugDumpPPUState to use em2C02 debug accessors
-    Private Sub DebugDumpPPUState()
-        Try
-            Dim spr As GraphicsObjects.Sprite = emNES.PPU.GetScreen()
-            Dim outPath As String = Path.Combine("./", "ppu_frame.png") 'Path.GetTempPath()
-            SaveSpriteToFile(spr, outPath)
-            Debug.WriteLine("Saved PPU frame to: " & outPath)
-
-            ' PPU accessors
-            Debug.WriteLine(String.Format("PPUControl.reg = 0x{0:X2}", emNES.PPU.Debug_PPUControlReg))
-            Debug.WriteLine(String.Format("PPUMask.reg    = 0x{0:X2}", emNES.PPU.Debug_PPUMaskReg))
-            Debug.WriteLine(String.Format("PPUStatus.reg  = 0x{0:X2}", emNES.PPU.Debug_PPUStatusReg))
-            Debug.WriteLine(String.Format("vram_addr.Reg = 0x{0:X4}", emNES.PPU.Debug_VramReg))
-            Debug.WriteLine(String.Format("tram_addr.Reg = 0x{0:X4}", emNES.PPU.Debug_TramReg))
-
-            ' Palette & nametable via accessors
-            Dim pal() As Byte = emNES.PPU.Debug_GetTblPalette()
-            Dim sb As New System.Text.StringBuilder()
-            sb.Append("tblPalette[0..31]:")
-            For i As Integer = 0 To Math.Min(31, pal.Length - 1)
-                sb.Append(" " & pal(i).ToString("X2"))
-            Next
-            Debug.WriteLine(sb.ToString())
-
-            Dim nt() As Byte = emNES.PPU.Debug_GetNameTableRow(0, 0, 64)
-            Dim sbn As New System.Text.StringBuilder()
-            sbn.Append("tblName(0)[0..63]:")
-            For i As Integer = 0 To nt.Length - 1
-                sbn.Append(" " & nt(i).ToString("X2"))
-            Next
-            Debug.WriteLine(sbn.ToString())
-
-            ' pattern memory copy (internal) - may be zero for CHR-ROM carts
-            Dim pat() As Byte = emNES.PPU.Debug_GetPatternBytes(0, 0, 16)
-            Dim sbp As New System.Text.StringBuilder()
-            sbp.Append("tblPattern(0)[0..15]:")
-            For i As Integer = 0 To pat.Length - 1
-                sbp.Append(" " & pat(i).ToString("X2"))
-            Next
-            Debug.WriteLine(sbp.ToString())
-
-            ' Determine background pattern base and first tile id
-            Dim bgPatternBase As Integer = If((emNES.PPU.Debug_PPUControlReg And &H10) <> 0, &H1000, &H0)
-            Debug.WriteLine(String.Format("Background pattern base = 0x{0:X4}", bgPatternBase))
-
-            Dim firstTile As Integer = If(nt.Length > 0, nt(0), 0)
-            Debug.WriteLine(String.Format("NameTable0 first tile id = 0x{0:X2} ({1})", firstTile, firstTile))
-
-            Dim tileAddr As Integer = bgPatternBase + (firstTile * 16)
-            Debug.WriteLine(String.Format("Pattern bytes for tile 0x{0:X2} start at PPU addr 0x{1:X4}", firstTile, tileAddr))
-
-            ' Dump CHR around the tile to see whether cartridge has non-zero data there
-            DumpCartCHR(tileAddr And &H1FFF, 64) ' show 64 bytes around the pattern address
-
-            ' Read pattern bytes via PPU.ppuRead (already done) and also call cartridge directly
-            Dim patternViaPpu As New System.Text.StringBuilder()
-            patternViaPpu.Append("ppuRead pattern[0..15]:")
-            For i As Integer = 0 To 15
-                Dim b As Byte = emNES.PPU.ppuRead(CUShort((tileAddr + i) And &H3FFFUS))
-                patternViaPpu.Append(" " & b.ToString("X2"))
-            Next
-            Debug.WriteLine(patternViaPpu.ToString())
-
-            ' Now probe Cartridge directly (if present) to see if it answers CHR reads
-            Try
-                If Not IsNothing(Cart) Then
-                    Debug.WriteLine("Cart object present.")
-                    Try
-                        Debug.WriteLine("Cart.ValidImage = " & Cart.ValidImage.ToString())
-                    Catch ex As Exception
-                        Debug.WriteLine("Cart.ValidImage not accessible: " & ex.Message)
-                    End Try
-
-                    For i As Integer = 0 To 15
-                        Dim addr As UShort = CUShort((tileAddr + i) And &H3FFFUS)
-                        Dim outb As Byte = 0
-                        Dim ok As Boolean = False
-                        Try
-                            ok = Cart.ppuRead(addr, outb)
-                        Catch ex As Exception
-                            Debug.WriteLine("Cart.ppuRead threw: " & ex.Message)
-                        End Try
-                        Debug.WriteLine(String.Format("Cart.ppuRead(0x{0:X4}) returned {1}, value 0x{2:X2}", addr, ok, outb))
-                    Next
-                Else
-                    Debug.WriteLine("Cart is Nothing")
-                End If
-            Catch ex As Exception
-                Debug.WriteLine("Cart probe failed: " & ex.Message)
-            End Try
-
-            ' Clock counter quick-check
-            Try
-                Debug.WriteLine("Clock Counter (approx): " & ClockCounter.ToString())
-            Catch
-            End Try
-
-            '    debugDumped = True
-        Catch ex As Exception
-            Debug.WriteLine("DebugDumpPPUState failed: " & ex.Message)
-        End Try
-    End Sub
+    'Private Sub DebugDumpPPUState()
+    '    Try
+    '        Dim spr As GraphicsObjects.Sprite = emNES.PPU.GetScreen()
+    '        Dim outPath As String = Path.Combine("./", "ppu_frame.png") 'Path.GetTempPath()
+    '        SaveSpriteToFile(spr, outPath)
+    '        Debug.WriteLine("Saved PPU frame to: " & outPath)
+    '
+    '        ' PPU accessors
+    '        Debug.WriteLine(String.Format("PPUControl.reg = 0x{0:X2}", emNES.PPU.Debug_PPUControlReg))
+    '        Debug.WriteLine(String.Format("PPUMask.reg    = 0x{0:X2}", emNES.PPU.Debug_PPUMaskReg))
+    '        Debug.WriteLine(String.Format("PPUStatus.reg  = 0x{0:X2}", emNES.PPU.Debug_PPUStatusReg))
+    '        Debug.WriteLine(String.Format("vram_addr.Reg = 0x{0:X4}", emNES.PPU.Debug_VramReg))
+    '        Debug.WriteLine(String.Format("tram_addr.Reg = 0x{0:X4}", emNES.PPU.Debug_TramReg))
+    '
+    '        ' Palette & nametable via accessors
+    '        Dim pal() As Byte = emNES.PPU.Debug_GetTblPalette()
+    '        Dim sb As New System.Text.StringBuilder()
+    '        sb.Append("tblPalette[0..31]:")
+    '        For i As Integer = 0 To Math.Min(31, pal.Length - 1)
+    '            sb.Append(" " & pal(i).ToString("X2"))
+    '        Next
+    '        Debug.WriteLine(sb.ToString())
+    '
+    '        Dim nt() As Byte = emNES.PPU.Debug_GetNameTableRow(0, 0, 64)
+    '        Dim sbn As New System.Text.StringBuilder()
+    '        sbn.Append("tblName(0)[0..63]:")
+    '        For i As Integer = 0 To nt.Length - 1
+    '            sbn.Append(" " & nt(i).ToString("X2"))
+    '        Next
+    '        Debug.WriteLine(sbn.ToString())
+    '
+    '        ' pattern memory copy (internal) - may be zero for CHR-ROM carts
+    '        Dim pat() As Byte = emNES.PPU.Debug_GetPatternBytes(0, 0, 16)
+    '        Dim sbp As New System.Text.StringBuilder()
+    '        sbp.Append("tblPattern(0)[0..15]:")
+    '        For i As Integer = 0 To pat.Length - 1
+    '            sbp.Append(" " & pat(i).ToString("X2"))
+    '        Next
+    '        Debug.WriteLine(sbp.ToString())
+    '
+    '        ' Determine background pattern base and first tile id
+    '        Dim bgPatternBase As Integer = If((emNES.PPU.Debug_PPUControlReg And &H10) <> 0, &H1000, &H0)
+    '        Debug.WriteLine(String.Format("Background pattern base = 0x{0:X4}", bgPatternBase))
+    '
+    '        Dim firstTile As Integer = If(nt.Length > 0, nt(0), 0)
+    '        Debug.WriteLine(String.Format("NameTable0 first tile id = 0x{0:X2} ({1})", firstTile, firstTile))
+    '
+    '        Dim tileAddr As Integer = bgPatternBase + (firstTile * 16)
+    '        Debug.WriteLine(String.Format("Pattern bytes for tile 0x{0:X2} start at PPU addr 0x{1:X4}", firstTile, tileAddr))
+    '
+    '        ' Dump CHR around the tile to see whether cartridge has non-zero data there
+    '        DumpCartCHR(tileAddr And &H1FFF, 64) ' show 64 bytes around the pattern address
+    '
+    '        ' Read pattern bytes via PPU.ppuRead (already done) and also call cartridge directly
+    '        Dim patternViaPpu As New System.Text.StringBuilder()
+    '        patternViaPpu.Append("ppuRead pattern[0..15]:")
+    '        For i As Integer = 0 To 15
+    '            Dim b As Byte = emNES.PPU.ppuRead(CUShort((tileAddr + i) And &H3FFFUS))
+    '            patternViaPpu.Append(" " & b.ToString("X2"))
+    '        Next
+    '        Debug.WriteLine(patternViaPpu.ToString())
+    '
+    '        ' Now probe Cartridge directly (if present) to see if it answers CHR reads
+    '        Try
+    '            If Not IsNothing(Cart) Then
+    '                Debug.WriteLine("Cart object present.")
+    '                Try
+    '                    Debug.WriteLine("Cart.ValidImage = " & Cart.ValidImage.ToString())
+    '                Catch ex As Exception
+    '                    Debug.WriteLine("Cart.ValidImage not accessible: " & ex.Message)
+    '                End Try
+    '
+    '                For i As Integer = 0 To 15
+    '                    Dim addr As UShort = CUShort((tileAddr + i) And &H3FFFUS)
+    '                    Dim outb As Byte = 0
+    '                    Dim ok As Boolean = False
+    '                    Try
+    '                        ok = Cart.ppuRead(addr, outb)
+    '                    Catch ex As Exception
+    '                        Debug.WriteLine("Cart.ppuRead threw: " & ex.Message)
+    '                    End Try
+    '                    Debug.WriteLine(String.Format("Cart.ppuRead(0x{0:X4}) returned {1}, value 0x{2:X2}", addr, ok, outb))
+    '                Next
+    '            Else
+    '                Debug.WriteLine("Cart is Nothing")
+    '            End If
+    '        Catch ex As Exception
+    '            Debug.WriteLine("Cart probe failed: " & ex.Message)
+    '        End Try
+    '
+    '        ' Clock counter quick-check
+    '        Try
+    '            Debug.WriteLine("Clock Counter (approx): " & ClockCounter.ToString())
+    '        Catch
+    '        End Try
+    '
+    '        '    debugDumped = True
+    '    Catch ex As Exception
+    '        Debug.WriteLine("DebugDumpPPUState failed: " & ex.Message)
+    '    End Try
+    'End Sub
 
 End Class

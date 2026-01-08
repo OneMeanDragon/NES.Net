@@ -360,7 +360,7 @@ Namespace NintendoEntertainmentSystem
                     Case 2 : Return attribute
                     Case 3 : Return x
                     Case Else
-                        Debug.WriteLine("GetByteAt out of bounds: " & position_index.ToString())
+                        'Debug.WriteLine("GetByteAt out of bounds: " & position_index.ToString())
                         Return 0 'should throw an error but whatever
                 End Select
             End Function
@@ -371,7 +371,7 @@ Namespace NintendoEntertainmentSystem
                     Case 2 : attribute = data : Return
                     Case 3 : x = data : Return
                     Case Else
-                        Debug.WriteLine("SetByteAt out of bounds: " & position_index.ToString())
+                        'Debug.WriteLine("SetByteAt out of bounds: " & position_index.ToString())
                         Return 'should throw an error but whatever
                 End Select
             End Sub
@@ -1082,28 +1082,28 @@ Namespace NintendoEntertainmentSystem
             attr_shift_table(1, 1) = 6  ' Bottom-right: bits 7-6
         End Sub
 
-        Public Sub DiagnoseAttributeTable()
-            Debug.WriteLine("=== Attribute Table Diagnostic ===")
-
-            ' Read first 64 bytes of attribute table for nametable 0
-            Debug.WriteLine("First 64 attribute bytes at $23C0:")
-            For i As Integer = 0 To 63
-                Dim addr As UInt16 = &H23C0US + CUShort(i)
-                Dim value As Byte = ppuRead(addr)
-                Debug.Write(String.Format("{0:X2} ", value))
-                If (i + 1) Mod 8 = 0 Then Debug.WriteLine("")
-            Next
-
-            Debug.WriteLine("")
-            Debug.WriteLine("First 32 nametable tiles:")
-            For i As Integer = 0 To 31
-                Dim tile As Byte = ppuRead(&H2000US + CUShort(i))
-                Debug.Write(String.Format("{0:X2} ", tile))
-                If (i + 1) Mod 8 = 0 Then Debug.WriteLine("")
-            Next
-
-            Debug.WriteLine("=== End Diagnostic ===")
-        End Sub
+        'Public Sub DiagnoseAttributeTable()
+        '    Debug.WriteLine("=== Attribute Table Diagnostic ===")
+        '
+        '    ' Read first 64 bytes of attribute table for nametable 0
+        '    Debug.WriteLine("First 64 attribute bytes at $23C0:")
+        '    For i As Integer = 0 To 63
+        '        Dim addr As UInt16 = &H23C0US + CUShort(i)
+        '        Dim value As Byte = ppuRead(addr)
+        '        Debug.Write(String.Format("{0:X2} ", value))
+        '        If (i + 1) Mod 8 = 0 Then Debug.WriteLine("")
+        '    Next
+        '
+        '    Debug.WriteLine("")
+        '    Debug.WriteLine("First 32 nametable tiles:")
+        '    For i As Integer = 0 To 31
+        '        Dim tile As Byte = ppuRead(&H2000US + CUShort(i))
+        '        Debug.Write(String.Format("{0:X2} ", tile))
+        '        If (i + 1) Mod 8 = 0 Then Debug.WriteLine("")
+        '    Next
+        '
+        '    Debug.WriteLine("=== End Diagnostic ===")
+        'End Sub
 
         Protected Overrides Sub Finalize()
             MyBase.Finalize()
@@ -1507,22 +1507,22 @@ Namespace NintendoEntertainmentSystem
             odd_frame = False
         End Sub
 
-        Public Sub DebugScrollState()
-            Debug.WriteLine("=".PadRight(80, "="))
-            Debug.WriteLine(String.Format("NEW FRAME START (scanline={0}, cycle={1})", scanline, cycle))
-            Debug.WriteLine(String.Format("  vram_addr: 0x{0:X4} (Coarse_X={1:D2}, Coarse_Y={2:D2}, Fine_Y={3}, NT_X={4}, NT_Y={5})",
-                                  vram_addr.Reg, vram_addr.Coarse_X, vram_addr.Coarse_Y,
-                                  vram_addr.Fine_Y, vram_addr.NameTable_X, vram_addr.NameTable_Y))
-            Debug.WriteLine(String.Format("  tram_addr: 0x{0:X4} (Coarse_X={1:D2}, Coarse_Y={2:D2}, Fine_Y={3}, NT_X={4}, NT_Y={5})",
-                                  tram_addr.Reg, tram_addr.Coarse_X, tram_addr.Coarse_Y,
-                                  tram_addr.Fine_Y, tram_addr.NameTable_X, tram_addr.NameTable_Y))
-            Debug.WriteLine(String.Format("  fine_x: {0}", fine_x))
-            Debug.WriteLine(String.Format("  PPUControl: 0x{0:X2} (NMI={1}, BG_Pattern={2})",
-                                  PPUControl.Reg, PPUControl.Enable_nmi, PPUControl.Pattern_background))
-            Debug.WriteLine(String.Format("  PPUMask: 0x{0:X2} (Render_BG={1}, Render_SPR={2})",
-                                  PPUMask.Reg, PPUMask.Render_background, PPUMask.Render_sprites))
-            Debug.WriteLine("=".PadRight(80, "="))
-        End Sub
+        'Public Sub DebugScrollState()
+        '    Debug.WriteLine("=".PadRight(80, "="))
+        '    Debug.WriteLine(String.Format("NEW FRAME START (scanline={0}, cycle={1})", scanline, cycle))
+        '    Debug.WriteLine(String.Format("  vram_addr: 0x{0:X4} (Coarse_X={1:D2}, Coarse_Y={2:D2}, Fine_Y={3}, NT_X={4}, NT_Y={5})",
+        '                          vram_addr.Reg, vram_addr.Coarse_X, vram_addr.Coarse_Y,
+        '                          vram_addr.Fine_Y, vram_addr.NameTable_X, vram_addr.NameTable_Y))
+        '    Debug.WriteLine(String.Format("  tram_addr: 0x{0:X4} (Coarse_X={1:D2}, Coarse_Y={2:D2}, Fine_Y={3}, NT_X={4}, NT_Y={5})",
+        '                          tram_addr.Reg, tram_addr.Coarse_X, tram_addr.Coarse_Y,
+        '                          tram_addr.Fine_Y, tram_addr.NameTable_X, tram_addr.NameTable_Y))
+        '    Debug.WriteLine(String.Format("  fine_x: {0}", fine_x))
+        '    Debug.WriteLine(String.Format("  PPUControl: 0x{0:X2} (NMI={1}, BG_Pattern={2})",
+        '                          PPUControl.Reg, PPUControl.Enable_nmi, PPUControl.Pattern_background))
+        '    Debug.WriteLine(String.Format("  PPUMask: 0x{0:X2} (Render_BG={1}, Render_SPR={2})",
+        '                          PPUMask.Reg, PPUMask.Render_background, PPUMask.Render_sprites))
+        '    Debug.WriteLine("=".PadRight(80, "="))
+        'End Sub
 
         Public Sub ClockOld()
 

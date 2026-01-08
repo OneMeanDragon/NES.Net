@@ -1151,7 +1151,7 @@
             End If
         End Sub
         Public Sub NMI()
-            Debug.WriteLine(String.Format("CPU NMI() called! PC=0x{0:X4}, SP=0x{1:X2}", PC, StackPointer))
+            'Debug.WriteLine(String.Format("CPU NMI() called! PC=0x{0:X4}, SP=0x{1:X2}", PC, StackPointer))
 
             Write(&H100US + StackPointer, (PC >> 8) And &HFFUS)
             DecrementStackpointer()

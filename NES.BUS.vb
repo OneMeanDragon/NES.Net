@@ -23,7 +23,7 @@ Namespace NintendoEntertainmentSystem
         'End Function
 
         ' 2KB of RAM
-        Public cpuRam(2047) As Byte 'VB
+        Public cpuRam(2048) As Byte 'VB
         ' Controllers
         Public Controller(1) As Byte 'VB
 
@@ -58,12 +58,11 @@ Namespace NintendoEntertainmentSystem
         Public Sub New()
             'Connect to the CPU
             CPU.ConnectBus(Me)
+            SetSampleFrequency(44100)
         End Sub
 
         Protected Overrides Sub Finalize()
-#If DEBUG Then
             Debug.WriteLine("NES.BUS Destructor.")
-#End If
             MyBase.Finalize()
         End Sub
 
@@ -106,9 +105,7 @@ Namespace NintendoEntertainmentSystem
                 'Debug.WriteLine(String.Format("CPU → PPU register ${0:X4} = 0x{1:X2}", addr, data))
                 PPU.cpuWrite(addr And &H7US, data)
             ElseIf (addr >= &H4000US AndAlso addr <= &H4013US) OrElse addr = &H4015US OrElse addr = &H4017US Then
-#If APU_IMPLEMENTED >= 1 Then
-                APU.cpuWrite(addr, data)
-#End If
+                APU.CpuWrite(addr, data)
             ElseIf addr = &H4014US Then
                 dma_page = data
                 dma_addr = &H0
@@ -140,9 +137,7 @@ Namespace NintendoEntertainmentSystem
                 data = PPU.cpuRead(addr And &H7US, bReadOnly)
             ElseIf addr = &H4015US Then
                 ' APU Read Status
-#If APU_IMPLEMENTED >= 1 Then
-                data = APU.cpuRead(addr)
-#End If
+                data = APU.CpuRead(addr)
             ElseIf addr >= &H4016US AndAlso addr <= &H4017US Then
                 '// Read out the MSB of the controller status word
                 data = (controller_state(addr And &H1US) And &H80) > 0
@@ -173,6 +168,7 @@ Namespace NintendoEntertainmentSystem
             dma_transfer = False
         End Sub
 
+        'Static sampleCount As Integer = 0
         Public Function Clock() As Boolean
             '// Clocking. The heart And soul of an emulator. The running
             '// frequency Is controlled by whatever calls this function.
@@ -183,10 +179,13 @@ Namespace NintendoEntertainmentSystem
             '// about Is equivalent to the PPU clock. So the PPU Is clocked
             '// each time this function Is called...
             PPU.Clock()
-#If APU_IMPLEMENTED >= 1 Then
-            '// ...also clock the APU
-            APU.clock()
-#End If
+
+            APU.Clock()
+
+            'sampleCount += 1
+            'If sampleCount Mod 1000 = 0 Then
+            '    Debug.WriteLine($"Audio sample: {Bus.dAudioSample:F4}")
+            'End If
             '// The CPU runs 3 times slower than the PPU so we only call its
             '// clock() function every 3 times this function Is called. We
             '// have a global counter to keep track of this.
@@ -235,34 +234,24 @@ Namespace NintendoEntertainmentSystem
                     CPU.Clock() 'Looping on one self fun fun
                 End If
             End If
+
             '// Synchronising with Audio
             Dim bAudioSampleReady As Boolean = False
             dAudioTime += dAudioTimePerNESClock
             If dAudioTime >= dAudioTimePerSystemSample Then
                 dAudioTime -= dAudioTimePerSystemSample
-#If APU_IMPLEMENTED >= 1 Then
-                dAudioSample = apu.getoutputsample()
-#Else
-                dAudioSample = 0
-#End If
+                dAudioSample = APU.GetOutputSample()
                 bAudioSampleReady = True
             End If
+
             '// The PPU Is capable of emitting an interrupt to indicate the
             '// vertical blanking period has been entered. If it has, we need
             '// to send that irq to the CPU.
             If ppu.nmi Then
-                Static nmiCount As Integer = 0
-                nmiCount += 1
-
-                'Debug.WriteLine(String.Format("========== NMI #{0} at scanline {1}, PC=${2:X4} ==========",
-                '                  nmiCount, PPU.Debug_Scanline, CPU.Debug_PC))
-
                 PPU.nmi = False
                 CPU.NMI()
-
-                ' After NMI, check where we jumped to
-                'Debug.WriteLine(String.Format("           After NMI: PC=${0:X4}", CPU.Debug_PC))
             End If
+
             '// Check if cartridge is requesting IRQ
             If Cart.GetMapper.irqState() Then
                 Cart.GetMapper.irqClear()
