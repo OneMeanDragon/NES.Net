@@ -416,23 +416,25 @@
         End Function
 
         Public Function ABS() As Byte
-            Dim lo As UInt16 = Read(PC)
+            Dim lo As Byte = Read(PC)
             IncrementProgramCounter()
-            Dim hi As UInt16 = Read(PC)
+            Dim hi As Byte = Read(PC)
             IncrementProgramCounter()
-            addr_abs = (hi << 8) Or lo
+            addr_abs = (CUShort(hi) << 8) Or CUShort(lo)
             Return &H0
         End Function
 
         Public Function ABX() As Byte
-            Dim lo As UInt16 = Read(PC)
+            Dim lo As Byte = Read(PC)
             IncrementProgramCounter()
-            Dim hi As UInt16 = Read(PC)
+            Dim hi As Byte = Read(PC)
             IncrementProgramCounter()
 
-            addr_abs = MathHelpers.SafeAddition16((hi << 8) Or lo, X)
+            addr_abs = (CUShort(hi) << 8) Or CUShort(lo)
+            addr_abs += X
+            'addr_abs = MathHelpers.SafeAddition16((hi << 8) Or lo, X)
 
-            If (addr_abs And &HFF00US) <> (hi << 8) Then
+            If (addr_abs And &HFF00US) <> (CUShort(hi) << 8) Then
                 Return 1
             Else
                 Return 0
@@ -440,14 +442,16 @@
         End Function
 
         Public Function ABY() As Byte
-            Dim lo As UInt16 = Read(PC)
+            Dim lo As Byte = Read(PC)
             IncrementProgramCounter()
-            Dim hi As UInt16 = Read(PC)
+            Dim hi As Byte = Read(PC)
             IncrementProgramCounter()
 
-            addr_abs = MathHelpers.SafeAddition16((hi << 8) Or lo, Y)
+            addr_abs = (CUShort(hi) << 8) Or CUShort(lo)
+            addr_abs += Y
+            'addr_abs = MathHelpers.SafeAddition16((hi << 8) Or lo, Y)
 
-            If (addr_abs And &HFF00US) <> (hi << 8) Then
+            If (addr_abs And &HFF00US) <> (CUShort(hi) << 8) Then
                 Return 1
             Else
                 Return 0
@@ -455,19 +459,18 @@
         End Function
 
         Public Function IND() As Byte
-            Dim ptr_lo As UInt16 = Read(PC)
+            Dim ptr_lo As Byte = Read(PC)
             IncrementProgramCounter()
-            Dim ptr_hi As UInt16 = Read(PC)
+            Dim ptr_hi As Byte = Read(PC)
             IncrementProgramCounter()
 
-            Dim ptr As UInt16 = (ptr_hi << 8) Or ptr_lo
+            Dim ptr As UShort = (CUShort(ptr_hi) << 8) Or CUShort(ptr_lo)
 
-            If ptr_lo = &HFFUS Then
+            If ptr_lo = CByte(&HFFUI) Then
                 addr_abs = MathHelpers.SafeOr16(MathHelpers.SafeShiftLeft16(Read(ptr And &HFF00US), 8), Read(ptr + 0))
             Else
                 addr_abs = MathHelpers.SafeOr16(MathHelpers.SafeShiftLeft16(Read(MathHelpers.SafeAddition16(ptr, 1)), 8), Read(ptr + 0))
             End If
-
             Return 0
         End Function
 
@@ -475,10 +478,9 @@
             Dim t As UInt16 = Read(PC)
             IncrementProgramCounter()
 
-            Dim lo As UInt16 = Read((MathHelpers.SafeAddition16(t, X)) And &HFFUS)
-            Dim hi As UInt16 = Read((MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(t, X), 1)) And &HFFUS)
-
-            addr_abs = (hi << 8) Or lo
+            Dim lo As Byte = Read((MathHelpers.SafeAddition16(t, X)) And &HFFUS)
+            Dim hi As Byte = Read((MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(t, X), 1)) And &HFFUS)
+            addr_abs = (CUShort(hi) << 8) Or CUShort(lo)
 
             Return 0
         End Function
@@ -487,12 +489,14 @@
             Dim t As UInt16 = Read(PC)
             IncrementProgramCounter()
 
-            Dim lo As UInt16 = Read(t And &HFFUS)
-            Dim hi As UInt16 = Read((MathHelpers.SafeAddition16(t, 1)) And &HFFUS)
+            Dim lo As Byte = Read(t And &HFFUS)
+            Dim hi As Byte = Read((MathHelpers.SafeAddition16(t, 1)) And &HFFUS)
 
-            addr_abs = MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(hi, 8) Or lo, Y)
+            addr_abs = (CUShort(hi) << 8) Or CUShort(lo)
+            addr_abs = MathHelpers.SafeAddition16(addr_abs, Y)
+            'addr_abs = MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(hi, 8) Or lo, Y)
 
-            If (addr_abs And &HFF00US) <> (hi << 8) Then
+            If (addr_abs And &HFF00US) <> (CUShort(hi) << 8) Then
                 Return 1
             Else
                 Return 0
@@ -699,7 +703,14 @@
             SetFlag(FLAGS6502.B, 0)
 
             'vb math is the anus, cant do this here due to bytes 'PC = PC Or IO(&HFFFE) [might not compute the math value]
-            PC = Read(&HFFFFUS) : PC = PC << 8 : PC = PC Or Read(&HFFFEUS)
+            'PC = CUShort(Read(&HFFFFUS))
+            'PC <<= 8
+            'PC = PC Or CUShort(Read(&HFFFEUS))
+
+            Dim lo As Byte = Read(&HFFFEUS)
+            Dim hi As Byte = Read(&HFFFFUS)
+            PC = (CUShort(hi) << 8) Or CUShort(lo)
+
             Return 0
         End Function
 
@@ -1093,11 +1104,11 @@
         Public Sub Reset()
             'get address to set program counter to
             addr_abs = &HFFFCUS
-            Dim lo As UInt16 = Read(addr_abs + 0)
-            Dim hi As UInt16 = Read(addr_abs + 1)
+            Dim lo As Byte = Read(addr_abs + 0)
+            Dim hi As Byte = Read(addr_abs + 1)
 
             'set the pc
-            PC = (hi << 8) Or lo
+            PC = (CUShort(hi) << 8) Or CUShort(lo)
 
             'reset the registers
             A = 0
@@ -1131,9 +1142,9 @@
 
                 'read new program counter location from fixed address
                 addr_abs = &HFFFEUS
-                Dim lo As UInt16 = Read(addr_abs + 0)
-                Dim hi As UInt16 = Read(addr_abs + 1)
-                PC = (hi << 8) Or lo
+                Dim lo As Byte = Read(addr_abs + 0)
+                Dim hi As Byte = Read(addr_abs + 1)
+                PC = (CUShort(hi) << 8) Or CUShort(lo)
 
                 'IRQ take time
                 cycles = 7
@@ -1154,9 +1165,9 @@
             DecrementStackpointer()
 
             addr_abs = &HFFFAUS
-            Dim lo As UInt16 = Read(addr_abs + 0)
-            Dim hi As UInt16 = Read(addr_abs + 1)
-            PC = (hi << 8) Or lo
+            Dim lo As Byte = Read(addr_abs + 0)
+            Dim hi As Byte = Read(addr_abs + 1)
+            PC = (CUShort(hi) << 8) Or CUShort(lo)
 
             cycles = 8
         End Sub
