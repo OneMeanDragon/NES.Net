@@ -1,36 +1,33 @@
-﻿
-
-Imports System.IO
+﻿Imports System.IO
 Imports System.Runtime.InteropServices 'For Structure Import / Export
 
-
 Namespace NintendoEntertainmentSystem
-    Public Module CartridgeGlobal
-        Public Cart As clsCartridge
-    End Module
+    'Public Module CartridgeGlobal
+    '    Public Cart As clsCartridge
+    'End Module
 
 #Region "Cartridge Class #2 [will be implemented soon as the draws and the audio is working]"
-    <StructLayout(LayoutKind.Sequential, Pack:=1, Size:=16)>
-    Public Structure CartridgeHeadderDataStruct
-        <MarshalAs(UnmanagedType.ByValArray, SizeConst:=4)> Public name() As Byte
-        Public prg_rom_chunks As Byte
-        Public chr_rom_chunks As Byte
-        Public mapper1 As Byte
-        Public mapper2 As Byte
-        Public prg_ram_size As Byte
-        Public tv_system1 As Byte
-        Public tv_system2 As Byte
-        <MarshalAs(UnmanagedType.ByValArray, SizeConst:=5)> Public unused() As Byte
-    End Structure
-    Public Structure CartridgeData
-        Public header As CartridgeHeadderDataStruct
-        'the data
-    End Structure
-    Public Class CartridgeClass
-
-        ' Second Take 
-
-    End Class
+    '<StructLayout(LayoutKind.Sequential, Pack:=1, Size:=16)>
+    'Public Structure CartridgeHeadderDataStruct
+    '    <MarshalAs(UnmanagedType.ByValArray, SizeConst:=4)> Public name() As Byte
+    '    Public prg_rom_chunks As Byte
+    '    Public chr_rom_chunks As Byte
+    '    Public mapper1 As Byte
+    '    Public mapper2 As Byte
+    '    Public prg_ram_size As Byte
+    '    Public tv_system1 As Byte
+    '    Public tv_system2 As Byte
+    '    <MarshalAs(UnmanagedType.ByValArray, SizeConst:=5)> Public unused() As Byte
+    'End Structure
+    'Public Structure CartridgeData
+    '    Public header As CartridgeHeadderDataStruct
+    '    'the data
+    'End Structure
+    'Public Class CartridgeClass
+    '
+    '    ' Second Take 
+    '
+    'End Class
 #End Region
 
     Public Class clsCartridge
@@ -84,7 +81,7 @@ Namespace NintendoEntertainmentSystem
 
         Private hw_mirror As clsMapper.enMIRROR = clsMapper.enMIRROR.HORIZONTAL
 
-        Public ReadOnly Property Mirror() As clsMapper.enMIRROR
+        Public ReadOnly Property MirrorMode() As clsMapper.enMIRROR
             Get
                 Dim m As clsMapper.enMIRROR = pMAPPER.Mirror()
                 If m = clsMapper.enMIRROR.HARDWARE Then

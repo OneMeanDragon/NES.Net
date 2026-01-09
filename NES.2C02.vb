@@ -1378,7 +1378,7 @@ Namespace NintendoEntertainmentSystem
                 data = tblPattern((addr And &H1000US) >> 12, addr And &HFFFUS)
             ElseIf addr >= &H2000US AndAlso addr <= &H3EFFUS Then
                 addr = addr And &HFFFUS
-                If Cart.Mirror() = clsMapper.enMIRROR.VERTICAL Then
+                If Cart.MirrorMode() = clsMapper.enMIRROR.VERTICAL Then
                     If addr >= &H0US AndAlso addr <= &H3FFUS Then
                         data = tblName(0, addr And &H3FFUS)
                     End If
@@ -1391,7 +1391,7 @@ Namespace NintendoEntertainmentSystem
                     If addr >= &HC00US AndAlso addr <= &HFFFUS Then
                         data = tblName(1, addr And &H3FFUS)
                     End If
-                ElseIf Cart.Mirror() = clsMapper.enMIRROR.HORIZONTAL Then
+                ElseIf Cart.MirrorMode() = clsMapper.enMIRROR.HORIZONTAL Then
                     If addr >= &H0US AndAlso addr <= &H3FFUS Then
                         data = tblName(0, addr And &H3FFUS)
                     End If
@@ -1438,7 +1438,7 @@ Namespace NintendoEntertainmentSystem
                 tblPattern((addr And &H1000US) >> 12, addr And &HFFFUS) = data
             ElseIf addr >= &H2000US AndAlso addr <= &H3EFFUS Then
                 addr = addr And &HFFFUS
-                If Cart.Mirror() = clsMapper.enMIRROR.VERTICAL Then
+                If Cart.MirrorMode() = clsMapper.enMIRROR.VERTICAL Then
                     If addr >= &H0US AndAlso addr <= &H3FFUS Then
                         tblName(0, addr And &H3FFUS) = data
                     End If
@@ -1451,7 +1451,7 @@ Namespace NintendoEntertainmentSystem
                     If addr >= &HC00US AndAlso addr <= &HFFFUS Then
                         tblName(1, addr And &H3FFUS) = data
                     End If
-                ElseIf Cart.Mirror() = clsMapper.enMIRROR.HORIZONTAL Then
+                ElseIf Cart.MirrorMode() = clsMapper.enMIRROR.HORIZONTAL Then
                     If addr >= &H0US AndAlso addr <= &H3FFUS Then
                         tblName(0, addr And &H3FFUS) = data
                     End If

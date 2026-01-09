@@ -1,16 +1,145 @@
-﻿Imports System.IO
-Imports System.Threading
-Imports System.Drawing.Imaging
+﻿Imports System.Drawing.Imaging
+Imports System.IO
+Imports System.Net
 Imports System.Runtime.InteropServices
-
+Imports System.Security.Cryptography
+Imports System.Threading
+Imports System.Windows.Forms.VisualStyles.VisualStyleElement
+Imports NAudio.FileFormats
+'Audio Importing
+Imports NAudio.Wave
+Imports Nintendo.CoreApplicationLayer
 Imports Nintendo.FOREVERLOOP_HELPERS
 Imports Nintendo.GraphicsObjects
 Imports Nintendo.NintendoEntertainmentSystem
 
-'Audio Importing
-Imports NAudio.Wave
 
 Public Class Form1
+
+#Region "Keyboard Mapping"
+    Private Shared mapKeys As New Dictionary(Of UInteger, Byte)
+    Public Shared ReadOnly Property KeyMap As Dictionary(Of UInteger, Byte)
+        Get
+            Return mapKeys
+        End Get
+    End Property
+    Private Function InitalizeKeyboardMap() As ReturnCode
+        mapKeys(Keys.None) = CoreApplicationLayer.Keyboard.Key.NONE
+        mapKeys(Keys.A) = CoreApplicationLayer.Keyboard.Key.A
+        mapKeys(Keys.B) = CoreApplicationLayer.Keyboard.Key.B
+        mapKeys(Keys.C) = CoreApplicationLayer.Keyboard.Key.C
+        mapKeys(Keys.D) = CoreApplicationLayer.Keyboard.Key.D
+        mapKeys(Keys.E) = CoreApplicationLayer.Keyboard.Key.E
+        mapKeys(Keys.F) = CoreApplicationLayer.Keyboard.Key.F
+        mapKeys(Keys.G) = CoreApplicationLayer.Keyboard.Key.G
+        mapKeys(Keys.H) = CoreApplicationLayer.Keyboard.Key.H
+        mapKeys(Keys.I) = CoreApplicationLayer.Keyboard.Key.I
+        mapKeys(Keys.J) = CoreApplicationLayer.Keyboard.Key.J
+        mapKeys(Keys.K) = CoreApplicationLayer.Keyboard.Key.K
+        mapKeys(Keys.L) = CoreApplicationLayer.Keyboard.Key.L
+        mapKeys(Keys.M) = CoreApplicationLayer.Keyboard.Key.M
+        mapKeys(Keys.N) = CoreApplicationLayer.Keyboard.Key.N
+        mapKeys(Keys.O) = CoreApplicationLayer.Keyboard.Key.O
+        mapKeys(Keys.P) = CoreApplicationLayer.Keyboard.Key.P
+        mapKeys(Keys.Q) = CoreApplicationLayer.Keyboard.Key.Q
+        mapKeys(Keys.R) = CoreApplicationLayer.Keyboard.Key.R
+        mapKeys(Keys.S) = CoreApplicationLayer.Keyboard.Key.S
+        mapKeys(Keys.T) = CoreApplicationLayer.Keyboard.Key.T
+        mapKeys(Keys.U) = CoreApplicationLayer.Keyboard.Key.U
+        mapKeys(Keys.V) = CoreApplicationLayer.Keyboard.Key.V
+        mapKeys(Keys.W) = CoreApplicationLayer.Keyboard.Key.W
+        mapKeys(Keys.X) = CoreApplicationLayer.Keyboard.Key.X
+        mapKeys(Keys.Y) = CoreApplicationLayer.Keyboard.Key.Y
+        mapKeys(Keys.Z) = CoreApplicationLayer.Keyboard.Key.Z
+
+        mapKeys(Keys.F1) = CoreApplicationLayer.Keyboard.Key.F1
+        mapKeys(Keys.F2) = CoreApplicationLayer.Keyboard.Key.F2
+        mapKeys(Keys.F3) = CoreApplicationLayer.Keyboard.Key.F3
+        mapKeys(Keys.F4) = CoreApplicationLayer.Keyboard.Key.F4
+        mapKeys(Keys.F5) = CoreApplicationLayer.Keyboard.Key.F5
+        mapKeys(Keys.F6) = CoreApplicationLayer.Keyboard.Key.F6
+        mapKeys(Keys.F7) = CoreApplicationLayer.Keyboard.Key.F7
+        mapKeys(Keys.F8) = CoreApplicationLayer.Keyboard.Key.F8
+        mapKeys(Keys.F9) = CoreApplicationLayer.Keyboard.Key.F9
+        mapKeys(Keys.F10) = CoreApplicationLayer.Keyboard.Key.F10
+        mapKeys(Keys.F11) = CoreApplicationLayer.Keyboard.Key.F11
+        mapKeys(Keys.F12) = CoreApplicationLayer.Keyboard.Key.F12
+
+        mapKeys(Keys.Left) = CoreApplicationLayer.Keyboard.Key.LEFT
+        mapKeys(Keys.Up) = CoreApplicationLayer.Keyboard.Key.UP
+        mapKeys(Keys.Right) = CoreApplicationLayer.Keyboard.Key.RIGHT
+        mapKeys(Keys.Down) = CoreApplicationLayer.Keyboard.Key.DOWN
+
+        mapKeys(Keys.Back) = CoreApplicationLayer.Keyboard.Key.BACK
+
+        mapKeys(Keys.Escape) = CoreApplicationLayer.Keyboard.Key.ESCAPE
+        mapKeys(Keys.Enter) = CoreApplicationLayer.Keyboard.Key.ENTER
+
+        mapKeys(Keys.Pause) = CoreApplicationLayer.Keyboard.Key.PAUSE
+        mapKeys(Keys.Scroll) = CoreApplicationLayer.Keyboard.Key.SCROLL
+
+        mapKeys(Keys.Tab) = CoreApplicationLayer.Keyboard.Key.TAB
+        mapKeys(Keys.Delete) = CoreApplicationLayer.Keyboard.Key.DEL
+        mapKeys(Keys.Home) = CoreApplicationLayer.Keyboard.Key.HOME
+
+        mapKeys(Keys.End) = CoreApplicationLayer.Keyboard.Key.END
+        mapKeys(Keys.PageUp) = CoreApplicationLayer.Keyboard.Key.PGUP
+        mapKeys(Keys.PageDown) = CoreApplicationLayer.Keyboard.Key.PGDN
+        mapKeys(Keys.Insert) = CoreApplicationLayer.Keyboard.Key.INS
+
+        mapKeys(Keys.Shift) = CoreApplicationLayer.Keyboard.Key.SHIFT
+        mapKeys(Keys.Control) = CoreApplicationLayer.Keyboard.Key.CTRL
+        mapKeys(Keys.Space) = CoreApplicationLayer.Keyboard.Key.SPACE
+
+        mapKeys(Keys.D0) = CoreApplicationLayer.Keyboard.Key.K0
+        mapKeys(Keys.D1) = CoreApplicationLayer.Keyboard.Key.K1
+        mapKeys(Keys.D2) = CoreApplicationLayer.Keyboard.Key.K2
+        mapKeys(Keys.D3) = CoreApplicationLayer.Keyboard.Key.K3
+        mapKeys(Keys.D4) = CoreApplicationLayer.Keyboard.Key.K4
+        mapKeys(Keys.D5) = CoreApplicationLayer.Keyboard.Key.K5
+        mapKeys(Keys.D6) = CoreApplicationLayer.Keyboard.Key.K6
+        mapKeys(Keys.D7) = CoreApplicationLayer.Keyboard.Key.K7
+        mapKeys(Keys.D8) = CoreApplicationLayer.Keyboard.Key.K8
+        mapKeys(Keys.D9) = CoreApplicationLayer.Keyboard.Key.K9
+
+        mapKeys(Keys.NumPad0) = CoreApplicationLayer.Keyboard.Key.NP0
+        mapKeys(Keys.NumPad1) = CoreApplicationLayer.Keyboard.Key.NP1
+        mapKeys(Keys.NumPad2) = CoreApplicationLayer.Keyboard.Key.NP2
+        mapKeys(Keys.NumPad3) = CoreApplicationLayer.Keyboard.Key.NP3
+        mapKeys(Keys.NumPad4) = CoreApplicationLayer.Keyboard.Key.NP4
+        mapKeys(Keys.NumPad5) = CoreApplicationLayer.Keyboard.Key.NP5
+        mapKeys(Keys.NumPad6) = CoreApplicationLayer.Keyboard.Key.NP6
+        mapKeys(Keys.NumPad7) = CoreApplicationLayer.Keyboard.Key.NP7
+        mapKeys(Keys.NumPad8) = CoreApplicationLayer.Keyboard.Key.NP8
+        mapKeys(Keys.NumPad9) = CoreApplicationLayer.Keyboard.Key.NP9
+
+        mapKeys(Keys.Multiply) = CoreApplicationLayer.Keyboard.Key.NP_MUL
+        mapKeys(Keys.Add) = CoreApplicationLayer.Keyboard.Key.NP_ADD
+        mapKeys(Keys.Divide) = CoreApplicationLayer.Keyboard.Key.NP_DIV
+        mapKeys(Keys.Subtract) = CoreApplicationLayer.Keyboard.Key.NP_SUB
+        mapKeys(Keys.Decimal) = CoreApplicationLayer.Keyboard.Key.NP_DECIMAL
+
+        '// Thanks scripticuk
+        mapKeys(Keys.Oem1) = CoreApplicationLayer.Keyboard.Key.OEM_1            '// On US And UK keyboards this Is the ';:' key
+        mapKeys(Keys.Oem2) = CoreApplicationLayer.Keyboard.Key.OEM_2            '// On US And UK keyboards this Is the '/?' key
+        mapKeys(Keys.Oem3) = CoreApplicationLayer.Keyboard.Key.OEM_3            '// On US keyboard this Is the '~' key
+        mapKeys(Keys.Oem4) = CoreApplicationLayer.Keyboard.Key.OEM_4            '// On US And UK keyboards this Is the '[{' key
+        mapKeys(Keys.Oem5) = CoreApplicationLayer.Keyboard.Key.OEM_5            '// On US keyboard this Is '\|' key.
+        mapKeys(Keys.Oem6) = CoreApplicationLayer.Keyboard.Key.OEM_6            '// On US And UK keyboards this Is the ']}' key
+        mapKeys(Keys.Oem7) = CoreApplicationLayer.Keyboard.Key.OEM_7            '// On US keyboard this Is the Single/Double quote key. On UK, this Is the Single quote/@ symbol key
+        mapKeys(Keys.Oem8) = CoreApplicationLayer.Keyboard.Key.OEM_8            '// miscellaneous characters. Varies by keyboard
+        mapKeys(Keys.Oemplus) = CoreApplicationLayer.Keyboard.Key.EQUALS        '// the '+' key on any keyboard
+        mapKeys(Keys.Oemcomma) = CoreApplicationLayer.Keyboard.Key.COMMA        '// the comma key On any keyboard
+        mapKeys(Keys.OemMinus) = CoreApplicationLayer.Keyboard.Key.MINUS        '// the minus key On any keyboard
+        mapKeys(Keys.OemPeriod) = CoreApplicationLayer.Keyboard.Key.PERIOD      '// the period key On any keyboard
+        mapKeys(Keys.CapsLock) = CoreApplicationLayer.Keyboard.Key.CAPS_LOCK
+
+        Return ReturnCode.OK
+    End Function
+#End Region
+
+
+
 #Region "Project Registry Information"
     'Since I already have this registry key im just going to use it.
     Public Const strProgramTitle As String = "NES Emulator"
@@ -136,6 +265,13 @@ Public Class Form1
     Private pcStuckCount As Integer = 0
 
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        If InitalizeKeyboardMap() = ReturnCode.FAIL Then
+            MessageBox.Show("Failed to initalize keyboard map!", strProgramTitle, MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Me.Close()
+            Return
+        End If
+        Debug.WriteLine("Keyboard map initalized successfully.")
+
         ' Initalize Everything that we need
         ' Cart = New NintendoEntertainmentSystem.clsCartridge()
     End Sub
@@ -235,13 +371,13 @@ Public Class Form1
         'Need to Check if were currently emulating
         If running Then Return
         If IsNothing(Cart) Then
-            Cart = New clsCartridge(dlgOpenFile.FileName)
+            Cart = New CartridgeClass(dlgOpenFile.FileName)
         Else
             Cart.Reset()
-            Cart.LoadCartridge(dlgOpenFile.FileName)
+            Cart.LoadFromFile(dlgOpenFile.FileName)
         End If
 
-        If Not Cart.ValidImage Then
+        If Not Cart.IsLoaded Then
             Return
         End If
 
@@ -297,8 +433,10 @@ Public Class Form1
 
     Private VideoThread As Thread
     Public Sub Run()
-        '----- hrrmm
+        '-----
+        'm_timepoint1 As DateTime = DateTime.Now
         'While running
+        '
         '    m_timepoint2 = DateTime.Now
         '    Dim elapsedTime As TimeSpan = m_timepoint2 - m_timepoint1
         '    m_timepoint1 = m_timepoint2
