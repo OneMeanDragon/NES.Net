@@ -1,6 +1,4 @@
-﻿#Const APU_IMPLEMENTED = 0
-
-
+﻿
 Namespace NintendoEntertainmentSystem
 
     ' Master Class Assumed
