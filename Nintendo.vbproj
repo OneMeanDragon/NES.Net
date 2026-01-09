@@ -173,7 +173,6 @@
     </Compile>
     <Compile Include="NES.6502.vb" />
     <Compile Include="NES.BUS.vb" />
-    <Compile Include="NES.CARTRIDGE.vb" />
     <Compile Include="NES.CARTRIDGE2.vb" />
     <Compile Include="NES.CONSTANTS.vb" />
     <Compile Include="NES.MAPPER.vb" />
@@ -214,6 +213,9 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="NotUsed\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
 </Project>
