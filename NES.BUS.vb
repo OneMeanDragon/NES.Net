@@ -253,8 +253,8 @@ Namespace NintendoEntertainmentSystem
             End If
 
             '// Check if cartridge is requesting IRQ
-            If Cart.GetMapper.irqState() Then
-                Cart.GetMapper.irqClear()
+            If Cart.GetMapper.IsIrqActive() Then
+                Cart.GetMapper.ClearIrq()
                 CPU.IRQ()
             End If
             nSystemClockCounter += 1

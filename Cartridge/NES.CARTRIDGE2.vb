@@ -96,7 +96,7 @@ Namespace NintendoEntertainmentSystem
         Private _trainer As ReadOnlyMemory(Of Byte)  ' Trainer data if present
 
         Private _header As INESHeader
-        Private _mapper As clsMapper
+        Private _mapper As MapperBase 'clsMapper
         Private _isLoaded As Boolean = False
         Private _isDisposed As Boolean = False
 #End Region
@@ -135,22 +135,22 @@ Namespace NintendoEntertainmentSystem
         '        End If
         '    End Get
         'End Property
-        Public ReadOnly Property MirrorMode As clsMapper.enMIRROR
+        Public ReadOnly Property MirrorMode As MirrorMode
             Get
                 If _mapper IsNot Nothing Then
-                    Dim mapperMirror = _mapper.Mirror()
-                    If mapperMirror <> clsMapper.enMIRROR.HARDWARE Then
+                    Dim mapperMirror = _mapper.GetMirrorMode() 'Mirror()
+                    If mapperMirror <> MirrorMode.Hardware Then
                         Return mapperMirror
                     End If
                 End If
 
                 ' Return hardware mirror mode
                 If _header.IsFourScreenMode Then
-                    Return clsMapper.enMIRROR.HARDWARE ' Or define FOURSCREEN
+                    Return MirrorMode.Hardware ' Or define FOURSCREEN
                 ElseIf _header.IsVerticalMirroring Then
-                    Return clsMapper.enMIRROR.VERTICAL
+                    Return MirrorMode.Vertical
                 Else
-                    Return clsMapper.enMIRROR.HORIZONTAL
+                    Return MirrorMode.Horizontal
                 End If
             End Get
         End Property
@@ -161,7 +161,7 @@ Namespace NintendoEntertainmentSystem
             End Get
         End Property
 
-        Public ReadOnly Property Mapper As clsMapper
+        Public ReadOnly Property Mapper As MapperBase 'clsMapper
             Get
                 Return _mapper
             End Get
@@ -304,27 +304,36 @@ Namespace NintendoEntertainmentSystem
         Private Function InitializeMapper() As Boolean
             Dim mapperID = _header.MapperNumber
 
-            Select Case mapperID
-                Case 0
-                    _mapper = New clsMapper_000(_header.PrgRomSize, ChrBanks)
-                Case 1
-                    _mapper = New clsMapper_001(_header.PrgRomSize, ChrBanks)
-                Case 2
-                    _mapper = New clsMapper_002(_header.PrgRomSize, ChrBanks)
-                Case 3
-                    _mapper = New clsMapper_003(_header.PrgRomSize, ChrBanks)
-                Case 4
-                    _mapper = New clsMapper_004(_header.PrgRomSize, ChrBanks)
-                Case 66
-                    _mapper = New clsMapper_066(_header.PrgRomSize, ChrBanks)
-                Case Else
-                    Return False
-            End Select
+            'Select Case mapperID
+            '    Case 0
+            '        _mapper = New clsMapper_000(_header.PrgRomSize, ChrBanks)
+            '    Case 1
+            '        _mapper = New clsMapper_001(_header.PrgRomSize, ChrBanks)
+            '    Case 2
+            '        _mapper = New clsMapper_002(_header.PrgRomSize, ChrBanks)
+            '    Case 3
+            '        _mapper = New clsMapper_003(_header.PrgRomSize, ChrBanks)
+            '    Case 4
+            '        _mapper = New clsMapper_004(_header.PrgRomSize, ChrBanks)
+            '    Case 66
+            '        _mapper = New clsMapper_066(_header.PrgRomSize, ChrBanks)
+            '    Case Else
+            '        Return False
+            'End Select
+            'Return True
 
-            Return True
+            If MapperFactory.IsSupported(mapperID) Then
+                _mapper = MapperFactory.CreateMapper(mapperID, PrgBanks, ChrBanks)
+                Debug.WriteLine($"Loaded: {MapperFactory.GetMapperName(mapperID)}")
+                Return True
+            Else
+                Debug.WriteLine($"Unsupported mapper: {mapperID}")
+                Return False
+            End If
+            Return False
         End Function
 
-        Public ReadOnly Property GetMapper() As clsMapper
+        Public ReadOnly Property GetMapper() As MapperBase 'clsMapper
             Get
                 Return _mapper
             End Get

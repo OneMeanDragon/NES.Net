@@ -1378,7 +1378,7 @@ Namespace NintendoEntertainmentSystem
                 data = tblPattern((addr And &H1000US) >> 12, addr And &HFFFUS)
             ElseIf addr >= &H2000US AndAlso addr <= &H3EFFUS Then
                 addr = addr And &HFFFUS
-                If Cart.MirrorMode() = clsMapper.enMIRROR.VERTICAL Then
+                If Cart.MirrorMode() = [MirrorMode].Vertical Then
                     If addr >= &H0US AndAlso addr <= &H3FFUS Then
                         data = tblName(0, addr And &H3FFUS)
                     End If
@@ -1391,7 +1391,7 @@ Namespace NintendoEntertainmentSystem
                     If addr >= &HC00US AndAlso addr <= &HFFFUS Then
                         data = tblName(1, addr And &H3FFUS)
                     End If
-                ElseIf Cart.MirrorMode() = clsMapper.enMIRROR.HORIZONTAL Then
+                ElseIf Cart.MirrorMode() = [MirrorMode].HORIZONTAL Then
                     If addr >= &H0US AndAlso addr <= &H3FFUS Then
                         data = tblName(0, addr And &H3FFUS)
                     End If
@@ -1438,7 +1438,7 @@ Namespace NintendoEntertainmentSystem
                 tblPattern((addr And &H1000US) >> 12, addr And &HFFFUS) = data
             ElseIf addr >= &H2000US AndAlso addr <= &H3EFFUS Then
                 addr = addr And &HFFFUS
-                If Cart.MirrorMode() = clsMapper.enMIRROR.VERTICAL Then
+                If Cart.MirrorMode() = [MirrorMode].Vertical Then
                     If addr >= &H0US AndAlso addr <= &H3FFUS Then
                         tblName(0, addr And &H3FFUS) = data
                     End If
@@ -1451,7 +1451,7 @@ Namespace NintendoEntertainmentSystem
                     If addr >= &HC00US AndAlso addr <= &HFFFUS Then
                         tblName(1, addr And &H3FFUS) = data
                     End If
-                ElseIf Cart.MirrorMode() = clsMapper.enMIRROR.HORIZONTAL Then
+                ElseIf Cart.MirrorMode() = [MirrorMode].HORIZONTAL Then
                     If addr >= &H0US AndAlso addr <= &H3FFUS Then
                         tblName(0, addr And &H3FFUS) = data
                     End If
@@ -2209,7 +2209,7 @@ Namespace NintendoEntertainmentSystem
             cycle += 1
             If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
                 If cycle = 260 AndAlso scanline < 240 Then
-                    Cart.GetMapper.Scanline()
+                    Cart.GetMapper.ScanlineCounter()
                 End If
             End If
             '-----------------------------
@@ -2641,7 +2641,7 @@ Namespace NintendoEntertainmentSystem
 
             If PPUMask.Render_background <> 0 OrElse PPUMask.Render_sprites <> 0 Then
                 If cycle = 260 AndAlso scanline < 240 Then
-                    Cart.GetMapper.Scanline()
+                    Cart.GetMapper.ScanlineCounter()
                 End If
             End If
 
