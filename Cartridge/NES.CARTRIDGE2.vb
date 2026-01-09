@@ -125,16 +125,7 @@ Namespace NintendoEntertainmentSystem
                 Return If(_header.ChrRomSize = 0, 1, _header.ChrRomSize) ' 0 means CHR-RAM
             End Get
         End Property
-        'Public ReadOnly Property Mirror() As clsMapper.enMIRROR
-        '    Get
-        '        Dim m As clsMapper.enMIRROR = pMAPPER.Mirror()
-        '        If m = clsMapper.enMIRROR.HARDWARE Then
-        '            Return hw_mirror
-        '        Else
-        '            Return m
-        '        End If
-        '    End Get
-        'End Property
+
         Public ReadOnly Property MirrorMode As MirrorMode
             Get
                 If _mapper IsNot Nothing Then
@@ -266,21 +257,8 @@ Namespace NintendoEntertainmentSystem
         End Function
 
         ' Fast header parsing using Span<T> and MemoryMarshal
-        <MethodImpl(MethodImplOptions.AggressiveInlining)> '<Obsolete("Allowing Span usage in VB.NET", False)>
+        <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Private Function ParseHeader(headerSpan As ReadOnlyMemory(Of Byte)) As INESHeader
-            'Dim header As New INESHeader With {
-            '    .Magic = headerSpan.Slice(0, 4).ToArray(),
-            '    .PrgRomSize = headerSpan(4),
-            '    .ChrRomSize = headerSpan(5),
-            '    .Flags6 = headerSpan(6),
-            '    .Flags7 = headerSpan(7),
-            '    .Flags8 = headerSpan(8),
-            '    .Flags9 = headerSpan(9),
-            '    .Flags10 = headerSpan(10),
-            '    .Unused = headerSpan.Slice(11, 5).ToArray()
-            '}
-            'Return header
-            'Return MemoryMarshal.Read(Of INESHeader)(headerSpan.Span)
             Dim s = headerSpan.Span
 
             ' Note: You cannot use s(i) directly in VB.NET. 
@@ -303,25 +281,6 @@ Namespace NintendoEntertainmentSystem
         ''' </summary>
         Private Function InitializeMapper() As Boolean
             Dim mapperID = _header.MapperNumber
-
-            'Select Case mapperID
-            '    Case 0
-            '        _mapper = New clsMapper_000(_header.PrgRomSize, ChrBanks)
-            '    Case 1
-            '        _mapper = New clsMapper_001(_header.PrgRomSize, ChrBanks)
-            '    Case 2
-            '        _mapper = New clsMapper_002(_header.PrgRomSize, ChrBanks)
-            '    Case 3
-            '        _mapper = New clsMapper_003(_header.PrgRomSize, ChrBanks)
-            '    Case 4
-            '        _mapper = New clsMapper_004(_header.PrgRomSize, ChrBanks)
-            '    Case 66
-            '        _mapper = New clsMapper_066(_header.PrgRomSize, ChrBanks)
-            '    Case Else
-            '        Return False
-            'End Select
-            'Return True
-
             If MapperFactory.IsSupported(mapperID) Then
                 _mapper = MapperFactory.CreateMapper(mapperID, PrgBanks, ChrBanks)
                 Debug.WriteLine($"Loaded: {MapperFactory.GetMapperName(mapperID)}")
