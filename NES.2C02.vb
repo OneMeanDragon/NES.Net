@@ -123,51 +123,7 @@ Namespace NintendoEntertainmentSystem
             Next
         End Sub
 
-        '// Foreground "Sprite" rendering ================================
-        '// The OAM Is an additional memory internal to the PPU. It Is
-        '// Not connected via the any bus. It stores the locations of
-        '// 64off 8x8 (Or 8x16) tiles to be drawn on the next frame.
-        Public Structure sObjectAttributeEntry
-            Public y As Byte            ' Y position of sprite
-            Public id As Byte           ' ID of tile from pattern memory
-            Public attribute As Byte    ' Flags define how sprite should be rendered
-            Public x As Byte            ' X position of sprite
-            Public Function GetByteAt(ByVal position_index As UInt16) As Byte
-                Select Case (position_index Mod 4)
-                    Case 0 : Return y
-                    Case 1 : Return id
-                    Case 2 : Return attribute
-                    Case 3 : Return x
-                    Case Else
-                        'Debug.WriteLine("GetByteAt out of bounds: " & position_index.ToString())
-                        Return 0 'should throw an error but whatever
-                End Select
-            End Function
-            Public Sub SetByteAt(ByVal position_index As UInt16, ByVal data As Byte)
-                Select Case (position_index Mod 4)
-                    Case 0 : y = data : Return
-                    Case 1 : id = data : Return
-                    Case 2 : attribute = data : Return
-                    Case 3 : x = data : Return
-                    Case Else
-                        'Debug.WriteLine("SetByteAt out of bounds: " & position_index.ToString())
-                        Return 'should throw an error but whatever
-                End Select
-            End Sub
-            Public Sub MemorySet(ByVal bytFill As Byte)
-                y = bytFill
-                id = bytFill
-                attribute = bytFill
-                x = bytFill
-            End Sub
-            Public Sub Copy(ByVal objCpy As sObjectAttributeEntry)
-                y = objCpy.y
-                id = objCpy.id
-                attribute = objCpy.attribute
-                x = objCpy.x
-            End Sub
-        End Structure
-        Public OAM(63) As sObjectAttributeEntry 'VB
+        Public OAM(63) As OAMEntry
         '[OAM[address][address]=OAM(address \ 4).G/SetByteAt(address)] 'Math.Floor(addr / 4)
         'Suppose could have just made this an array of 256 bytes heh
 
@@ -177,7 +133,7 @@ Namespace NintendoEntertainmentSystem
         '// the Bus header for a description of this.
         Private oam_addr As Byte = 0
 
-        Private spriteScanline(7) As sObjectAttributeEntry 'VB 8
+        Private spriteScanline(7) As OAMEntry 'VB 8
         Private sprite_count As Byte = 0
         Private sprite_shifter_pattern_lo(7) As Byte 'VB 8
         Private sprite_shifter_pattern_hi(7) As Byte 'VB 8
@@ -667,6 +623,7 @@ Namespace NintendoEntertainmentSystem
                 End Set
             End Property
         End Structure
+
         Public Class FrankenLoopy
             Private m_Register As UInt16 = 0
 
@@ -1261,7 +1218,7 @@ Namespace NintendoEntertainmentSystem
 
         Public Sub Reset()
             For i As Integer = 0 To 63
-                OAM(i).MemorySet(&HFFUI)
+                OAM(i).Fill(&HFFUI)
             Next
             oam_addr = 0
             fine_x = 0
@@ -1613,7 +1570,7 @@ Namespace NintendoEntertainmentSystem
                     '// Firstly, clear out the sprite memory. This memory Is used to store the
                     '// sprites to be rendered. It Is Not the OAM.
                     For i As UInt32 = 0 To spriteScanline.Length() - 1 'VB [std::memset(spriteScanline, 0xFF, 8 * sizeof(sObjectAttributeEntry));]
-                        spriteScanline(i).MemorySet(&HFFUI) '&H7FUI) why did i use 7F again?
+                        spriteScanline(i).Fill(&HFFUI) '&H7FUI) why did i use 7F again?
                     Next
 
                     '// The NES supports a maximum number of sprites per scanline. Nominally
@@ -1660,7 +1617,7 @@ Namespace NintendoEntertainmentSystem
                                     '// sprite zero hit when drawn
                                     bSpriteZeroHitPossible = True
                                 End If
-                                spriteScanline(sprite_count).Copy(OAM(nOAMEntry)) 'Copied
+                                spriteScanline(sprite_count).CopyFrom(OAM(nOAMEntry))
                             End If
                             sprite_count += 1
                         End If
@@ -1698,43 +1655,43 @@ Namespace NintendoEntertainmentSystem
                             '// offset by 8 from the lo address.
                             If Not PPUControl.Sprite_size Then
                                 '// 8x8 Sprite Mode - The control register determines the pattern table
-                                If Not (spriteScanline(i).attribute And &H80UI) Then
+                                If Not (spriteScanline(i).Attributes And &H80UI) Then
                                     '// Sprite is NOT flipped vertically, i.e. normal    
                                     sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or  '// Which Pattern Table? 0KB or 4KB offset
-                                                     MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or        '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                     ((scanline - spriteScanline(i).y) And 7)                '// Which Row in cell? (0->7) [shouldent there be an & 0x7 here]
+                                                     MathHelpers.SafeShiftLeft16(spriteScanline(i).TileID, 4) Or        '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                     ((scanline - spriteScanline(i).Y) And 7)                '// Which Row in cell? (0->7) [shouldent there be an & 0x7 here]
                                 Else
                                     '// Sprite is flipped vertically, i.e. upside down
                                     sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or                  '// Which Pattern Table? 0KB or 4KB offset
-                                                     MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or                        '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                     MathHelpers.SafeSubtract16(7, ((scanline - spriteScanline(i).y) And 7)) '// Which Row in cell? (7->0)
+                                                     MathHelpers.SafeShiftLeft16(spriteScanline(i).TileID, 4) Or                        '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                     MathHelpers.SafeSubtract16(7, ((scanline - spriteScanline(i).Y) And 7)) '// Which Row in cell? (7->0)
                                 End If
                             Else
                                 '// 8x16 Sprite Mode - The sprite attribute determines the pattern table
-                                If Not (spriteScanline(i).attribute And &H80UI) Then
+                                If Not (spriteScanline(i).Attributes And &H80UI) Then
                                     '// Sprite is NOT flipped vertically, i.e. normal
-                                    If (scanline - spriteScanline(i).y) < 8 Then
+                                    If (scanline - spriteScanline(i).Y) < 8 Then
                                         '// Reading Top half Tile
-                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or   '// Which Pattern Table? 0KB or 4KB offset
-                                                         MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &HFEUI), 4) Or   '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                         ((scanline - spriteScanline(i).y) And &H7UI)                           '// Which Row in cell? (0->7)
+                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).TileID And &H1UI), 12) Or   '// Which Pattern Table? 0KB or 4KB offset
+                                                         MathHelpers.SafeShiftLeft16((spriteScanline(i).TileID And &HFEUI), 4) Or   '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                         ((scanline - spriteScanline(i).Y) And &H7UI)                           '// Which Row in cell? (0->7)
                                     Else
                                         '// Reading Bottom Half Tile
-                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or                                   '// Which Pattern Table? 0KB or 4KB offset
-                                                         MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16((spriteScanline(i).id And &HFEUI), 1), 4) Or    '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                         ((scanline - spriteScanline(i).y) And &H7UI)                                                           '// Which Row in cell? (0->7)
+                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).TileID And &H1UI), 12) Or                                   '// Which Pattern Table? 0KB or 4KB offset
+                                                         MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16((spriteScanline(i).TileID And &HFEUI), 1), 4) Or    '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                         ((scanline - spriteScanline(i).Y) And &H7UI)                                                           '// Which Row in cell? (0->7)
                                     End If
                                 Else
                                     '// Sprite is flipped vertically, i.e. upside down
                                     If (scanline - spriteScanline(i).y < 8) Then
-                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or                                   '// Which Pattern Table? 0KB or 4KB offset
-                                                         MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16((spriteScanline(i).id And &HFEUI), 1), 4) Or    '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                         MathHelpers.SafeSubtract16(7, (scanline - spriteScanline(i).y) And &H7UI)                              '// Which Row in cell? (0->7)
+                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).TileID And &H1UI), 12) Or                                   '// Which Pattern Table? 0KB or 4KB offset
+                                                         MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16((spriteScanline(i).TileID And &HFEUI), 1), 4) Or    '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                         MathHelpers.SafeSubtract16(7, (scanline - spriteScanline(i).Y) And &H7UI)                              '// Which Row in cell? (0->7)
 
                                     Else
-                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &H1UI), 12) Or       '// Which Pattern Table? 0KB or 4KB offset
-                                                         MathHelpers.SafeShiftLeft16((spriteScanline(i).id And &HFEUI), 4) Or       '// Which Cell? Tile ID * 16 (16 bytes per tile)
-                                                         MathHelpers.SafeSubtract16(7, (scanline - spriteScanline(i).y) And &H7UI)  '// Which Row in cell? (0->7)
+                                        sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16((spriteScanline(i).TileID And &H1UI), 12) Or       '// Which Pattern Table? 0KB or 4KB offset
+                                                         MathHelpers.SafeShiftLeft16((spriteScanline(i).TileID And &HFEUI), 4) Or       '// Which Cell? Tile ID * 16 (16 bytes per tile)
+                                                         MathHelpers.SafeSubtract16(7, (scanline - spriteScanline(i).Y) And &H7UI)  '// Which Row in cell? (0->7)
                                     End If
                                 End If
                             End If
@@ -1753,7 +1710,7 @@ Namespace NintendoEntertainmentSystem
 
                             '// If the sprite Is flipped horizontally, we need to flip the 
                             '// pattern bytes.
-                            If spriteScanline(i).attribute And &H40UI Then
+                            If spriteScanline(i).Attributes And &H40UI Then
                                 '// This little lambda function "flips" a byte
                                 '// so 0b11100000 becomes 0b00000111. It's very
                                 '// clever, And stolen completely from here:
@@ -1888,8 +1845,8 @@ Namespace NintendoEntertainmentSystem
                                     Dim fg_pixel_hi As Byte = If((sprite_shifter_pattern_hi(i) And &H80UI) <> 0, 1, 0)
                                     fg_pixel = (fg_pixel_hi << 1) Or fg_pixel_lo
 
-                                    fg_palette = (spriteScanline(i).attribute And &H3UI) + &H4UI
-                                    fg_priority = If((spriteScanline(i).attribute And &H20UI) = 0, 1, 0)
+                                    fg_palette = (spriteScanline(i).Attributes And &H3UI) + &H4UI
+                                    fg_priority = If((spriteScanline(i).Attributes And &H20UI) = 0, 1, 0)
 
                                     If fg_pixel <> 0 Then
                                         If i = 0 Then
@@ -2194,7 +2151,7 @@ Namespace NintendoEntertainmentSystem
                 If cycle = 257 AndAlso scanline >= 0 Then
                     ' Clear sprite scanline buffer
                     For i As Integer = 0 To 7
-                        spriteScanline(i).MemorySet(&HFFUI)
+                        spriteScanline(i).Fill(&HFFUI)
                     Next
 
                     sprite_count = 0
@@ -2218,7 +2175,7 @@ Namespace NintendoEntertainmentSystem
                                 If nOAMEntry = 0 Then
                                     bSpriteZeroHitPossible = True
                                 End If
-                                spriteScanline(sprite_count).Copy(OAM(nOAMEntry))
+                                spriteScanline(sprite_count).CopyFrom(OAM(nOAMEntry))
                             End If
                             sprite_count += 1
                         End If
@@ -2238,44 +2195,44 @@ Namespace NintendoEntertainmentSystem
 
                         If PPUControl.Sprite_size = 0 Then
                             ' 8x8 sprite mode
-                            If (spriteScanline(i).attribute And &H80UI) = 0 Then
+                            If (spriteScanline(i).Attributes And &H80UI) = 0 Then
                                 ' Not flipped vertically
                                 sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or
-                                                         MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or
-                                                         CUShort((scanline - spriteScanline(i).y) And 7)
+                                                         MathHelpers.SafeShiftLeft16(spriteScanline(i).TileID, 4) Or
+                                                         CUShort((scanline - spriteScanline(i).Y) And 7)
                             Else
                                 ' Flipped vertically
                                 sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or
-                                                         MathHelpers.SafeShiftLeft16(spriteScanline(i).id, 4) Or
-                                                         MathHelpers.SafeSubtract16(7, CUShort((scanline - spriteScanline(i).y) And 7))
+                                                         MathHelpers.SafeShiftLeft16(spriteScanline(i).TileID, 4) Or
+                                                         MathHelpers.SafeSubtract16(7, CUShort((scanline - spriteScanline(i).Y) And 7))
                             End If
                         Else
                             ' 8x16 sprite mode
-                            If (spriteScanline(i).attribute And &H80UI) = 0 Then
+                            If (spriteScanline(i).Attributes And &H80UI) = 0 Then
                                 ' Not flipped vertically
-                                If (scanline - spriteScanline(i).y) < 8 Then
+                                If (scanline - spriteScanline(i).Y) < 8 Then
                                     ' Top half
-                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).id And &H1UI), 12) Or
-                                                             MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).id And &HFEUI), 4) Or
-                                                             CUShort((scanline - spriteScanline(i).y) And &H7UI)
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).TileID And &H1UI), 12) Or
+                                                             MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).TileID And &HFEUI), 4) Or
+                                                             CUShort((scanline - spriteScanline(i).Y) And &H7UI)
                                 Else
                                     ' Bottom half
-                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).id And &H1UI), 12) Or
-                                                             MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16(CUShort(spriteScanline(i).id And &HFEUI), 1), 4) Or
-                                                             CUShort((scanline - spriteScanline(i).y) And &H7UI)
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).TileID And &H1UI), 12) Or
+                                                             MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16(CUShort(spriteScanline(i).TileID And &HFEUI), 1), 4) Or
+                                                             CUShort((scanline - spriteScanline(i).Y) And &H7UI)
                                 End If
                             Else
                                 ' Flipped vertically
                                 If (scanline - spriteScanline(i).y) < 8 Then
                                     ' Top half (which is bottom when flipped)
-                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).id And &H1UI), 12) Or
-                                                             MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16(CUShort(spriteScanline(i).id And &HFEUI), 1), 4) Or
-                                                             MathHelpers.SafeSubtract16(7, CUShort((scanline - spriteScanline(i).y) And &H7UI))
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).TileID And &H1UI), 12) Or
+                                                             MathHelpers.SafeShiftLeft16(MathHelpers.SafeAddition16(CUShort(spriteScanline(i).TileID And &HFEUI), 1), 4) Or
+                                                             MathHelpers.SafeSubtract16(7, CUShort((scanline - spriteScanline(i).Y) And &H7UI))
                                 Else
                                     ' Bottom half (which is top when flipped)
-                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).id And &H1UI), 12) Or
-                                                             MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).id And &HFEUI), 4) Or
-                                                             MathHelpers.SafeSubtract16(7, CUShort((scanline - spriteScanline(i).y) And &H7UI))
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).TileID And &H1UI), 12) Or
+                                                             MathHelpers.SafeShiftLeft16(CUShort(spriteScanline(i).TileID And &HFEUI), 4) Or
+                                                             MathHelpers.SafeSubtract16(7, CUShort((scanline - spriteScanline(i).Y) And &H7UI))
                                 End If
                             End If
                         End If
@@ -2286,7 +2243,7 @@ Namespace NintendoEntertainmentSystem
                         sprite_pattern_bits_hi = ppuRead(sprite_pattern_addr_hi)
 
                         ' Flip horizontally if needed
-                        If (spriteScanline(i).attribute And &H40UI) <> 0 Then
+                        If (spriteScanline(i).Attributes And &H40UI) <> 0 Then
                             Dim flipbyte = Function(b As Byte) As Byte
                                                If b = 0 Then Return 0
                                                b = ((b And &HF0UI) >> 4) Or ((b And &HFUI) << 4)
@@ -2359,8 +2316,8 @@ Namespace NintendoEntertainmentSystem
                             Dim fg_pixel_hi As Byte = If((sprite_shifter_pattern_hi(i) And &H80UI) <> 0, 1, 0)
                             fg_pixel = (fg_pixel_hi << 1) Or fg_pixel_lo
 
-                            fg_palette = (spriteScanline(i).attribute And &H3UI) + &H4UI
-                            fg_priority = If((spriteScanline(i).attribute And &H20UI) = 0, 1, 0)
+                            fg_palette = (spriteScanline(i).Attributes And &H3UI) + &H4UI
+                            fg_priority = If((spriteScanline(i).Attributes And &H20UI) = 0, 1, 0)
 
                             If fg_pixel <> 0 Then
                                 If i = 0 Then

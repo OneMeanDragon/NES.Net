@@ -153,6 +153,7 @@
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.66.vb" />
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.9.vb" />
     <Compile Include="Cartridge\MapperFactory\NES.MAPPER.FACTORY.vb" />
+    <Compile Include="Chips\2C02\ObjectAttributeEntry\ObjectAttributeEntry.vb" />
     <Compile Include="Form1.vb">
       <SubType>Form</SubType>
     </Compile>
@@ -162,7 +163,7 @@
     </Compile>
     <Compile Include="GENERIC.ERRORS.vb" />
     <Compile Include="GENERIC.TIMER.vb" />
-    <Compile Include="MATH.BYTE.BIT.FIELD.vb" />
+    <Compile Include="BitFields\BIT.FIELD.8.vb" />
     <Compile Include="MathHelpers.vb" />
     <Compile Include="My Project\Settings.Designer.vb">
       <AutoGen>True</AutoGen>

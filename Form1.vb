@@ -602,30 +602,30 @@ Public Class Form1
 
             '-----------------------------------
             ' Draw the Patterns
-            'If QueuePatterns AndAlso frameCount Mod 30 = 0 Then
-            '    DrawSprite(256 + 4, 2, emNES.PPU.GetPatternTable(0, nSelectedPalette))
-            '    DrawSprite(256 + 4 + (128 + 2), 2, emNES.PPU.GetPatternTable(1, nSelectedPalette))
-            '    QueuePatterns = False
-            'End If
-            '
-            'Const nSwatchSize As Integer = 6
-            '' Handle palette selection changes
-            'If n_PrevSelectedPallet <> nSelectedPalette Then
-            '    FillRect((256 + 4) + 1 + (n_PrevSelectedPallet * (nSwatchSize * 5)), 132, (nSwatchSize * 4), nSwatchSize + 2, PixelColors.DARK_GREY)
-            '    n_PrevSelectedPallet = nSelectedPalette
-            '    QueuePatterns = True
-            '    QueuePalettes = True
-            'End If
-            '
-            'If QueuePalettes Then
-            '    FillRect((256 + 4) + 1 + (nSelectedPalette * (nSwatchSize * 5)), 132, (nSwatchSize * 4), nSwatchSize + 2, PixelColors.CYAN)
-            '    For p As Integer = 0 To 7
-            '        For s As Integer = 0 To 3
-            '            FillRect((256 + 4) + 1 + p * (nSwatchSize * 5) + s * nSwatchSize, 133, nSwatchSize, nSwatchSize, emNES.PPU.GetColorFromPaletteRam(p, s))
-            '        Next
-            '    Next
-            '    QueuePalettes = False
-            'End If
+            If QueuePatterns AndAlso frameCount Mod 30 = 0 Then
+                DrawSprite(256 + 4, 2, emNES.PPU.GetPatternTable(0, nSelectedPalette))
+                DrawSprite(256 + 4 + (128 + 2), 2, emNES.PPU.GetPatternTable(1, nSelectedPalette))
+                QueuePatterns = False
+            End If
+
+            Const nSwatchSize As Integer = 6
+            ' Handle palette selection changes
+            If n_PrevSelectedPallet <> nSelectedPalette Then
+                FillRect((256 + 4) + 1 + (n_PrevSelectedPallet * (nSwatchSize * 5)), 132, (nSwatchSize * 4), nSwatchSize + 2, GraphicsObjects.PixelColors.DarkGrey)
+                n_PrevSelectedPallet = nSelectedPalette
+                QueuePatterns = True
+                QueuePalettes = True
+            End If
+
+            If QueuePalettes Then
+                FillRect((256 + 4) + 1 + (nSelectedPalette * (nSwatchSize * 5)), 132, (nSwatchSize * 4), nSwatchSize + 2, GraphicsObjects.PixelColors.Cyan)
+                For p As Integer = 0 To 7
+                    For s As Integer = 0 To 3
+                        FillRect((256 + 4) + 1 + p * (nSwatchSize * 5) + s * nSwatchSize, 133, nSwatchSize, nSwatchSize, emNES.PPU.GetColorFromPaletteRam(p, s))
+                    Next
+                Next
+                QueuePalettes = False
+            End If
             '-----------------------------------
 
             ' Render the screen every frame
