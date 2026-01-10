@@ -10,7 +10,6 @@ Imports NAudio.FileFormats
 Imports NAudio.Wave
 Imports Nintendo.CoreApplicationLayer
 Imports Nintendo.FOREVERLOOP_HELPERS
-Imports Nintendo.GraphicsObjects
 Imports Nintendo.NintendoEntertainmentSystem
 
 
@@ -154,7 +153,7 @@ Public Class Form1
 #End Region
 
 #Region "Emulation Information"
-    Private emNES As New NintendoEntertainmentSystem.clsBus
+    Private emNES As New NESBus
     'Private Shared emCart As New NintendoEntertainmentSystem.clsCartridge()
 #End Region
 
@@ -452,7 +451,7 @@ Public Class Form1
 
         Dim n_PrevSelectedPallet As Integer = nSelectedPalette
 
-        DrawClear(PixelColors.DARK_GREY) 'if left in the main loop screen flashes
+        DrawClear(GraphicsObjects.PixelColors.DarkGrey) 'if left in the main loop screen flashes
         'Draw the Base Screen
 
         'Queue the patterns to be drawn
@@ -485,9 +484,9 @@ Public Class Form1
                 audioSample = emNES.Clock()
                 ClockCounter += 1
 
-                If (ClockCounter Mod 31) = 0 Then
+                If (ClockCounter Mod 81) = 0 Then '31
                     ' 1. Convert and Add to a local List(Of Byte), NOT the provider
-                    Dim smp As Double = emNES.dAudioSample
+                    Dim smp As Double = emNES.AudioSample
                     If Math.Abs(smp + 0.26) < 0.01 Then smp = 0.0
 
                     Dim s16 As Int16 = CShort(Math.Max(-32768, Math.Min(32767, smp * 32767.0)))
@@ -649,7 +648,7 @@ Public Class Form1
             waveOut.Dispose()
         End If
 
-        DrawClear(PixelColors.BLACK)
+        DrawClear(GraphicsObjects.PixelColors.Black)
     End Sub
 
     '256=Game screen size
@@ -668,7 +667,7 @@ Public Class Form1
     '    bmpBackground.SetPixel(x, y, Color.FromArgb(p.m_Pixel.Signed))
     'End Sub
 
-    Private Sub DrawPixel(ByVal x As UInt32, ByVal y As UInt32, ByVal p As Pixel)
+    Private Sub DrawPixel(ByVal x As UInt32, ByVal y As UInt32, ByVal p As GraphicsObjects.Pixel)
         If IsNothing(bmpBackground) Then
             bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT)
         End If
@@ -678,12 +677,12 @@ Public Class Form1
         Dim yi As Integer = CInt(y)
 
         ' Use explicit ARGB components to avoid relying on packed Signed integer interpretation.
-        Dim col As Color = Color.FromArgb(p.m_Pixel.a, p.m_Pixel.r, p.m_Pixel.g, p.m_Pixel.b)
+        Dim col As Color = Color.FromArgb(p.A, p.R, p.G, p.B)
 
         bmpBackground.SetPixel(xi, yi, col)
     End Sub
 
-    Private Sub FillRect(ByVal x As UInt32, ByVal y As UInt32, ByVal w As UInt32, ByVal h As UInt32, ByVal p As Pixel)
+    Private Sub FillRect(ByVal x As UInt32, ByVal y As UInt32, ByVal w As UInt32, ByVal h As UInt32, ByVal p As GraphicsObjects.Pixel)
         Dim x2 As UInt32 = x + w
         Dim y2 As UInt32 = y + h
 
@@ -705,7 +704,7 @@ Public Class Form1
 
     End Sub
 
-    Private Sub DrawToScale(ByVal x As UInt32, ByVal y As UInt32, ByVal objSprite As Sprite, Optional ByVal scale As Single = 1.0F)
+    Private Sub DrawToScale(ByVal x As UInt32, ByVal y As UInt32, ByVal objSprite As GraphicsObjects.Sprite, Optional ByVal scale As Single = 1.0F)
         Dim tempBMP As Bitmap
         If objSprite.Height > 0 AndAlso objSprite.Width > 0 Then
             If scale = 1.0F Then 'send to the normal draw were drawing at full scale
@@ -722,7 +721,7 @@ Public Class Form1
         For i As Integer = 0 To tempBMP.Width - 1
             ' FIX: iterate height for the inner loop (was Width in original)
             For j As Integer = 0 To tempBMP.Height - 1
-                tempBMP.SetPixel(i, j, Color.FromArgb(objSprite.GetPixel(i, j).m_Pixel.a, objSprite.GetPixel(i, j).m_Pixel.r, objSprite.GetPixel(i, j).m_Pixel.g, objSprite.GetPixel(i, j).m_Pixel.b))
+                tempBMP.SetPixel(i, j, Color.FromArgb(objSprite.GetPixel(i, j).A, objSprite.GetPixel(i, j).R, objSprite.GetPixel(i, j).G, objSprite.GetPixel(i, j).B))
             Next
         Next
         'Resize the newly made bmp
@@ -754,12 +753,12 @@ Public Class Form1
         End If
     End Sub
 
-    Private Sub DrawClear(ByVal p As Pixel)
+    Private Sub DrawClear(ByVal p As GraphicsObjects.Pixel)
         If IsNothing(bmpBackground) Then
             bmpBackground = New Bitmap(BMP_WIDTH, BMP_HEIGHT)
         End If
 
-        Dim col As Color = Color.FromArgb(p.m_Pixel.a, p.m_Pixel.r, p.m_Pixel.g, p.m_Pixel.b)
+        Dim col As Color = Color.FromArgb(p.A, p.R, p.G, p.B)
 
         For i As Int32 = 0 To bmpBackground.Width - 1
             For j As Int32 = 0 To bmpBackground.Height - 1
@@ -833,10 +832,10 @@ Public Class Form1
                 For col As Integer = 0 To copyW - 1
                     Dim srcCol As Integer = srcX + col
                     Dim px As GraphicsObjects.Pixel = ImageObj.GetPixel(srcCol, srcRow)
-                    rowBytes(jOff) = px.m_Pixel.b
-                    rowBytes(jOff + 1) = px.m_Pixel.g
-                    rowBytes(jOff + 2) = px.m_Pixel.r
-                    rowBytes(jOff + 3) = px.m_Pixel.a
+                    rowBytes(jOff) = px.B
+                    rowBytes(jOff + 1) = px.G
+                    rowBytes(jOff + 2) = px.R
+                    rowBytes(jOff + 3) = px.A
                     jOff += 4
                 Next
 
@@ -873,10 +872,10 @@ Public Class Form1
                     Dim off As Integer = 0
                     For x As Integer = 0 To w - 1
                         Dim px = spr.GetPixel(x, y)
-                        rowBytes(off) = px.m_Pixel.b
-                        rowBytes(off + 1) = px.m_Pixel.g
-                        rowBytes(off + 2) = px.m_Pixel.r
-                        rowBytes(off + 3) = px.m_Pixel.a
+                        rowBytes(off) = px.B
+                        rowBytes(off + 1) = px.G
+                        rowBytes(off + 2) = px.R
+                        rowBytes(off + 3) = px.A
                         off += 4
                     Next
                     Dim destPtr As IntPtr = New IntPtr(basePtr.ToInt64() + (y * stride))

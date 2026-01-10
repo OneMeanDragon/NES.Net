@@ -1,45 +1,5 @@
-﻿Imports System.Runtime.CompilerServices
-Imports System.Runtime.InteropServices 'For the pixel union type, [note: dosn't help with bit unions]
-
-
-
-Namespace MathObjects
-    Public Class ByteBitField
-        Private Const FLAG_COUNT As UInt32 = 7 '8-1
-        Private m_Bit(7) As Boolean
-        Private m_Byte As Byte
-
-        Public Sub New()
-            For i As Integer = 0 To FLAG_COUNT
-                m_Bit(i) = False
-            Next
-            m_Byte = 0
-        End Sub
-
-        ''' <summary>
-        ''' SetBit will turn on or off a spacific flag
-        ''' </summary>
-        ''' <param name="arBit">There is a total of 8 flags starting at 0 ending at 7</param>
-        Public WriteOnly Property SetBit(ByVal arBit As UInt32)
-            Set(value)
-                If arBit > 7 Then Return
-                If m_Bit(arBit) Then
-                    ' Remove
-                    m_Byte = m_Byte Xor (1 << arBit)
-                    m_Bit(arBit) = False
-                Else
-                    ' Add
-                    m_Byte = m_Byte Or (1 << arBit)
-                    m_Bit(arBit) = True
-                End If
-            End Set
-        End Property
-    End Class
-End Namespace
-
-
-
-Namespace GraphicsObjects
+﻿
+Namespace NintendoEntertainmentSystem.GraphicsObjects
 #Const OVERDRAW = 0
     Public Class Sprite 'Rect
         Public Property Width() As UInt32
@@ -76,7 +36,7 @@ Namespace GraphicsObjects
 #End If
             '
             If x >= 0 AndAlso x < Width AndAlso y >= 0 AndAlso y < Height Then
-                pColData(y * Width + x).Copy(p)
+                pColData(y * Width + x) = p
                 Return True
             End If
             Return False
@@ -94,118 +54,6 @@ Namespace GraphicsObjects
             End If
         End Function
     End Class
-
-    <StructLayout(LayoutKind.Explicit)>
-    Public Structure PixelUnion
-        <FieldOffset(2)> Public r As Byte
-        <FieldOffset(1)> Public g As Byte
-        <FieldOffset(0)> Public b As Byte
-        <FieldOffset(3)> Public a As Byte '
-        <FieldOffset(0)> Public n As UInt32 ' = &HFF000000UI
-        <FieldOffset(0)> Public Signed As Int32
-    End Structure 'I may have these fields in reverse order? (apparently not acording to c++)
-
-#Region "Bordom UInt24"
-
-    Public Class UInt24
-        <StructLayout(LayoutKind.Explicit)>
-        Private Structure I24_Struct
-            <FieldOffset(0)> Public b1 As Byte
-            <FieldOffset(1)> Public b2 As Byte
-            <FieldOffset(2)> Public b3 As Byte
-            <FieldOffset(3)> Public b4 As Byte
-            <FieldOffset(0)> Public n As UInt32 ' = &H00000000UI
-        End Structure
-        Private Union24 As I24_Struct
-        Public Sub New(ByVal b1 As Byte, ByVal b2 As Byte, ByVal b3 As Byte)
-            Union24.b1 = b1
-            Union24.b2 = b2
-            Union24.b3 = b3
-            Union24.b4 = 0
-        End Sub
-        Public Sub New(ByVal value As UInt32)
-            If value > &HFFFFFFUI Then Throw New OverflowException("UInt24 has Overflowed")
-            Union24.n = value
-        End Sub
-
-
-    End Class
-
-#End Region
-
-    Public Class Pixel
-        Public Enum enMode
-            normal
-            masking
-            alpha
-            custom
-        End Enum
-        Public Mode As enMode = enMode.normal
-        Public m_Pixel As PixelUnion
-
-        Public Sub New()
-            m_Pixel.n = &HFF000000UI 'Default Black
-        End Sub
-        Public Sub New(ByVal r As Byte, ByVal g As Byte, ByVal b As Byte, ByVal Optional a As Byte = &HFFUI)
-            '----------------------------------------------------.
-            m_Pixel.r = r                                       '|
-            m_Pixel.g = g                                       '|
-            m_Pixel.b = b                                       '|
-            m_Pixel.a = &HFF ' a                                '|
-            '---------------------------------------------------'|
-            'm_Pixel.n = r or (g << 8) or (b << 16) or (a << 24)'|
-            '----------------------------------------------------'
-        End Sub
-        Public Sub New(ByVal iValue As UInt32)
-            m_Pixel.n = iValue
-        End Sub
-
-        Public Sub Copy(ByVal p As Pixel)
-            Me.Mode = p.Mode
-            Me.m_Pixel.a = p.m_Pixel.a
-            Me.m_Pixel.r = p.m_Pixel.r
-            Me.m_Pixel.g = p.m_Pixel.g
-            Me.m_Pixel.b = p.m_Pixel.b
-            'If Me.m_Pixel.n <> p.m_Pixel.n Then
-            '    Debug.WriteLine("Failed to copy pixel.")
-            'End If
-        End Sub
-
-        Public Shared Operator =(ByVal p1 As Pixel, ByVal p2 As Pixel) As Boolean
-            Return (p1.m_Pixel.n = p2.m_Pixel.n)
-        End Operator
-
-        Public Shared Operator <>(ByVal p1 As Pixel, ByVal p2 As Pixel) As Boolean
-            Return (p1.m_Pixel.n <> p2.m_Pixel.n)
-        End Operator
-    End Class
-
-    Structure PixelColors
-        Public Shared GREY As New Pixel(192, 192, 192)
-        Public Shared DARK_GREY As New Pixel(128, 128, 128)
-        Public Shared VERY_DARK_GREY As New Pixel(64, 64, 64)
-        Public Shared RED As New Pixel(255, 0, 0)
-        Public Shared DARK_RED As New Pixel(128, 0, 0)
-        Public Shared VERY_DARK_RED As New Pixel(64, 0, 0)
-        Public Shared YELLOW As New Pixel(255, 255, 0)
-        Public Shared DARK_YELLOW As New Pixel(128, 128, 0)
-        Public Shared VERY_DARK_YELLOW As New Pixel(64, 64, 0)
-        Public Shared GREEN As New Pixel(0, 255, 0)
-        Public Shared DARK_GREEN As New Pixel(0, 128, 0)
-        Public Shared VERY_DARK_GREEN As New Pixel(0, 64, 0)
-        Public Shared CYAN As New Pixel(0, 255, 255)
-        Public Shared DARK_CYAN As New Pixel(0, 128, 128)
-        Public Shared VERY_DARK_CYAN As New Pixel(0, 64, 64)
-        Public Shared BLUE As New Pixel(0, 0, 255)
-        Public Shared DARK_BLUE As New Pixel(0, 0, 128)
-        Public Shared VERY_DARK_BLUE As New Pixel(0, 0, 64)
-        Public Shared MAGENTA As New Pixel(255, 0, 255)
-        Public Shared DARK_MAGENTA As New Pixel(128, 0, 128)
-        Public Shared VERY_DARK_MAGENTA As New Pixel(64, 0, 64)
-        Public Shared WHITE As New Pixel(255, 255, 255)
-        Public Shared BLACK As New Pixel(0, 0, 0)
-        Public Shared BLANK As New Pixel(0, 0, 0, 0)
-    End Structure
 
 End Namespace
 
@@ -231,8 +79,8 @@ Namespace NintendoEntertainmentSystem
 
         Public palScreen(&H40UI) As GraphicsObjects.Pixel
         Private sprScreen As New GraphicsObjects.Sprite(256, 240) 'Screen
-        Private sprNameTable(1) As GraphicsObjects.Sprite       'Set the values in the constructor 'VB
-        Private sprPatternTable(1) As GraphicsObjects.Sprite    'Set the values in the constructor 'VB
+        Private sprNameTable(1) As GraphicsObjects.Sprite         'Set the values in the constructor 'VB
+        Private sprPatternTable(1) As GraphicsObjects.Sprite      'Set the values in the constructor 'VB
 
         ' Pixel offset horizont
         Private fine_x As Byte = &H0UI

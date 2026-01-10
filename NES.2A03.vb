@@ -454,6 +454,9 @@
             End If
         End Function
 
+        Friend Sub Reset()
+            'Throw New NotImplementedException()
+        End Sub
     End Class
 
 End Namespace

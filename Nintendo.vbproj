@@ -143,6 +143,7 @@
     <Compile Include="ApplicationCore\CoreApplication.vb" />
     <Compile Include="ApplicationCore\Hardware.vb" />
     <Compile Include="ApplicationCore\KeyboardVariables.vb" />
+    <Compile Include="Bus\NES.BUS2.vb" />
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.0.vb" />
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.1.vb" />
     <Compile Include="Cartridge\MapperFactory\Mappers\MapperBase\NES.MAPPER.BASE.vb" />
@@ -160,6 +161,7 @@
     </Compile>
     <Compile Include="GENERIC.ERRORS.vb" />
     <Compile Include="GENERIC.TIMER.vb" />
+    <Compile Include="MATH.BYTE.BIT.FIELD.vb" />
     <Compile Include="MathHelpers.vb" />
     <Compile Include="My Project\Settings.Designer.vb">
       <AutoGen>True</AutoGen>
@@ -180,9 +182,9 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="NES.6502.vb" />
-    <Compile Include="NES.BUS.vb" />
     <Compile Include="Cartridge\NES.CARTRIDGE2.vb" />
     <Compile Include="NES.CONSTANTS.vb" />
+    <Compile Include="Renderer\Pixel\Pixel.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Form1.resx">
@@ -223,6 +225,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="NotUsed\" />
+    <Folder Include="Renderer\Sprite\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
 </Project>

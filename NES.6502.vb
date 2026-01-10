@@ -364,8 +364,8 @@
 #End Region
 
 #Region "RAM BUS"
-        Private Shared Property Bus() As clsBus
-        Public Sub ConnectBus(ByRef RamBus As clsBus)
+        Private Shared Property Bus() As NESBus
+        Public Sub ConnectBus(ByRef RamBus As NESBus)
             Bus = RamBus
         End Sub
 
