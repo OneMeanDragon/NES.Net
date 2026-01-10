@@ -151,6 +151,7 @@
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.3.vb" />
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.4.vb" />
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.66.vb" />
+    <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.9.vb" />
     <Compile Include="Cartridge\MapperFactory\NES.MAPPER.FACTORY.vb" />
     <Compile Include="Form1.vb">
       <SubType>Form</SubType>
@@ -185,6 +186,7 @@
     <Compile Include="Cartridge\NES.CARTRIDGE2.vb" />
     <Compile Include="NES.CONSTANTS.vb" />
     <Compile Include="Renderer\Pixel\Pixel.vb" />
+    <Compile Include="Renderer\Sprite\Sprite.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Form1.resx">
@@ -225,7 +227,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="NotUsed\" />
-    <Folder Include="Renderer\Sprite\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
 </Project>

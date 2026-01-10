@@ -65,8 +65,10 @@ Namespace NintendoEntertainmentSystem
             ' Cart RAM write
             If addr >= &H6000US AndAlso addr <= &H7FFFUS Then
                 mappedAddr = &HFFFFFFFFUI
+                Dim span = _cartRam.Span
+                span(addr And &H1FFFUS) = data
                 '_cartRam.Span(addr And &H1FFFUS) = data
-                MemoryMarshal.Write(Of Byte)(_cartRam.Span.Slice(CInt(addr And &H1FFFUS), 1), data)
+                'MemoryMarshal.Write(Of Byte)(_cartRam.Span.Slice(CInt(addr And &H1FFFUS), 1), data)
                 Return True
             End If
 

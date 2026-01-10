@@ -63,8 +63,10 @@ Namespace NintendoEntertainmentSystem
         Public Overrides Function CpuMapWrite(addr As UInt16, ByRef mappedAddr As UInt32, data As Byte) As Boolean
             If addr >= &H6000US AndAlso addr < &H8000US Then
                 mappedAddr = &HFFFFFFFFUI
+                Dim span = _cartRam.Span
+                span(addr And &H1FFFUS) = data
                 '_cartRam.Span(addr And &H1FFFUS) = data
-                MemoryMarshal.Write(Of Byte)(_cartRam.Span.Slice(CInt(addr And &H1FFFUS), 1), data)
+                'MemoryMarshal.Write(Of Byte)(_cartRam.Span.Slice(CInt(addr And &H1FFFUS), 1), data)
                 Return True
             End If
 

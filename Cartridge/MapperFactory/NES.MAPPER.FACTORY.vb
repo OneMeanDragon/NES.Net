@@ -26,6 +26,8 @@ Namespace NintendoEntertainmentSystem
                     Return New Mapper003(prgBanks, chrBanks)
                 Case 4
                     Return New Mapper004(prgBanks, chrBanks)
+                Case 9
+                    Return New Mapper009(prgBanks, chrBanks)
                 Case 66
                     Return New Mapper066(prgBanks, chrBanks)
                 Case Else
@@ -39,7 +41,7 @@ Namespace NintendoEntertainmentSystem
         ''' </summary>
         Public Shared Function IsSupported(mapperNumber As Byte) As Boolean
             Select Case mapperNumber
-                Case 0, 1, 2, 3, 4, 66
+                Case 0, 1, 2, 3, 4, 9, 66
                     Return True
                 Case Else
                     Return False
@@ -50,7 +52,7 @@ Namespace NintendoEntertainmentSystem
         ''' Get list of all supported mapper numbers
         ''' </summary>
         Public Shared Function GetSupportedMappers() As Byte()
-            Return New Byte() {0, 1, 2, 3, 4, 66}
+            Return New Byte() {0, 1, 2, 3, 4, 9, 66}
         End Function
 
         ''' <summary>
@@ -68,6 +70,8 @@ Namespace NintendoEntertainmentSystem
                     Return "CNROM"
                 Case 4
                     Return "MMC3 (TxROM)"
+                Case 9
+                    Return "MMC2 (PxROM)"
                 Case 66
                     Return "GxROM"
                 Case Else
@@ -90,6 +94,8 @@ Namespace NintendoEntertainmentSystem
                     Return "CNROM. Fixed PRG, switchable 8KB CHR banks."
                 Case 4
                     Return "Nintendo MMC3. Advanced banking, scanline IRQ counter, 8KB cart RAM."
+                Case 9
+                    Return "Nintendo MMC2. 16KB PRG banking with special CHR banking for split-screen effects."
                 Case 66
                     Return "GxROM. Simple 32KB PRG + 8KB CHR banking."
                 Case Else
@@ -112,6 +118,8 @@ Namespace NintendoEntertainmentSystem
                     Return {"Solomon's Key", "Arkanoid", "Paperboy", "Cybernoid"}
                 Case 4
                     Return {"Super Mario Bros 3", "Mega Man 3-6", "Kirby's Adventure", "Batman"}
+                Case 9
+                    Return {"Punch-Out!!", "Mike Tyson's Punch-Out!!", "Rad Racer"}
                 Case 66
                     Return {"Super Mario Bros + Duck Hunt", "Gumshoe"}
                 Case Else

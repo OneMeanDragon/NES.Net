@@ -378,8 +378,10 @@ Namespace NintendoEntertainmentSystem
             Dim mappedAddr As UInt32 = 0
             If _mapper.ppuMapWrite(addr, mappedAddr) Then
                 If mappedAddr < _chrRom.Length Then
+                    Dim span = _chrRom.Span
+                    span(mappedAddr) = data
                     '_chrRom.Span(CInt(mappedAddr)) = data
-                    MemoryMarshal.Write(Of Byte)(_chrRom.Span.Slice(CInt(mappedAddr), 1), data)
+                    'MemoryMarshal.Write(Of Byte)(_chrRom.Span.Slice(CInt(mappedAddr), 1), data)
                     Return True
                 End If
             End If

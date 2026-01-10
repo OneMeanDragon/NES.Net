@@ -168,8 +168,8 @@ Namespace NintendoEntertainmentSystem
 
             ' CPU RAM ($0000-$1FFF, mirrored every 2KB)
             If addr <= &H1FFFUS Then
-                '_cpuRam.Span(addr And CPU_RAM_MIRROR_MASK) = data
-                MemoryMarshal.Write(Of Byte)(_cpuRam.Span.Slice(addr And CPU_RAM_MIRROR_MASK, 1), data)
+                Dim span = _cpuRam.Span
+                span(addr And CPU_RAM_MIRROR_MASK) = data
                 Return
             End If
 
