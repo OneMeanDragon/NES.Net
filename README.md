@@ -8,9 +8,11 @@
 
 ## Status
 - Not working
-  - Backgrounds Load
-  - Players Sprite is Invisible
   - (Arkanoid) Ball is Invisible
+  - (Arkanoid) Paddle is Invisible
+  - (Arkanoid) Enemys are Invisible
+  - (M.T. PunchOut) Loading screen glitchy
+  - (M.T. PunchOut) Title Scrren looks right, but boxing glove invisible when start pressed.
 
 ## Controls
 - "p"
