@@ -468,13 +468,13 @@ Public Class Form1
         Dim localBatch As New List(Of Byte)
         While running
 
-            m_timepoint2 = DateTime.Now
-            Dim elapsedTime As TimeSpan = m_timepoint2 - m_timepoint1
-            m_timepoint1 = m_timepoint2
+            'm_timepoint2 = DateTime.Now
+            'Dim elapsedTime As TimeSpan = m_timepoint2 - m_timepoint1
+            'm_timepoint1 = m_timepoint2
 
             ' To get elapsed time as float in seconds (like C++ does)
-            Dim elapsedSeconds As Single = CSng(elapsedTime.TotalSeconds)
-            Debug.WriteLine($"Elapsed Time: {elapsedSeconds}")
+            'Dim elapsedSeconds As Single = CSng(elapsedTime.TotalSeconds)
+            'Debug.WriteLine($"Elapsed Time: {elapsedSeconds}")
 
             frame_start = Environment.TickCount
 
@@ -488,7 +488,6 @@ Public Class Form1
                     ' 1. Convert and Add to a local List(Of Byte), NOT the provider
                     Dim smp As Double = emNES.AudioSample
                     If Math.Abs(smp + 0.26) < 0.01 Then smp = 0.0
-
                     Dim s16 As Int16 = CShort(Math.Max(-32768, Math.Min(32767, smp * 32767.0)))
                     localBatch.AddRange(BitConverter.GetBytes(s16))
                 End If

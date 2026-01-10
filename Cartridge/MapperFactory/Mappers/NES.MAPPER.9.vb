@@ -1,4 +1,5 @@
-﻿Imports System.Runtime.CompilerServices
+﻿Imports System.Net
+Imports System.Runtime.CompilerServices
 
 Namespace NintendoEntertainmentSystem
 
@@ -14,6 +15,7 @@ Namespace NintendoEntertainmentSystem
 
         ' PRG Reg: $A000-$AFFF (8KB switchable bank at $8000)
         Private _prgBankSelect As Integer = 0
+        Private _prgFixedOffset As UInteger
 
         ' CHR Regs: $B000-$EFFF
         Private _chrBank0FD As Integer = 0 ' $B000
@@ -29,7 +31,18 @@ Namespace NintendoEntertainmentSystem
         Public Overrides ReadOnly Property MapperNumber As Byte = 9
 
         Public Sub New(prgBanks As Byte, chrBanks As Byte)
-            MyBase.New(prgBanks, chrBanks)
+            'PRG Banks:       8 x 16KB = 128 KB
+            'CHR Banks:      16 x  8KB = 128 KB
+            MyBase.New(CByte(prgBanks * 2), CByte(chrBanks * 2))
+
+            ' MMC2 (Mapper 9) uses 8KB banks. 
+            ' If prgBanks is in 16KB units, total 8KB banks = prgBanks * 2
+            Dim total8kbBanks As Integer = CInt(prgBanks) * 2
+
+            ' The fixed 24KB block starts 3 banks (8KB each) from the end
+            _prgFixedOffset = CUInt((total8kbBanks - 3) * &H2000)
+
+            _cartRam = New Memory(Of Byte)(New Byte(8191) {})
             Reset()
         End Sub
 
@@ -47,26 +60,15 @@ Namespace NintendoEntertainmentSystem
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Public Overrides Function CpuMapRead(addr As UShort, ByRef mappedAddr As UInteger, ByRef data As Byte) As Boolean
             ' PRG RAM: $6000-$7FFF
-            If addr >= &H6000 AndAlso addr <= &H7FFF Then
-                mappedAddr = (addr And &H1FFF)
+            If addr >= &H6000US AndAlso addr <= &H7FFFUS Then
+                mappedAddr = &HFFFFFFFFUI
+                data = _cartRam.Span(addr And &H1FFFUS)
                 Return True
-            End If
-
-            If addr >= &H8000 AndAlso addr <= &H9FFF Then
-                ' $8000-$9FFF: 8KB Switchable PRG Bank
+            ElseIf addr >= &H8000 AndAlso addr <= &H9FFF Then
                 mappedAddr = CUInt(_prgBankSelect * &H2000) + (addr And &H1FFF)
                 Return True
-            ElseIf addr >= &HA000 Then
-                ' $A000-$FFFF: Three fixed 8KB PRG banks (last three banks of the ROM)
-                ' $A000 = Penultimate - 2
-                ' $C000 = Penultimate - 1
-                ' $E000 = Last Bank
-                Dim revAddr As Integer = (CInt(_prgBanks) * 2) - (addr >> 13) ' Logic to map top 24KB
-                mappedAddr = CUInt(((_prgBanks * 4) - (8 - (addr >> 12))) * &H2000) ' Simpler: relative to end
-
-                ' Fixed calculation:
-                Dim bankOffset As Integer = (addr - &HA000) >> 13
-                mappedAddr = CUInt(((_prgBanks - 3) + bankOffset) * &H2000) + (addr And &H1FFF)
+            ElseIf addr >= &HA000 Then '$A000->$FFFF
+                mappedAddr = _prgFixedOffset + (addr - &HA000US)
                 Return True
             End If
             Return False
@@ -74,6 +76,13 @@ Namespace NintendoEntertainmentSystem
 
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Public Overrides Function CpuMapWrite(addr As UShort, ByRef mappedAddr As UInteger, data As Byte) As Boolean
+            ' Cart RAM write
+            If addr >= &H6000US AndAlso addr <= &H7FFFUS Then
+                mappedAddr = &HFFFFFFFFUI
+                Dim span = _cartRam.Span
+                span(addr And &H1FFFUS) = data
+                Return True
+            End If
             If addr >= &HA000 AndAlso addr <= &HAFFF Then
                 _prgBankSelect = data And &HF
             ElseIf addr >= &HB000 AndAlso addr <= &HBFFF Then
@@ -92,24 +101,21 @@ Namespace NintendoEntertainmentSystem
 
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Public Overrides Function PpuMapRead(addr As UShort, ByRef mappedAddr As UInteger) As Boolean
-            If addr >= &H0 AndAlso addr <= &HFFF Then
-                ' Pattern Table 0
+            If addr <= &HFFFUS Then
                 Dim bank As Integer = If(_latch0 = 0, _chrBank0FD, _chrBank0FE)
-                mappedAddr = CUInt(bank * &H1000) + (addr And &HFFF)
+                mappedAddr = CUInt(bank * &H1000) + (addr And &HFFFUS)
 
-                ' Update Latch AFTER read logic (The MMC2 latches on specific tile addresses)
-                If addr = &HFD8 Then _latch0 = 0
-                If addr = &HFE8 Then _latch0 = 1
+                If addr = &HFD8US Then _latch0 = 0
+                If addr = &HFE8US Then _latch0 = 1
+
                 Return True
-
-            Else 'If addr >= &H1000 AndAlso addr <= &H1FFF Then
-                ' Pattern Table 1
+            ElseIf addr >= &H1000US AndAlso addr <= &H1FFFUS Then
                 Dim bank As Integer = If(_latch1 = 0, _chrBank1FD, _chrBank1FE)
-                mappedAddr = CUInt(bank * &H1000) + (addr And &HFFF)
+                mappedAddr = CUInt(bank * &H1000) + (addr And &HFFFUS)
 
-                ' Update Latch
-                If addr >= &H1FD8 AndAlso addr <= &H1FDF Then _latch1 = 0
-                If addr >= &H1FE8 AndAlso addr <= &H1FEF Then _latch1 = 1
+                If addr >= &H1FD8US AndAlso addr <= &H1FDFUS Then _latch1 = 0
+                If addr >= &H1FE8US AndAlso addr <= &H1FEFUS Then _latch1 = 1
+
                 Return True
             End If
             Return False
@@ -117,6 +123,24 @@ Namespace NintendoEntertainmentSystem
 
         Public Overrides Function PpuMapWrite(addr As UShort, ByRef mappedAddr As UInteger) As Boolean
             ' CHR is typically ROM in MMC2
+            ' Handle CHR RAM case if present
+            If addr <= &H1FFFUS Then
+                ' If _chrBanks is 0, the cartridge is using 8KB of CHR-RAM
+                If _chrBanks = 0 Then
+                    ' Calculate the mapped address based on current latches
+                    ' Even with RAM, Mapper 9 logic still dictates which 4KB "window" is active
+                    If addr <= &HFFFUS Then
+                        Dim bank As Integer = If(_latch0 = 0, _chrBank0FD, _chrBank0FE)
+                        mappedAddr = CUInt(bank * &H1000) + (addr And &HFFFUS)
+                    Else
+                        Dim bank As Integer = If(_latch1 = 0, _chrBank1FD, _chrBank1FE)
+                        mappedAddr = CUInt(bank * &H1000) + (addr And &HFFFUS)
+                    End If
+                    Return True ' Signals to the Bus that this write is valid
+                End If
+            End If
+
+            ' Default: MMC2 is CHR-ROM; PPU cannot write to it
             Return False
         End Function
 
