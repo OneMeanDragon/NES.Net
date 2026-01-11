@@ -142,582 +142,13 @@ Namespace NintendoEntertainmentSystem
         Private bSpriteZeroHitPossible As Boolean = False
         Private bSpriteZeroBeingRendered As Boolean = False
 
-        '// The OAM Is conveniently package above to work with, but the DMA
-        '// mechanism will need access to it for writing one byute at a time
-        'public: uint8_t* pOAM = (uint8_t*)OAM 
-        '--------------------------------------------.
-        ' Calculated as such                         |
-        ' OAM(oam_addr \ 4).GetByteAt(oam_addr Mod 4)|
-        '--------------------------------------------'
-
         Public frame_complete As Boolean = False
 
-        Public Class FrankenStatus
-            Private BitField(7) As Boolean '8-bit union
-
-            Public Sub New()
-                For i As Integer = 0 To 7
-                    BitField(i) = False
-                Next
-            End Sub
-            Protected Overrides Sub Finalize()
-                MyBase.Finalize()
-            End Sub
-
-            Public Property Unused() As Byte 'handles 5 fields
-                Get
-                    Dim ReturnValue As Byte = 0
-                    For i As Integer = 0 To 4
-                        If BitField(i) Then
-                            ReturnValue += (1 << i)
-                        End If
-                    Next
-                    Return ReturnValue
-                End Get
-                Set(value As Byte)
-                    For i As Integer = 0 To 4
-                        If value And (1 << i) Then
-                            BitField(i) = True
-                        Else
-                            BitField(i) = False
-                        End If
-                    Next
-                End Set
-            End Property
-
-            Public Property Sprite_overflow() As Byte
-                Get
-                    If BitField(5) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
-                End Get
-                Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(5) = True
-                    Else
-                        BitField(5) = False
-                    End If
-                End Set
-            End Property
-
-            Public Property Sprite_zero_hit() As Byte
-                Get
-                    If BitField(6) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
-                End Get
-                Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(6) = True
-                    Else
-                        BitField(6) = False
-                    End If
-                End Set
-            End Property
-
-            Public Property Vertical_blank() As Byte
-                Get
-                    If BitField(7) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
-                End Get
-                Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(7) = True
-                    Else
-                        BitField(7) = False
-                    End If
-                End Set
-            End Property
-
-            Public Property Reg() As Byte
-                Get
-                    Dim ReturnValue As Byte = 0
-                    For i As Integer = 0 To 7
-                        If BitField(i) Then
-                            ReturnValue += (1 << i)
-                        End If
-                    Next
-                    Return ReturnValue
-                End Get
-                Set(value As Byte)
-                    For i As Integer = 0 To 7
-                        If value And (1 << i) Then
-                            BitField(i) = True
-                        Else
-                            BitField(i) = False
-                        End If
-                    Next
-                End Set
-            End Property
-
-        End Class
-        Private PPUStatus As New FrankenStatus
-
-        Public Class FrankenMask
-            Private BitField(7) As Boolean '8-bit union
-
-            Public Sub New()
-                For i As Integer = 0 To 7
-                    BitField(i) = False
-                Next
-            End Sub
-            Protected Overrides Sub Finalize()
-                MyBase.Finalize()
-            End Sub
-
-            Public Property Grayscale() As Byte
-                Get
-                    If BitField(0) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
-                End Get
-                Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(0) = True
-                    Else
-                        BitField(0) = False
-                    End If
-                End Set
-            End Property
-
-            Public Property Render_background_left() As Byte
-                Get
-                    If BitField(1) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
-                End Get
-                Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(1) = True
-                    Else
-                        BitField(1) = False
-                    End If
-                End Set
-            End Property
-
-            Public Property Render_sprites_left() As Byte
-                Get
-                    If BitField(2) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
-                End Get
-                Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(2) = True
-                    Else
-                        BitField(2) = False
-                    End If
-                End Set
-            End Property
-
-            Public Property Render_background() As Byte
-                Get
-                    If BitField(3) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
-                End Get
-                Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(3) = True
-                    Else
-                        BitField(3) = False
-                    End If
-                End Set
-            End Property
-
-            Public Property Render_sprites() As Byte
-                Get
-                    If BitField(4) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
-                End Get
-                Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(4) = True
-                    Else
-                        BitField(4) = False
-                    End If
-                End Set
-            End Property
-
-            Public Property Enhance_red() As Byte
-                Get
-                    If BitField(5) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
-                End Get
-                Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(5) = True
-                    Else
-                        BitField(5) = False
-                    End If
-                End Set
-            End Property
-
-            Public Property Enhance_green() As Byte
-                Get
-                    If BitField(6) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
-                End Get
-                Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(6) = True
-                    Else
-                        BitField(6) = False
-                    End If
-                End Set
-            End Property
-
-            Public Property Enhance_blue() As Byte
-                Get
-                    If BitField(7) Then
-                        Return 1
-                    Else
-                        Return 0
-                    End If
-                End Get
-                Set(value As Byte)
-                    If value And &H1 Then
-                        BitField(7) = True
-                    Else
-                        BitField(7) = False
-                    End If
-                End Set
-            End Property
-
-            Public Property Reg() As Byte
-                Get
-                    Dim ReturnValue As Byte = 0
-                    For i As Integer = 0 To 7
-                        If BitField(i) Then
-                            ReturnValue += (1 << i)
-                        End If
-                    Next
-                    Return ReturnValue
-                End Get
-                Set(value As Byte)
-                    For i As Integer = 0 To 7
-                        If value And (1 << i) Then
-                            BitField(i) = True
-                        Else
-                            BitField(i) = False
-                        End If
-                    Next
-                End Set
-            End Property
-
-        End Class
-        Private PPUMask As New FrankenMask
-
-        Public Class FrankenControl
-            Private BitField(7) As Boolean '8-bit union
-
-            Public Sub New()
-                For i As Integer = 0 To 7
-                    BitField(i) = False
-                Next
-            End Sub
-            Protected Overrides Sub Finalize()
-                MyBase.Finalize()
-            End Sub
-
-            ' Bit 0
-            Public Property Nametable_x() As Byte
-                Get
-                    If BitField(0) Then Return 1 Else Return 0
-                End Get
-                Set(value As Byte)
-                    BitField(0) = (value And &H1) <> 0
-                End Set
-            End Property
-
-            ' Bit 1
-            Public Property Nametable_y() As Byte
-                Get
-                    If BitField(1) Then Return 1 Else Return 0
-                End Get
-                Set(value As Byte)
-                    BitField(1) = (value And &H1) <> 0
-                End Set
-            End Property
-
-            ' Bit 2
-            Public Property Increment_mode() As Byte
-                Get
-                    If BitField(2) Then Return 1 Else Return 0
-                End Get
-                Set(value As Byte)
-                    BitField(2) = (value And &H1) <> 0
-                End Set
-            End Property
-
-            ' Bit 3
-            Public Property Pattern_sprite() As Byte
-                Get
-                    If BitField(3) Then Return 1 Else Return 0
-                End Get
-                Set(value As Byte)
-                    BitField(3) = (value And &H1) <> 0
-                End Set
-            End Property
-
-            ' Bit 4
-            Public Property Pattern_background() As Byte
-                Get
-                    If BitField(4) Then Return 1 Else Return 0
-                End Get
-                Set(value As Byte)
-                    BitField(4) = (value And &H1) <> 0
-                End Set
-            End Property
-
-            ' Bit 5
-            Public Property Sprite_size() As Byte
-                Get
-                    If BitField(5) Then Return 1 Else Return 0
-                End Get
-                Set(value As Byte)
-                    BitField(5) = (value And &H1) <> 0
-                End Set
-            End Property
-
-            ' Bit 6
-            Public Property Slave_mode() As Byte
-                Get
-                    If BitField(6) Then Return 1 Else Return 0
-                End Get
-                Set(value As Byte)
-                    BitField(6) = (value And &H1) <> 0
-                End Set
-            End Property
-
-            ' Bit 7 - THIS IS THE CRITICAL ONE!
-            Public Property Enable_nmi() As Byte
-                Get
-                    If BitField(7) Then Return 1 Else Return 0
-                End Get
-                Set(value As Byte)
-                    BitField(7) = (value And &H1) <> 0
-                End Set
-            End Property
-
-            ' The full register
-            Public Property Reg() As Byte
-                Get
-                    Dim ReturnValue As Byte = 0
-                    For i As Integer = 0 To 7
-                        If BitField(i) Then
-                            ReturnValue = ReturnValue Or CByte(1 << i)
-                        End If
-                    Next
-                    Return ReturnValue
-                End Get
-                Set(value As Byte)
-                    For i As Integer = 0 To 7
-                        BitField(i) = (value And (1 << i)) <> 0
-                    Next
-                End Set
-            End Property
-
-        End Class
-        Private PPUControl As New FrankenControl
-
-        Public Structure FrankenRegister
-            Private m_register As UInt16
-
-            Public Property Coarse_X() As UInt16
-                Get
-                    Return m_register And &H1FUS
-                End Get
-                Set(value As UInt16)
-                    m_register = (m_register And &HFFE0US) Or (value And &H1FUS)
-                End Set
-            End Property
-
-            Public Property Coarse_Y() As UInt16
-                Get
-                    Return (m_register >> 5) And &H1FUS
-                End Get
-                Set(value As UInt16)
-                    m_register = (m_register And &HFC1FUS) Or ((value And &H1FUS) << 5)
-                End Set
-            End Property
-
-            Public Property NameTable_X() As UInt16
-                Get
-                    Return (m_register >> 10) And &H1US
-                End Get
-                Set(value As UInt16)
-                    If (value And &H1US) <> 0 Then
-                        m_register = m_register Or &H400US
-                    Else
-                        m_register = m_register And &HFBFFUS
-                    End If
-                End Set
-            End Property
-
-            Public Property NameTable_Y() As UInt16
-                Get
-                    Return (m_register >> 11) And &H1US
-                End Get
-                Set(value As UInt16)
-                    If (value And &H1US) <> 0 Then
-                        m_register = m_register Or &H800US
-                    Else
-                        m_register = m_register And &HF7FFUS
-                    End If
-                End Set
-            End Property
-
-            Public Property Fine_Y() As UInt16
-                Get
-                    Return (m_register >> 12) And &H7US
-                End Get
-                Set(value As UInt16)
-                    m_register = (m_register And &H8FFFUS) Or ((value And &H7US) << 12)
-                End Set
-            End Property
-
-            Public Property Unused() As UInt16
-                Get
-                    Return (m_register >> 15) And &H1US
-                End Get
-                Set(value As UInt16)
-                    If (value And &H1US) <> 0 Then
-                        m_register = m_register Or &H8000US
-                    Else
-                        m_register = m_register And &H7FFFUS
-                    End If
-                End Set
-            End Property
-
-            Public Property Reg() As UInt16
-                Get
-                    Return m_register
-                End Get
-                Set(value As UInt16)
-                    m_register = value
-                End Set
-            End Property
-        End Structure
-
-        Public Class FrankenLoopy
-            Private m_Register As UInt16 = 0
-
-            Public Sub New()
-                m_Register = 0
-            End Sub
-
-            ' Bits 0-4: Coarse X (5 bits)
-            Public Property Coarse_X() As UInt16
-                Get
-                    Return m_Register And &H1FUS
-                End Get
-                Set(value As UInt16)
-                    m_Register = (m_Register And &HFFE0US) Or (value And &H1FUS)
-                End Set
-            End Property
-
-            ' Bits 5-9: Coarse Y (5 bits)
-            Public Property Coarse_Y() As UInt16
-                Get
-                    Return (m_Register >> 5) And &H1FUS
-                End Get
-                Set(value As UInt16)
-                    m_Register = (m_Register And &HFC1FUS) Or ((value And &H1FUS) << 5)
-                End Set
-            End Property
-
-            ' Bit 10: Nametable X (1 bit)
-            Public Property NameTable_X() As UInt16
-                Get
-                    Return (m_Register >> 10) And &H1US
-                End Get
-                Set(value As UInt16)
-                    If (value And &H1US) <> 0 Then
-                        m_Register = m_Register Or &H400US
-                    Else
-                        m_Register = m_Register And &HFBFFUS
-                    End If
-                End Set
-            End Property
-
-            ' Bit 11: Nametable Y (1 bit)
-            Public Property NameTable_Y() As UInt16
-                Get
-                    Return (m_Register >> 11) And &H1US
-                End Get
-                Set(value As UInt16)
-                    If (value And &H1US) <> 0 Then
-                        m_Register = m_Register Or &H800US
-                    Else
-                        m_Register = m_Register And &HF7FFUS
-                    End If
-                End Set
-            End Property
-
-            ' Bits 12-14: Fine Y (3 bits)
-            Public Property Fine_Y() As UInt16
-                Get
-                    Return (m_Register >> 12) And &H7US
-                End Get
-                Set(value As UInt16)
-                    m_Register = (m_Register And &H8FFFUS) Or ((value And &H7US) << 12)
-                End Set
-            End Property
-
-            ' Bit 15: Unused (1 bit)
-            Public Property unused() As UInt16
-                Get
-                    Return (m_Register >> 15) And &H1US
-                End Get
-                Set(value As UInt16)
-                    If (value And &H1US) <> 0 Then
-                        m_Register = m_Register Or &H8000US
-                    Else
-                        m_Register = m_Register And &H7FFFUS
-                    End If
-                End Set
-            End Property
-
-            ' The complete register value
-            Public Property Reg() As UInt16
-                Get
-                    Return m_Register
-                End Get
-                Set(value As UInt16)
-                    m_Register = value
-                End Set
-            End Property
-
-        End Class
-
-        'some how the franken register gives a sort of screen lol
-        Protected vram_addr As New FrankenLoopy 'New FrankenLoopy 'FrankenRegister ' New FrankenLoopy
-        Protected tram_addr As New FrankenLoopy 'New FrankenLoopy 'FrankenRegister ' New FrankenLoopy
+        Private PPUStatus As New PpuStatusRegister
+        Private PPUMask As New PpuMaskRegister
+        Private PPUControl As New PpuControlRegister
+        Protected vram_addr As New LoopyRegister
+        Protected tram_addr As New LoopyRegister
 
         Private attr_shift_table(3, 3) As Byte
 
@@ -989,7 +420,7 @@ Namespace NintendoEntertainmentSystem
                         '// shouldn't)
                         bytData = (PPUStatus.Reg And &HE0UI) Or (ppu_data_buffer And &H1FUI)
                         '// Clear the vertical blanking flag
-                        PPUStatus.Vertical_blank = 0
+                        PPUStatus.VerticalBlank = False
                         '// Reset Loopy's Address latch flag
                         address_latch = 0
                         Exit Select
@@ -1015,7 +446,7 @@ Namespace NintendoEntertainmentSystem
                         '// If set to vertical mode, the increment Is 32, so it skips
                         '// one whole nametable row; in horizontal mode it just increments
                         '// by 1, moving to the next column
-                        If PPUControl.Increment_mode Then
+                        If PPUControl.IncrementMode Then
                             vram_addr.Reg = vram_addr.Reg + 32
                         Else
                             vram_addr.Reg = vram_addr.Reg + 1
@@ -1031,8 +462,8 @@ Namespace NintendoEntertainmentSystem
                 Case &H0US  ' $2000 - PPUCTRL
                     Dim oldControl As Byte = PPUControl.Reg
                     PPUControl.Reg = data
-                    tram_addr.NameTable_X = PPUControl.Nametable_x
-                    tram_addr.NameTable_Y = PPUControl.Nametable_y
+                    tram_addr.NametableX = PPUControl.NametableX
+                    tram_addr.NametableY = PPUControl.NametableY
 
                     ' LOG EVERY WRITE TO $2000
                     'Debug.WriteLine(String.Format("[Frame {0}] $2000 write: ${1:X2} (was ${2:X2}) - NMI: {3}→{4}, PC=${5:X4}",
@@ -1065,13 +496,13 @@ Namespace NintendoEntertainmentSystem
                 Case &H5US  ' $2005 - PPUSCROLL *** THIS IS THE CRITICAL ONE ***
                     If address_latch = 0 Then
                         fine_x = data And &H7UI
-                        tram_addr.Coarse_X = data >> 3
+                        tram_addr.CoarseX = data >> 3
                         address_latch = 1
                         'Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] *** SCROLL X ***: data=0x{2:X2}, fine_x={3}, coarse_x={4}",
                         '                      scanline, cycle, data, fine_x, tram_addr.Coarse_X))
                     Else
-                        tram_addr.Fine_Y = data And &H7UI
-                        tram_addr.Coarse_Y = data >> 3
+                        tram_addr.FineY = data And &H7UI
+                        tram_addr.CoarseY = data >> 3
                         address_latch = 0
                         'Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] *** SCROLL Y ***: data=0x{2:X2}, fine_y={3}, coarse_y={4}",
                         '                      scanline, cycle, data, tram_addr.Fine_Y, tram_addr.Coarse_Y))
@@ -1095,7 +526,7 @@ Namespace NintendoEntertainmentSystem
                     'Debug.WriteLine(String.Format("[SCANLINE {0:D3} CYCLE {1:D3}] PPU $2007 write: addr=0x{2:X4}, data=0x{3:X2}",
                     '                      scanline, cycle, vram_addr.Reg, data))
                     ppuWrite(vram_addr.Reg, data)
-                    If PPUControl.Increment_mode Then
+                    If PPUControl.IncrementMode Then
                         vram_addr.Reg = vram_addr.Reg + 32
                     Else
                         vram_addr.Reg = vram_addr.Reg + 1
@@ -1263,46 +694,46 @@ Namespace NintendoEntertainmentSystem
         Public Sub ClockOld()
 
             Dim IncrementScrollX = Sub()
-                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
-                                           If vram_addr.Coarse_X = 31 Then
-                                               vram_addr.Coarse_X = 0
-                                               vram_addr.NameTable_X = Not vram_addr.NameTable_X 'VBMATH
+                                       If PPUMask.RenderBackground OrElse PPUMask.RenderSprites Then
+                                           If vram_addr.CoarseX = 31 Then
+                                               vram_addr.CoarseX = 0
+                                               vram_addr.NametableX = Not vram_addr.NametableX
                                            Else
-                                               vram_addr.Coarse_X += 1
+                                               vram_addr.CoarseX += 1
                                            End If
                                        End If
                                    End Sub
             Dim IncrementScrollY = Sub()
                                        ' ONLY increment if rendering is enabled
-                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
-                                           If vram_addr.Fine_Y < 7 Then
-                                               vram_addr.Fine_Y += 1
+                                       If PPUMask.RenderBackground OrElse PPUMask.RenderSprites Then
+                                           If vram_addr.FineY < 7 Then
+                                               vram_addr.FineY += 1
                                            Else
-                                               vram_addr.Fine_Y = 0
-                                               If vram_addr.Coarse_Y = 29 Then
-                                                   vram_addr.Coarse_Y = 0
-                                                   vram_addr.NameTable_Y = Not vram_addr.NameTable_Y
-                                               ElseIf vram_addr.Coarse_Y = 31 Then
-                                                   vram_addr.Coarse_Y = 0
+                                               vram_addr.FineY = 0
+                                               If vram_addr.CoarseY = 29 Then
+                                                   vram_addr.CoarseY = 0
+                                                   vram_addr.NametableY = Not vram_addr.NametableY
+                                               ElseIf vram_addr.CoarseY = 31 Then
+                                                   vram_addr.CoarseY = 0
                                                Else
-                                                   vram_addr.Coarse_Y += 1
+                                                   vram_addr.CoarseY += 1
                                                End If
                                            End If
                                        End If
                                    End Sub
             Dim TransferAddressX = Sub()
                                        ' Only transfer during rendering
-                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
-                                           vram_addr.NameTable_X = tram_addr.NameTable_X
-                                           vram_addr.Coarse_X = tram_addr.Coarse_X
+                                       If PPUMask.RenderBackground OrElse PPUMask.RenderSprites Then
+                                           vram_addr.NametableX = tram_addr.NametableX
+                                           vram_addr.CoarseX = tram_addr.CoarseX
                                        End If
                                    End Sub
             Dim TransferAddressY = Sub()
                                        ' Only transfer during rendering
-                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
-                                           vram_addr.Fine_Y = tram_addr.Fine_Y
-                                           vram_addr.NameTable_Y = tram_addr.NameTable_Y
-                                           vram_addr.Coarse_Y = tram_addr.Coarse_Y
+                                       If PPUMask.RenderBackground OrElse PPUMask.RenderSprites Then
+                                           vram_addr.FineY = tram_addr.FineY
+                                           vram_addr.NametableY = tram_addr.NametableY
+                                           vram_addr.CoarseY = tram_addr.CoarseY
                                        End If
                                    End Sub
             Dim LoadBackgroundShifters = Sub()
@@ -1326,18 +757,18 @@ Namespace NintendoEntertainmentSystem
                                              End If
                                          End Sub
             Dim UpdateShifters = Sub()
-                                     If PPUMask.Render_background Then
+                                     If PPUMask.RenderBackground Then
                                          bg_shifter_pattern_lo <<= 1
                                          bg_shifter_pattern_hi <<= 1
 
                                          bg_shifter_attrib_lo <<= 1
                                          bg_shifter_attrib_hi <<= 1
                                      End If
-                                     If PPUMask.Render_sprites AndAlso cycle >= 1 AndAlso cycle < 258 Then
+                                     If PPUMask.RenderSprites AndAlso cycle >= 1 AndAlso cycle < 258 Then
                                          If sprite_count > 0 Then
                                              For i As Byte = 0 To (sprite_count - 1)
-                                                 If spriteScanline(i).x > 0 Then
-                                                     spriteScanline(i).x = spriteScanline(i).x - 1
+                                                 If spriteScanline(i).X > 0 Then
+                                                     spriteScanline(i).X = spriteScanline(i).X - 1
                                                  Else
                                                      sprite_shifter_pattern_lo(i) <<= 1
                                                      sprite_shifter_pattern_hi(i) <<= 1
@@ -1349,7 +780,7 @@ Namespace NintendoEntertainmentSystem
 
             If scanline >= -1 AndAlso scanline < 240 Then
                 ' Background Rendering
-                If scanline = 0 AndAlso cycle = 0 AndAlso odd_frame AndAlso (PPUMask.Render_background OrElse PPUMask.Render_sprites) Then
+                If scanline = 0 AndAlso cycle = 0 AndAlso odd_frame AndAlso (PPUMask.RenderBackground OrElse PPUMask.RenderSprites) Then
                     ' Odd frame, cycle skip
                     cycle = 1
                 End If
@@ -1366,11 +797,11 @@ Namespace NintendoEntertainmentSystem
                     'DebugScrollState()
 
                     '// Effectively start of new frame, so clear vertical blank flag
-                    PPUStatus.Vertical_blank = 0
+                    PPUStatus.VerticalBlank = False
                     '// Clear sprite overflow flag
-                    PPUStatus.Sprite_overflow = 0
+                    PPUStatus.SpriteOverflow = False
                     '// Clear the sprite zero hit flag
-                    PPUStatus.Sprite_zero_hit = 0
+                    PPUStatus.SpriteZeroHit = False
                     '// Clear Shifters
                     For i As UInt32 = 0 To 7 'VB
                         sprite_shifter_pattern_lo(i) = 0
@@ -1437,10 +868,10 @@ Namespace NintendoEntertainmentSystem
                             ' Calculate attribute table address
                             ' The attribute table is 8x8 bytes (covering 32x32 tiles = 256x240 pixels)
                             bg_next_tile_attrib = ppuRead(&H23C0US Or
-                              (vram_addr.NameTable_Y << 11) Or
-                              (vram_addr.NameTable_X << 10) Or
-                              ((vram_addr.Coarse_Y >> 2) << 3) Or
-                              (vram_addr.Coarse_X >> 2))
+                              (If(vram_addr.NametableY, 1, 0) << 11) Or
+                              (If(vram_addr.NametableX, 1, 0) << 10) Or
+                              ((vram_addr.CoarseY >> 2) << 3) Or
+                              (vram_addr.CoarseX >> 2))
 
                             ' Now extract the correct 2 bits based on which quadrant we're in
                             ' within the 4x4 tile region
@@ -1458,8 +889,8 @@ Namespace NintendoEntertainmentSystem
                             '      1      |      1      | Bot-Right|  7-6 |   6
 
                             ' Method 1: Using conditional shifts (CLEAREST)
-                            Dim y_bit As Integer = If((vram_addr.Coarse_Y And &H2US) <> 0, 1, 0)
-                            Dim x_bit As Integer = If((vram_addr.Coarse_X And &H2US) <> 0, 1, 0)
+                            Dim y_bit As Integer = If((vram_addr.CoarseY And &H2US) <> 0, 1, 0)
+                            Dim x_bit As Integer = If((vram_addr.CoarseX And &H2US) <> 0, 1, 0)
                             Dim shift_amount As Byte = attr_shift_table(y_bit, x_bit)
 
                             bg_next_tile_attrib = (bg_next_tile_attrib >> shift_amount) And &H3UI
@@ -1504,13 +935,13 @@ Namespace NintendoEntertainmentSystem
                             '// "+ 0"                                 : Mental clarity for plane offset
                             '// Note: No PPU address bus offset required as it starts at 0x0000
                             'bg_next_tile_lsb = ppuRead((PPUControl.pattern_background << 12) + (bg_next_tile_id << 4) + (vram_addr.Fine_Y) + 0) 'VBMATH checkme
-                            bg_next_tile_lsb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(PPUControl.Pattern_background, 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), vram_addr.Fine_Y + 0))
+                            bg_next_tile_lsb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(If(PPUControl.PatternBackground, 1, 0), 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), vram_addr.FineY + 0))
                             Exit Select
                         Case 6
                             '// Fetch the next background tile MSB bit plane from the pattern memory
                             '// This Is the same as above, but has a +8 offset to select the next bit plane
                             'bg_next_tile_msb = ppuRead((PPUControl.pattern_background << 12) + (bg_next_tile_id << 4) + (vram_addr.Fine_Y) + 8) 'VBMATH checkme
-                            bg_next_tile_msb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(PPUControl.Pattern_background, 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), MathHelpers.SafeAddition16((vram_addr.Fine_Y), 8))) 'VBMATH checkme
+                            bg_next_tile_msb = ppuRead(MathHelpers.SafeAddition16(MathHelpers.SafeAddition16(MathHelpers.SafeShiftLeft16(If(PPUControl.PatternBackground, 1, 0), 12), MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)), MathHelpers.SafeAddition16((vram_addr.FineY), 8))) 'VBMATH checkme
                             Exit Select
                         Case 7
                             '// Increment the background tile "pointer" to the next tile horizontally
@@ -1598,7 +1029,7 @@ Namespace NintendoEntertainmentSystem
                     'Dim diff As Int16 = 0
                     While ((nOAMEntry < 64) AndAlso (sprite_count < 9))
                         '// Note the conversion to signed numbers here
-                        Dim diff As Int16 = scanline - OAM(nOAMEntry).y
+                        Dim diff As Int16 = scanline - OAM(nOAMEntry).Y
 
                         '// If the difference Is positive then the scanline Is at least at the
                         '// same height as the sprite, so check if it resides in the sprite vertically
@@ -1606,7 +1037,7 @@ Namespace NintendoEntertainmentSystem
                         '// FLAGGED
 
                         'Dim iif_var As Integer = IIf(PPUControl.sprite_size, 16, 8) 'was checking
-                        If diff >= 0 AndAlso diff < IIf(PPUControl.Sprite_size, 16, 8) AndAlso sprite_count < 8 Then
+                        If diff >= 0 AndAlso diff < IIf(PPUControl.SpriteSize, 16, 8) AndAlso sprite_count < 8 Then
                             '// Sprite Is visible, so copy the attribute entry over to our
                             '// scanline sprite cache. Ive added < 8 here to guard the array
                             '// being written to.
@@ -1625,7 +1056,7 @@ Namespace NintendoEntertainmentSystem
                     End While '// End of sprite evaluation for next scanline
 
                     '// Set sprite overflow flag
-                    PPUStatus.Sprite_overflow = (sprite_count >= 8)
+                    PPUStatus.SpriteOverflow = (sprite_count >= 8)
 
                     '// Now we have an array of the 8 visible sprites for the next scanline. By 
                     '// the nature of this search, they are also ranked in priority, because
@@ -1653,16 +1084,16 @@ Namespace NintendoEntertainmentSystem
                             '// Determine the memory addresses that contain the byte of pattern data. We
                             '// only need the lo pattern address, because the hi pattern address Is always
                             '// offset by 8 from the lo address.
-                            If Not PPUControl.Sprite_size Then
+                            If Not PPUControl.SpriteSize Then
                                 '// 8x8 Sprite Mode - The control register determines the pattern table
                                 If Not (spriteScanline(i).Attributes And &H80UI) Then
                                     '// Sprite is NOT flipped vertically, i.e. normal    
-                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or  '// Which Pattern Table? 0KB or 4KB offset
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(If(PPUControl.PatternSprite, 1, 0), 12) Or  '// Which Pattern Table? 0KB or 4KB offset
                                                      MathHelpers.SafeShiftLeft16(spriteScanline(i).TileID, 4) Or        '// Which Cell? Tile ID * 16 (16 bytes per tile)
                                                      ((scanline - spriteScanline(i).Y) And 7)                '// Which Row in cell? (0->7) [shouldent there be an & 0x7 here]
                                 Else
                                     '// Sprite is flipped vertically, i.e. upside down
-                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or                  '// Which Pattern Table? 0KB or 4KB offset
+                                    sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(If(PPUControl.PatternSprite, 1, 0), 12) Or                  '// Which Pattern Table? 0KB or 4KB offset
                                                      MathHelpers.SafeShiftLeft16(spriteScanline(i).TileID, 4) Or                        '// Which Cell? Tile ID * 16 (16 bytes per tile)
                                                      MathHelpers.SafeSubtract16(7, ((scanline - spriteScanline(i).Y) And 7)) '// Which Row in cell? (7->0)
                                 End If
@@ -1744,14 +1175,14 @@ Namespace NintendoEntertainmentSystem
             If scanline >= 241 AndAlso scanline < 261 Then
                 If scanline = 241 AndAlso cycle = 1 Then
                     '// Effectively end of frame, so set vertical blank flag
-                    PPUStatus.Vertical_blank = 1
+                    PPUStatus.VerticalBlank = 1
 
                     '// If the control register tells us to emit a NMI when
                     '// entering vertical blanking period, do it! The CPU
                     '// will be informed that rendering Is complete so it can
                     '// perform operations with the PPU knowing it wont
                     '// produce visible artefacts
-                    If PPUControl.Enable_nmi Then nmi = True
+                    If PPUControl.EnableNmi Then nmi = True
                 End If
             End If
             '-----------------------------
@@ -1764,8 +1195,8 @@ Namespace NintendoEntertainmentSystem
             '// background rendering Is disabled, the pixel And palette combine
             '// to form 0x00. This will fall through the colour tables to yield
             '// the current background colour in effect
-            If PPUMask.Render_background Then
-                If PPUMask.Render_background_left OrElse (cycle >= 9) Then
+            If PPUMask.RenderBackground Then
+                If PPUMask.RenderBackgroundLeft OrElse (cycle >= 9) Then
                     Dim bit_mux As UInt16 = &H8000US >> fine_x
 
                     ' Extract 2-bit pixel value
@@ -1787,7 +1218,7 @@ Namespace NintendoEntertainmentSystem
             Dim fg_priority As Byte = 0 '// A bit of the sprite attribute indicates if its
             '                           '// more important than the background
 
-            If PPUMask.Render_sprites Then
+            If PPUMask.RenderSprites Then
                 '// Iterate through all sprites for this scanline. This Is to maintain
                 '// sprite priority. As soon as we find a non transparent pixel of
                 '// a sprite we can abort
@@ -1834,13 +1265,13 @@ Namespace NintendoEntertainmentSystem
                 '    End If
                 'End If
 
-                If PPUMask.Render_sprites Then
-                    If PPUMask.Render_sprites_left OrElse (cycle >= 9) Then
+                If PPUMask.RenderSprites Then
+                    If PPUMask.RenderSpritesLeft OrElse (cycle >= 9) Then
                         bSpriteZeroBeingRendered = False
 
                         If sprite_count > 0 Then
                             For i As Byte = 0 To (sprite_count - 1)
-                                If spriteScanline(i).x = 0 Then
+                                If spriteScanline(i).X = 0 Then
                                     Dim fg_pixel_lo As Byte = If((sprite_shifter_pattern_lo(i) And &H80UI) <> 0, 1, 0)
                                     Dim fg_pixel_hi As Byte = If((sprite_shifter_pattern_hi(i) And &H80UI) <> 0, 1, 0)
                                     fg_pixel = (fg_pixel_hi << 1) Or fg_pixel_lo
@@ -1908,7 +1339,7 @@ Namespace NintendoEntertainmentSystem
                 If bSpriteZeroHitPossible AndAlso bSpriteZeroBeingRendered Then
                     '// Sprite zero Is a collision between foreground And background
                     '// so they must both be enabled
-                    If PPUMask.Render_background And PPUMask.Render_sprites Then
+                    If PPUMask.RenderBackground And PPUMask.RenderSprites Then
                         '// The left edge of the screen has specific switches to control
                         '// its appearance. This Is used to smooth inconsistencies when
                         '// scrolling (since sprites x coord must be >= 0)
@@ -1922,15 +1353,15 @@ Namespace NintendoEntertainmentSystem
                         '    End If
                         'End If
                         'if (~(mask.render_background_left | mask.render_sprites_left))
-                        If (PPUMask.Render_background_left Or PPUMask.Render_sprites_left) = 0 Then
+                        If (PPUMask.RenderBackgroundLeft Or PPUMask.RenderSpritesLeft) = 0 Then
                             ' Neither flag set - use stricter range
                             If cycle >= 9 AndAlso cycle < 258 Then
-                                PPUStatus.Sprite_zero_hit = 1
+                                PPUStatus.SpriteZeroHit = True
                             End If
                         Else
                             ' At least one flag set - use full range
                             If cycle >= 1 AndAlso cycle < 258 Then
-                                PPUStatus.Sprite_zero_hit = 1
+                                PPUStatus.SpriteZeroHit = True
                             End If
                         End If
                     End If
@@ -1944,7 +1375,7 @@ Namespace NintendoEntertainmentSystem
 
             '// Advance renderer - it never stops, it's relentless
             cycle += 1
-            If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
+            If PPUMask.RenderBackground OrElse PPUMask.RenderSprites Then
                 If cycle = 260 AndAlso scanline < 240 Then
                     Cart.GetMapper.ScanlineCounter()
                 End If
@@ -1977,46 +1408,46 @@ Namespace NintendoEntertainmentSystem
         Public Sub Clock()
             ' Helper lambdas for scroll operations
             Dim IncrementScrollX = Sub()
-                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
-                                           If vram_addr.Coarse_X = 31 Then
-                                               vram_addr.Coarse_X = 0
-                                               vram_addr.NameTable_X = Not vram_addr.NameTable_X
+                                       If PPUMask.RenderBackground OrElse PPUMask.RenderSprites Then
+                                           If vram_addr.CoarseX = 31 Then
+                                               vram_addr.CoarseX = 0
+                                               vram_addr.NametableX = Not vram_addr.NametableX
                                            Else
-                                               vram_addr.Coarse_X += 1
+                                               vram_addr.CoarseX += 1
                                            End If
                                        End If
                                    End Sub
 
             Dim IncrementScrollY = Sub()
-                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
-                                           If vram_addr.Fine_Y < 7 Then
-                                               vram_addr.Fine_Y += 1
+                                       If PPUMask.RenderBackground OrElse PPUMask.RenderSprites Then
+                                           If vram_addr.FineY < 7 Then
+                                               vram_addr.FineY += 1
                                            Else
-                                               vram_addr.Fine_Y = 0
-                                               If vram_addr.Coarse_Y = 29 Then
-                                                   vram_addr.Coarse_Y = 0
-                                                   vram_addr.NameTable_Y = Not vram_addr.NameTable_Y
-                                               ElseIf vram_addr.Coarse_Y = 31 Then
-                                                   vram_addr.Coarse_Y = 0
+                                               vram_addr.FineY = 0
+                                               If vram_addr.CoarseY = 29 Then
+                                                   vram_addr.CoarseY = 0
+                                                   vram_addr.NametableY = Not vram_addr.NametableY
+                                               ElseIf vram_addr.CoarseY = 31 Then
+                                                   vram_addr.CoarseY = 0
                                                Else
-                                                   vram_addr.Coarse_Y += 1
+                                                   vram_addr.CoarseY += 1
                                                End If
                                            End If
                                        End If
                                    End Sub
 
             Dim TransferAddressX = Sub()
-                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
-                                           vram_addr.NameTable_X = tram_addr.NameTable_X
-                                           vram_addr.Coarse_X = tram_addr.Coarse_X
+                                       If PPUMask.RenderBackground OrElse PPUMask.RenderSprites Then
+                                           vram_addr.NametableX = tram_addr.NametableX
+                                           vram_addr.CoarseX = tram_addr.CoarseX
                                        End If
                                    End Sub
 
             Dim TransferAddressY = Sub()
-                                       If PPUMask.Render_background OrElse PPUMask.Render_sprites Then
-                                           vram_addr.Fine_Y = tram_addr.Fine_Y
-                                           vram_addr.NameTable_Y = tram_addr.NameTable_Y
-                                           vram_addr.Coarse_Y = tram_addr.Coarse_Y
+                                       If PPUMask.RenderBackground OrElse PPUMask.RenderSprites Then
+                                           vram_addr.FineY = tram_addr.FineY
+                                           vram_addr.NametableY = tram_addr.NametableY
+                                           vram_addr.CoarseY = tram_addr.CoarseY
                                        End If
                                    End Sub
 
@@ -2038,17 +1469,17 @@ Namespace NintendoEntertainmentSystem
                                          End Sub
 
             Dim UpdateShifters = Sub()
-                                     If PPUMask.Render_background Then
+                                     If PPUMask.RenderBackground Then
                                          bg_shifter_pattern_lo <<= 1
                                          bg_shifter_pattern_hi <<= 1
                                          bg_shifter_attrib_lo <<= 1
                                          bg_shifter_attrib_hi <<= 1
                                      End If
 
-                                     If PPUMask.Render_sprites AndAlso cycle >= 1 AndAlso cycle < 258 Then
+                                     If PPUMask.RenderSprites AndAlso cycle >= 1 AndAlso cycle < 258 Then
                                          For i As Integer = 0 To Math.Min(sprite_count - 1, 7)
-                                             If spriteScanline(i).x > 0 Then
-                                                 spriteScanline(i).x -= 1
+                                             If spriteScanline(i).X > 0 Then
+                                                 spriteScanline(i).X -= 1
                                              Else
                                                  sprite_shifter_pattern_lo(i) <<= 1
                                                  sprite_shifter_pattern_hi(i) <<= 1
@@ -2063,16 +1494,16 @@ Namespace NintendoEntertainmentSystem
             If scanline >= -1 AndAlso scanline < 240 Then
 
                 ' Skip cycle 0 on odd frames when rendering is enabled
-                If scanline = 0 AndAlso cycle = 0 AndAlso odd_frame AndAlso (PPUMask.Render_background OrElse PPUMask.Render_sprites) Then
+                If scanline = 0 AndAlso cycle = 0 AndAlso odd_frame AndAlso (PPUMask.RenderBackground OrElse PPUMask.RenderSprites) Then
                     cycle = 1
                 End If
 
                 ' Start of new frame - clear flags
                 If scanline = -1 AndAlso cycle = 1 Then
                     FrameNumber += 1
-                    PPUStatus.Vertical_blank = 0
-                    PPUStatus.Sprite_overflow = 0
-                    PPUStatus.Sprite_zero_hit = 0
+                    PPUStatus.VerticalBlank = False
+                    PPUStatus.SpriteOverflow = False
+                    PPUStatus.SpriteZeroHit = False
 
                     For i As Integer = 0 To 7
                         sprite_shifter_pattern_lo(i) = 0
@@ -2092,32 +1523,32 @@ Namespace NintendoEntertainmentSystem
                         Case 2
                             ' Fetch attribute byte
                             bg_next_tile_attrib = ppuRead(&H23C0US Or
-                                                           (vram_addr.NameTable_Y << 11) Or
-                                                           (vram_addr.NameTable_X << 10) Or
-                                                           ((vram_addr.Coarse_Y >> 2) << 3) Or
-                                                           (vram_addr.Coarse_X >> 2))
+                                                           (If(vram_addr.NametableY, 1, 0) << 11) Or
+                                                           (If(vram_addr.NametableX, 1, 0) << 10) Or
+                                                           ((vram_addr.CoarseY >> 2) << 3) Or
+                                                           (vram_addr.CoarseX >> 2))
 
                             ' Extract correct 2 bits based on position within 4x4 tile block
                             Dim shift_amount As Integer = 0
-                            If (vram_addr.Coarse_Y And &H2US) <> 0 Then shift_amount += 4
-                            If (vram_addr.Coarse_X And &H2US) <> 0 Then shift_amount += 2
+                            If (vram_addr.CoarseY And &H2US) <> 0 Then shift_amount += 4
+                            If (vram_addr.CoarseX And &H2US) <> 0 Then shift_amount += 2
                             bg_next_tile_attrib = (bg_next_tile_attrib >> shift_amount) And &H3UI
 
                         Case 4
                             ' Fetch tile LSB
                             bg_next_tile_lsb = ppuRead(MathHelpers.SafeAddition16(
                                 MathHelpers.SafeAddition16(
-                                    MathHelpers.SafeShiftLeft16(PPUControl.Pattern_background, 12),
+                                    MathHelpers.SafeShiftLeft16(If(PPUControl.PatternBackground, 1, 0), 12),
                                     MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)),
-                                vram_addr.Fine_Y))
+                                vram_addr.FineY))
 
                         Case 6
                             ' Fetch tile MSB
                             bg_next_tile_msb = ppuRead(MathHelpers.SafeAddition16(
                                 MathHelpers.SafeAddition16(
-                                    MathHelpers.SafeShiftLeft16(PPUControl.Pattern_background, 12),
+                                    MathHelpers.SafeShiftLeft16(If(PPUControl.PatternBackground, 1, 0), 12),
                                     MathHelpers.SafeShiftLeft16(bg_next_tile_id, 4)),
-                                MathHelpers.SafeAddition16(vram_addr.Fine_Y, 8)))
+                                MathHelpers.SafeAddition16(vram_addr.FineY, 8)))
 
                         Case 7
                             IncrementScrollX()
@@ -2168,7 +1599,7 @@ Namespace NintendoEntertainmentSystem
 
                     While nOAMEntry < 64 AndAlso sprite_count < 9
                         Dim diff As Integer = scanline - CInt(OAM(nOAMEntry).y)
-                        Dim spriteHeight As Integer = If(PPUControl.Sprite_size <> 0, 16, 8)
+                        Dim spriteHeight As Integer = If(PPUControl.SpriteSize, 16, 8)
 
                         If diff >= 0 AndAlso diff < spriteHeight Then
                             If sprite_count < 8 Then
@@ -2182,7 +1613,7 @@ Namespace NintendoEntertainmentSystem
                         nOAMEntry += 1
                     End While
 
-                    PPUStatus.Sprite_overflow = If(sprite_count >= 8, 1, 0)
+                    PPUStatus.SpriteOverflow = (sprite_count >= 8)
                 End If
 
                 ' ========================================================================
@@ -2193,16 +1624,16 @@ Namespace NintendoEntertainmentSystem
                         Dim sprite_pattern_bits_lo, sprite_pattern_bits_hi As Byte
                         Dim sprite_pattern_addr_lo, sprite_pattern_addr_hi As UInt16
 
-                        If PPUControl.Sprite_size = 0 Then
+                        If PPUControl.SpriteSize = 0 Then
                             ' 8x8 sprite mode
                             If (spriteScanline(i).Attributes And &H80UI) = 0 Then
                                 ' Not flipped vertically
-                                sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or
+                                sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(If(PPUControl.PatternSprite, 1, 0), 12) Or
                                                          MathHelpers.SafeShiftLeft16(spriteScanline(i).TileID, 4) Or
                                                          CUShort((scanline - spriteScanline(i).Y) And 7)
                             Else
                                 ' Flipped vertically
-                                sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(PPUControl.Pattern_sprite, 12) Or
+                                sprite_pattern_addr_lo = MathHelpers.SafeShiftLeft16(If(PPUControl.PatternSprite, 1, 0), 12) Or
                                                          MathHelpers.SafeShiftLeft16(spriteScanline(i).TileID, 4) Or
                                                          MathHelpers.SafeSubtract16(7, CUShort((scanline - spriteScanline(i).Y) And 7))
                             End If
@@ -2274,8 +1705,8 @@ Namespace NintendoEntertainmentSystem
             ' ============================================================================
             If scanline >= 241 AndAlso scanline < 261 Then
                 If scanline = 241 AndAlso cycle = 1 Then
-                    PPUStatus.Vertical_blank = 1
-                    If PPUControl.Enable_nmi <> 0 Then
+                    PPUStatus.VerticalBlank = True
+                    If PPUControl.EnableNmi Then
                         nmi = True
                     End If
                 End If
@@ -2291,8 +1722,8 @@ Namespace NintendoEntertainmentSystem
             Dim fg_priority As Byte = 0
 
             ' Render background pixel
-            If PPUMask.Render_background <> 0 Then
-                If PPUMask.Render_background_left <> 0 OrElse (cycle >= 9) Then
+            If PPUMask.RenderBackground <> 0 Then
+                If PPUMask.RenderBackgroundLeft <> 0 OrElse (cycle >= 9) Then
                     Dim bit_mux As UInt16 = &H8000US >> fine_x
 
                     Dim p0_pixel As Byte = If((bg_shifter_pattern_lo And bit_mux) <> 0, 1, 0)
@@ -2306,12 +1737,12 @@ Namespace NintendoEntertainmentSystem
             End If
 
             ' Render foreground (sprite) pixel
-            If PPUMask.Render_sprites <> 0 Then
-                If PPUMask.Render_sprites_left <> 0 OrElse (cycle >= 9) Then
+            If PPUMask.RenderSprites <> 0 Then
+                If PPUMask.RenderSpritesLeft <> 0 OrElse (cycle >= 9) Then
                     bSpriteZeroBeingRendered = False
 
                     For i As Integer = 0 To Math.Min(sprite_count - 1, 7)
-                        If spriteScanline(i).x = 0 Then
+                        If spriteScanline(i).X = 0 Then
                             Dim fg_pixel_lo As Byte = If((sprite_shifter_pattern_lo(i) And &H80UI) <> 0, 1, 0)
                             Dim fg_pixel_hi As Byte = If((sprite_shifter_pattern_hi(i) And &H80UI) <> 0, 1, 0)
                             fg_pixel = (fg_pixel_hi << 1) Or fg_pixel_lo
@@ -2354,14 +1785,14 @@ Namespace NintendoEntertainmentSystem
 
                 ' Sprite zero hit detection
                 If bSpriteZeroHitPossible AndAlso bSpriteZeroBeingRendered Then
-                    If (PPUMask.Render_background <> 0) AndAlso (PPUMask.Render_sprites <> 0) Then
-                        If (PPUMask.Render_background_left Or PPUMask.Render_sprites_left) = 0 Then
+                    If (PPUMask.RenderBackground <> 0) AndAlso (PPUMask.RenderSprites <> 0) Then
+                        If (PPUMask.RenderBackgroundLeft Or PPUMask.RenderSpritesLeft) = 0 Then
                             If cycle >= 9 AndAlso cycle < 258 Then
-                                PPUStatus.Sprite_zero_hit = 1
+                                PPUStatus.SpriteZeroHit = True
                             End If
                         Else
                             If cycle >= 1 AndAlso cycle < 258 Then
-                                PPUStatus.Sprite_zero_hit = 1
+                                PPUStatus.SpriteZeroHit = True
                             End If
                         End If
                     End If
@@ -2376,7 +1807,7 @@ Namespace NintendoEntertainmentSystem
             ' Advance cycle and scanline
             cycle += 1
 
-            If PPUMask.Render_background <> 0 OrElse PPUMask.Render_sprites <> 0 Then
+            If PPUMask.RenderBackground <> 0 OrElse PPUMask.RenderSprites <> 0 Then
                 If cycle = 260 AndAlso scanline < 240 Then
                     Cart.GetMapper.ScanlineCounter()
                 End If

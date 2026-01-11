@@ -143,6 +143,7 @@
     <Compile Include="ApplicationCore\CoreApplication.vb" />
     <Compile Include="ApplicationCore\Hardware.vb" />
     <Compile Include="ApplicationCore\KeyboardVariables.vb" />
+    <Compile Include="BitFields\BIT.FIELD.16.vb" />
     <Compile Include="Bus\NES.BUS2.vb" />
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.0.vb" />
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.1.vb" />
@@ -153,7 +154,11 @@
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.66.vb" />
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.9.vb" />
     <Compile Include="Cartridge\MapperFactory\NES.MAPPER.FACTORY.vb" />
+    <Compile Include="Chips\2C02\LoopyRegister\LoopyRegister.vb" />
     <Compile Include="Chips\2C02\ObjectAttributeEntry\ObjectAttributeEntry.vb" />
+    <Compile Include="Chips\2C02\PpuControlRegister\PpuControlRegister.vb" />
+    <Compile Include="Chips\2C02\PpuMaskRegister\PpuMaskRegister.vb" />
+    <Compile Include="Chips\2C02\PpuStatusRegister\PpuStatusRegister.vb" />
     <Compile Include="Form1.vb">
       <SubType>Form</SubType>
     </Compile>
