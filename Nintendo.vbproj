@@ -143,7 +143,7 @@
     <Compile Include="ApplicationCore\CoreApplication.vb" />
     <Compile Include="ApplicationCore\Hardware.vb" />
     <Compile Include="ApplicationCore\KeyboardVariables.vb" />
-    <Compile Include="BitFields\BIT.FIELD.16.vb" />
+    <Compile Include="Chips\Helpers\BitFields\BIT.FIELD.16.vb" />
     <Compile Include="Bus\NES.BUS2.vb" />
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.0.vb" />
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.1.vb" />
@@ -168,7 +168,7 @@
     </Compile>
     <Compile Include="GENERIC.ERRORS.vb" />
     <Compile Include="GENERIC.TIMER.vb" />
-    <Compile Include="BitFields\BIT.FIELD.8.vb" />
+    <Compile Include="Chips\Helpers\BitFields\BIT.FIELD.8.vb" />
     <Compile Include="MathHelpers.vb" />
     <Compile Include="My Project\Settings.Designer.vb">
       <AutoGen>True</AutoGen>

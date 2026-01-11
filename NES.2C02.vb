@@ -4,9 +4,9 @@ Namespace NintendoEntertainmentSystem
 
     Public Class em2C02
 
-        Public tblName(1, 1024) As Byte 'VB
-        Private tblPalette(32) As Byte 'VB
-        Private tblPattern(1, 4096) As Byte 'VB
+        Public tblName(1, 1024) As Byte
+        Private tblPalette(32) As Byte
+        Private tblPattern(1, 4096) As Byte
 
         Public palScreen(&H40UI) As GraphicsObjects.Pixel
         Private sprScreen As New GraphicsObjects.Sprite(256, 240) 'Screen
