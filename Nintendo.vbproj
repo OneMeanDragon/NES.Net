@@ -143,6 +143,7 @@
     <Compile Include="ApplicationCore\CoreApplication.vb" />
     <Compile Include="ApplicationCore\Hardware.vb" />
     <Compile Include="ApplicationCore\KeyboardVariables.vb" />
+    <Compile Include="Chips\2C02\PPU2C02.vb" />
     <Compile Include="Chips\Helpers\BitFields\BIT.FIELD.16.vb" />
     <Compile Include="Bus\NES.BUS2.vb" />
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.0.vb" />
@@ -175,8 +176,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="NES.2A03.vb" />
-    <Compile Include="NES.2C02.vb" />
+    <Compile Include="Chips\2A03\NES.2A03.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
@@ -206,7 +206,6 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="MARSHAL.CONVERSIONS.vb" />
     <None Include="My Project\app.manifest" />
     <None Include="My Project\Application.myapp">
       <Generator>MyApplicationCodeGenerator</Generator>

@@ -23,11 +23,11 @@ Namespace NintendoEntertainmentSystem
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Public Overrides Function CpuMapRead(addr As UInt16, ByRef mappedAddr As UInt32, ByRef data As Byte) As Boolean
             If addr >= &H8000US AndAlso addr < &HC000US Then
-                ' Switchable bank
+                ' Switchable bank ($8000-$BFFF)
                 mappedAddr = CUInt(_prgBankLo) * &H4000UI + (addr And &H3FFFUI)
                 Return True
             ElseIf addr >= &HC000US Then
-                ' Fixed to last bank
+                ' Fixed to last bank ($C000-$FFFF)
                 mappedAddr = CUInt(_prgBankHi) * &H4000UI + (addr And &H3FFFUI)
                 Return True
             End If
@@ -36,9 +36,13 @@ Namespace NintendoEntertainmentSystem
 
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Public Overrides Function CpuMapWrite(addr As UInt16, ByRef mappedAddr As UInt32, data As Byte) As Boolean
+            ' Mapper 2 bank switching is triggered by writing to the ROM area
             If addr >= &H8000US Then
-                _prgBankLo = data And &HF
+                ' Mask with (BankCount - 1) to support both UxROM and UOROM
+                _prgBankLo = CByte(data And (_prgBanks - 1))
             End If
+            ' Return False because we are not writing to PRG-RAM/ROM, 
+            ' just updating mapper registers.
             Return False
         End Function
 
@@ -62,7 +66,7 @@ Namespace NintendoEntertainmentSystem
 
         Public Overrides Sub Reset()
             _prgBankLo = 0
-            _prgBankHi = _prgBanks - 1
+            _prgBankHi = CByte(_prgBanks - 1)
         End Sub
     End Class
 

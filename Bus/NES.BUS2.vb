@@ -20,7 +20,7 @@ Namespace NintendoEntertainmentSystem
 #Region "Components"
         ' Core NES components
         Public ReadOnly CPU As New em6502()
-        Public ReadOnly PPU As New em2C02()
+        Public ReadOnly PPU As New PPU2C02() 'em2C02()
         Public ReadOnly APU As New em2A03()
 
         ' Memory
@@ -272,8 +272,8 @@ Namespace NintendoEntertainmentSystem
             Dim audioReady = ProcessAudio()
 
             ' Handle NMI from PPU
-            If PPU.nmi Then
-                PPU.nmi = False
+            If PPU.NmiRequested Then
+                PPU.NmiRequested = False
                 CPU.NMI()
             End If
 
@@ -340,31 +340,6 @@ Namespace NintendoEntertainmentSystem
             End If
 
             Return False
-        End Function
-#End Region
-
-#Region "Diagnostics"
-        ''' <summary>
-        ''' Get diagnostic information about the system state
-        ''' </summary>
-        Public Function GetDiagnostics() As String
-            Dim sb As New Text.StringBuilder()
-
-            sb.AppendLine("=== NES BUS DIAGNOSTICS ===")
-            sb.AppendLine($"System Clock: {_systemClockCounter:N0}")
-            sb.AppendLine($"CPU PC: ${CPU.Debug_PC:X4}")
-            sb.AppendLine($"PPU Scanline: {PPU.Debug_Scanline}")
-            sb.AppendLine($"Audio Sample: {_audioSample:F6}")
-            sb.AppendLine($"DMA Active: {_dmaTransfer}")
-
-            If Cart IsNot Nothing AndAlso Cart.IsLoaded Then
-                sb.AppendLine($"Cartridge: Loaded")
-                sb.AppendLine($"Mapper: {Cart.MapperID} ({MapperFactory.GetMapperName(Cart.MapperID)})")
-            Else
-                sb.AppendLine($"Cartridge: None")
-            End If
-
-            Return sb.ToString()
         End Function
 #End Region
 

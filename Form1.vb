@@ -478,7 +478,7 @@ Public Class Form1
 
             frame_start = Environment.TickCount
 
-            emNES.PPU.frame_complete = False
+            emNES.PPU.FrameComplete = False
             Do
                 'emNES.Clock()
                 audioSample = emNES.Clock()
@@ -496,9 +496,9 @@ Public Class Form1
                     emNES.Reset()
                     Exit While
                 End If
-            Loop While Not emNES.PPU.frame_complete
+            Loop While Not emNES.PPU.FrameComplete
 
-            emNES.PPU.frame_complete = False
+            emNES.PPU.FrameComplete = False
 
             frameCount += 1
 
@@ -621,7 +621,7 @@ Public Class Form1
                 FillRect((256 + 4) + 1 + (nSelectedPalette * (nSwatchSize * 5)), 132, (nSwatchSize * 4), nSwatchSize + 2, GraphicsObjects.PixelColors.Cyan)
                 For p As Integer = 0 To 7
                     For s As Integer = 0 To 3
-                        FillRect((256 + 4) + 1 + p * (nSwatchSize * 5) + s * nSwatchSize, 133, nSwatchSize, nSwatchSize, emNES.PPU.GetColorFromPaletteRam(p, s))
+                        FillRect((256 + 4) + 1 + p * (nSwatchSize * 5) + s * nSwatchSize, 133, nSwatchSize, nSwatchSize, emNES.PPU.GetColorFromPalette(p, s))
                     Next
                 Next
                 QueuePalettes = False
@@ -629,7 +629,7 @@ Public Class Form1
             '-----------------------------------
 
             ' Render the screen every frame
-            DrawSprite(2, 2, emNES.PPU.GetScreen())
+            DrawSprite(2, 2, emNES.PPU.Screen) 'GetScreen())
 
             'Debug.WriteLine(String.Format("FPS: {0:F2}", CapTimer.CalculateFPS()))
             'Dim elapsedMs As Long = sw.ElapsedMilliseconds 'Environment.TickCount - frame_start

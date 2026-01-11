@@ -1,4 +1,7 @@
-﻿Namespace NintendoEntertainmentSystem
+﻿Imports System.Security.Cryptography
+Imports System.Windows.Forms.VisualStyles.VisualStyleElement
+
+Namespace NintendoEntertainmentSystem
 
     Public Class em6502
         'Public OpcodeHandlers As New Hashtable
@@ -87,262 +90,262 @@
             End With
         End Sub
         Public Sub New()
-            InitializeHandler(0, "BRK", AddressOf BRK, AddressOf IMM, 7)
-            InitializeHandler(1, "ORA", AddressOf ORA, AddressOf IZX, 6)
-            InitializeHandler(2, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(3, "???", AddressOf XXX, AddressOf IMP, 8)
-            InitializeHandler(4, "???", AddressOf NOP, AddressOf IMP, 3)
-            InitializeHandler(5, "ORA", AddressOf ORA, AddressOf ZP0, 3)
-            InitializeHandler(6, "ASL", AddressOf ASL, AddressOf ZP0, 5)
-            InitializeHandler(7, "???", AddressOf XXX, AddressOf IMP, 5)
-            InitializeHandler(8, "PHP", AddressOf PHP, AddressOf IMP, 3)
-            InitializeHandler(9, "ORA", AddressOf ORA, AddressOf IMM, 2)
-            InitializeHandler(10, "ASL", AddressOf ASL, AddressOf IMP, 2)
-            InitializeHandler(11, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(12, "???", AddressOf NOP, AddressOf IMP, 4)
-            InitializeHandler(13, "ORA", AddressOf ORA, AddressOf ABS, 4)
-            InitializeHandler(14, "ASL", AddressOf ASL, AddressOf ABS, 6)
-            InitializeHandler(15, "???", AddressOf XXX, AddressOf IMP, 6)
-            InitializeHandler(16, "BPL", AddressOf BPL, AddressOf REL, 2)
-            InitializeHandler(17, "ORA", AddressOf ORA, AddressOf IZY, 5)
-            InitializeHandler(18, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(19, "???", AddressOf XXX, AddressOf IMP, 8)
-            InitializeHandler(20, "???", AddressOf NOP, AddressOf IMP, 4)
-            InitializeHandler(21, "ORA", AddressOf ORA, AddressOf ZPX, 4)
-            InitializeHandler(22, "ASL", AddressOf ASL, AddressOf ZPX, 6)
-            InitializeHandler(23, "???", AddressOf XXX, AddressOf IMP, 6)
-            InitializeHandler(24, "CLC", AddressOf CLC, AddressOf IMP, 2)
-            InitializeHandler(25, "ORA", AddressOf ORA, AddressOf ABY, 4)
-            InitializeHandler(26, "???", AddressOf NOP, AddressOf IMP, 2)
-            InitializeHandler(27, "???", AddressOf XXX, AddressOf IMP, 7)
-            InitializeHandler(28, "???", AddressOf NOP, AddressOf IMP, 4)
-            InitializeHandler(29, "ORA", AddressOf ORA, AddressOf ABX, 4)
-            InitializeHandler(30, "ASL", AddressOf ASL, AddressOf ABX, 7)
-            InitializeHandler(31, "???", AddressOf XXX, AddressOf IMP, 7)
-            InitializeHandler(32, "JSR", AddressOf JSR, AddressOf ABS, 6)
-            InitializeHandler(33, "AND", AddressOf AND_, AddressOf IZX, 6)
-            InitializeHandler(34, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(35, "???", AddressOf XXX, AddressOf IMP, 8)
-            InitializeHandler(36, "BIT", AddressOf BIT, AddressOf ZP0, 3)
-            InitializeHandler(37, "AND", AddressOf AND_, AddressOf ZP0, 3)
-            InitializeHandler(38, "ROL", AddressOf ROL, AddressOf ZP0, 5)
-            InitializeHandler(39, "???", AddressOf XXX, AddressOf IMP, 5)
-            InitializeHandler(40, "PLP", AddressOf PLP, AddressOf IMP, 4)
-            InitializeHandler(41, "AND", AddressOf AND_, AddressOf IMM, 2)
-            InitializeHandler(42, "ROL", AddressOf ROL, AddressOf IMP, 2)
-            InitializeHandler(43, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(44, "BIT", AddressOf BIT, AddressOf ABS, 4)
-            InitializeHandler(45, "AND", AddressOf AND_, AddressOf ABS, 4)
-            InitializeHandler(46, "ROL", AddressOf ROL, AddressOf ABS, 6)
-            InitializeHandler(47, "???", AddressOf XXX, AddressOf IMP, 6)
-            InitializeHandler(48, "BMI", AddressOf BMI, AddressOf REL, 2)
-            InitializeHandler(49, "AND", AddressOf AND_, AddressOf IZY, 5)
-            InitializeHandler(50, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(51, "???", AddressOf XXX, AddressOf IMP, 8)
-            InitializeHandler(52, "???", AddressOf NOP, AddressOf IMP, 4)
-            InitializeHandler(53, "AND", AddressOf AND_, AddressOf ZPX, 4)
-            InitializeHandler(54, "ROL", AddressOf ROL, AddressOf ZPX, 6)
-            InitializeHandler(55, "???", AddressOf XXX, AddressOf IMP, 6)
-            InitializeHandler(56, "SEC", AddressOf SEC, AddressOf IMP, 2)
-            InitializeHandler(57, "AND", AddressOf AND_, AddressOf ABY, 4)
-            InitializeHandler(58, "???", AddressOf NOP, AddressOf IMP, 2)
-            InitializeHandler(59, "???", AddressOf XXX, AddressOf IMP, 7)
-            InitializeHandler(60, "???", AddressOf NOP, AddressOf IMP, 4)
-            InitializeHandler(61, "AND", AddressOf AND_, AddressOf ABX, 4)
-            InitializeHandler(62, "ROL", AddressOf ROL, AddressOf ABX, 7)
-            InitializeHandler(63, "???", AddressOf XXX, AddressOf IMP, 7)
-            InitializeHandler(64, "RTI", AddressOf RTI, AddressOf IMP, 6)
-            InitializeHandler(65, "EOR", AddressOf EOR, AddressOf IZX, 6)
-            InitializeHandler(66, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(67, "???", AddressOf XXX, AddressOf IMP, 8)
-            InitializeHandler(68, "???", AddressOf NOP, AddressOf IMP, 3)
-            InitializeHandler(69, "EOR", AddressOf EOR, AddressOf ZP0, 3)
-            InitializeHandler(70, "LSR", AddressOf LSR, AddressOf ZP0, 5)
-            InitializeHandler(71, "???", AddressOf XXX, AddressOf IMP, 5)
-            InitializeHandler(72, "PHA", AddressOf PHA, AddressOf IMP, 3)
-            InitializeHandler(73, "EOR", AddressOf EOR, AddressOf IMM, 2)
-            InitializeHandler(74, "LSR", AddressOf LSR, AddressOf IMP, 2)
-            InitializeHandler(75, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(76, "JMP", AddressOf JMP, AddressOf ABS, 3)
-            InitializeHandler(77, "EOR", AddressOf EOR, AddressOf ABS, 4)
-            InitializeHandler(78, "LSR", AddressOf LSR, AddressOf ABS, 6)
-            InitializeHandler(79, "???", AddressOf XXX, AddressOf IMP, 6)
-            InitializeHandler(80, "BVC", AddressOf BVC, AddressOf REL, 2)
-            InitializeHandler(81, "EOR", AddressOf EOR, AddressOf IZY, 5)
-            InitializeHandler(82, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(83, "???", AddressOf XXX, AddressOf IMP, 8)
-            InitializeHandler(84, "???", AddressOf NOP, AddressOf IMP, 4)
-            InitializeHandler(85, "EOR", AddressOf EOR, AddressOf ZPX, 4)
-            InitializeHandler(86, "LSR", AddressOf LSR, AddressOf ZPX, 6)
-            InitializeHandler(87, "???", AddressOf XXX, AddressOf IMP, 6)
-            InitializeHandler(88, "CLI", AddressOf CLI, AddressOf IMP, 2)
-            InitializeHandler(89, "EOR", AddressOf EOR, AddressOf ABY, 4)
-            InitializeHandler(90, "???", AddressOf NOP, AddressOf IMP, 2)
-            InitializeHandler(91, "???", AddressOf XXX, AddressOf IMP, 7)
-            InitializeHandler(92, "???", AddressOf NOP, AddressOf IMP, 4)
-            InitializeHandler(93, "EOR", AddressOf EOR, AddressOf ABX, 4)
-            InitializeHandler(94, "LSR", AddressOf LSR, AddressOf ABX, 7)
-            InitializeHandler(95, "???", AddressOf XXX, AddressOf IMP, 7)
-            InitializeHandler(96, "RTS", AddressOf RTS, AddressOf IMP, 6)
-            InitializeHandler(97, "ADC", AddressOf ADC, AddressOf IZX, 6)
-            InitializeHandler(98, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(99, "???", AddressOf XXX, AddressOf IMP, 8)
-            InitializeHandler(100, "???", AddressOf NOP, AddressOf IMP, 3)
-            InitializeHandler(101, "ADC", AddressOf ADC, AddressOf ZP0, 3)
-            InitializeHandler(102, "ROR", AddressOf ROR, AddressOf ZP0, 5)
-            InitializeHandler(103, "???", AddressOf XXX, AddressOf IMP, 5)
-            InitializeHandler(104, "PLA", AddressOf PLA, AddressOf IMP, 4)
-            InitializeHandler(105, "ADC", AddressOf ADC, AddressOf IMM, 2)
-            InitializeHandler(106, "ROR", AddressOf ROR, AddressOf IMP, 2)
-            InitializeHandler(107, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(108, "JMP", AddressOf JMP, AddressOf IND, 5)
-            InitializeHandler(109, "ADC", AddressOf ADC, AddressOf ABS, 4)
-            InitializeHandler(110, "ROR", AddressOf ROR, AddressOf ABS, 6)
-            InitializeHandler(111, "???", AddressOf XXX, AddressOf IMP, 6)
-            InitializeHandler(112, "BVS", AddressOf BVS, AddressOf REL, 2)
-            InitializeHandler(113, "ADC", AddressOf ADC, AddressOf IZY, 5)
-            InitializeHandler(114, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(115, "???", AddressOf XXX, AddressOf IMP, 8)
-            InitializeHandler(116, "???", AddressOf NOP, AddressOf IMP, 4)
-            InitializeHandler(117, "ADC", AddressOf ADC, AddressOf ZPX, 4)
-            InitializeHandler(118, "ROR", AddressOf ROR, AddressOf ZPX, 6)
-            InitializeHandler(119, "???", AddressOf XXX, AddressOf IMP, 6)
-            InitializeHandler(120, "SEI", AddressOf SEI, AddressOf IMP, 2)
-            InitializeHandler(121, "ADC", AddressOf ADC, AddressOf ABY, 4)
-            InitializeHandler(122, "???", AddressOf NOP, AddressOf IMP, 2)
-            InitializeHandler(123, "???", AddressOf XXX, AddressOf IMP, 7)
-            InitializeHandler(124, "???", AddressOf NOP, AddressOf IMP, 4)
-            InitializeHandler(125, "ADC", AddressOf ADC, AddressOf ABX, 4)
-            InitializeHandler(126, "ROR", AddressOf ROR, AddressOf ABX, 7)
-            InitializeHandler(127, "???", AddressOf XXX, AddressOf IMP, 7)
-            InitializeHandler(128, "???", AddressOf NOP, AddressOf IMP, 2)
-            InitializeHandler(129, "STA", AddressOf STA, AddressOf IZX, 6)
-            InitializeHandler(130, "???", AddressOf NOP, AddressOf IMP, 2)
-            InitializeHandler(131, "???", AddressOf XXX, AddressOf IMP, 6) 'SAX 83 2 bytes 6 cycles
-            InitializeHandler(132, "STY", AddressOf STY, AddressOf ZP0, 3)
-            InitializeHandler(133, "STA", AddressOf STA, AddressOf ZP0, 3)
-            InitializeHandler(134, "STX", AddressOf STX, AddressOf ZP0, 3)
-            InitializeHandler(135, "???", AddressOf XXX, AddressOf IMP, 3) 'SAX 87 2 bytes 3 cycles
-            InitializeHandler(136, "DEY", AddressOf DEY, AddressOf IMP, 2)
-            InitializeHandler(137, "???", AddressOf NOP, AddressOf IMP, 2)
-            InitializeHandler(138, "TXA", AddressOf TXA, AddressOf IMP, 2)
-            InitializeHandler(139, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(140, "STY", AddressOf STY, AddressOf ABS, 4)
-            InitializeHandler(141, "STA", AddressOf STA, AddressOf ABS, 4)
-            InitializeHandler(142, "STX", AddressOf STX, AddressOf ABS, 4)
-            InitializeHandler(143, "???", AddressOf XXX, AddressOf IMP, 4) 'SAX 8F 3 bytes 4 cycles
-            InitializeHandler(144, "BCC", AddressOf BCC, AddressOf REL, 2)
-            InitializeHandler(145, "STA", AddressOf STA, AddressOf IZY, 6)
-            InitializeHandler(146, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(147, "???", AddressOf XXX, AddressOf IMP, 6)
-            InitializeHandler(148, "STY", AddressOf STY, AddressOf ZPX, 4)
-            InitializeHandler(149, "STA", AddressOf STA, AddressOf ZPX, 4)
-            InitializeHandler(150, "STX", AddressOf STX, AddressOf ZPY, 4)
-            InitializeHandler(151, "???", AddressOf XXX, AddressOf IMP, 4) 'SAX 97 2 bytes 4 cycles
-            InitializeHandler(152, "TYA", AddressOf TYA, AddressOf IMP, 2)
-            InitializeHandler(153, "STA", AddressOf STA, AddressOf ABY, 5)
-            InitializeHandler(154, "TXS", AddressOf TXS, AddressOf IMP, 2)
-            InitializeHandler(155, "???", AddressOf XXX, AddressOf IMP, 5)
-            InitializeHandler(156, "???", AddressOf NOP, AddressOf IMP, 5)
-            InitializeHandler(157, "STA", AddressOf STA, AddressOf ABX, 5)
-            InitializeHandler(158, "???", AddressOf XXX, AddressOf IMP, 5)
-            InitializeHandler(159, "???", AddressOf XXX, AddressOf IMP, 5)
-            InitializeHandler(160, "LDY", AddressOf LDY, AddressOf IMM, 2)
-            InitializeHandler(161, "LDA", AddressOf LDA, AddressOf IZX, 6)
-            InitializeHandler(162, "LDX", AddressOf LDX, AddressOf IMM, 2)
-            InitializeHandler(163, "???", AddressOf XXX, AddressOf IMP, 6) 'LAX A3 2 bytes 6 cycles
-            InitializeHandler(164, "LDY", AddressOf LDY, AddressOf ZP0, 3)
-            InitializeHandler(165, "LDA", AddressOf LDA, AddressOf ZP0, 3)
-            InitializeHandler(166, "LDX", AddressOf LDX, AddressOf ZP0, 3)
-            InitializeHandler(167, "???", AddressOf XXX, AddressOf IMP, 3) 'LAX A7 2 bytes 3 cycles
-            InitializeHandler(168, "TAY", AddressOf TAY, AddressOf IMP, 2)
-            InitializeHandler(169, "LDA", AddressOf LDA, AddressOf IMM, 2)
-            InitializeHandler(170, "TAX", AddressOf TAX, AddressOf IMP, 2)
-            InitializeHandler(171, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(172, "LDY", AddressOf LDY, AddressOf ABS, 4)
-            InitializeHandler(173, "LDA", AddressOf LDA, AddressOf ABS, 4)
-            InitializeHandler(174, "LDX", AddressOf LDX, AddressOf ABS, 4)
-            InitializeHandler(175, "???", AddressOf XXX, AddressOf IMP, 4) 'LAX AF 3 bytes 4 cycles
-            InitializeHandler(176, "BCS", AddressOf BCS, AddressOf REL, 2)
-            InitializeHandler(177, "LDA", AddressOf LDA, AddressOf IZY, 5)
-            InitializeHandler(178, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(179, "???", AddressOf XXX, AddressOf IMP, 5) 'LAX B3 2 bytes 5 cycles (+1 if crosses boundry)
-            InitializeHandler(180, "LDY", AddressOf LDY, AddressOf ZPX, 4)
-            InitializeHandler(181, "LDA", AddressOf LDA, AddressOf ZPX, 4)
-            InitializeHandler(182, "LDX", AddressOf LDX, AddressOf ZPY, 4)
-            InitializeHandler(183, "???", AddressOf XXX, AddressOf IMP, 4) 'LAX B7 2 bytes 4 cycles
-            InitializeHandler(184, "CLV", AddressOf CLV, AddressOf IMP, 2)
-            InitializeHandler(185, "LDA", AddressOf LDA, AddressOf ABY, 4)
-            InitializeHandler(186, "TSX", AddressOf TSX, AddressOf IMP, 2)
-            InitializeHandler(187, "???", AddressOf XXX, AddressOf IMP, 4)
-            InitializeHandler(188, "LDY", AddressOf LDY, AddressOf ABX, 4)
-            InitializeHandler(189, "LDA", AddressOf LDA, AddressOf ABX, 4)
-            InitializeHandler(190, "LDX", AddressOf LDX, AddressOf ABY, 4)
-            InitializeHandler(191, "???", AddressOf XXX, AddressOf IMP, 4) 'LAX BF 3 bytes 4 cycles (+1 if crosses boundry)
-            InitializeHandler(192, "CPY", AddressOf CPY, AddressOf IMM, 2)
-            InitializeHandler(193, "CMP", AddressOf CMP, AddressOf IZX, 6)
-            InitializeHandler(194, "???", AddressOf NOP, AddressOf IMP, 2)
-            InitializeHandler(195, "???", AddressOf XXX, AddressOf IMP, 8)
-            InitializeHandler(196, "CPY", AddressOf CPY, AddressOf ZP0, 3)
-            InitializeHandler(197, "CMP", AddressOf CMP, AddressOf ZP0, 3)
-            InitializeHandler(198, "DEC", AddressOf DEC, AddressOf ZP0, 5)
-            InitializeHandler(199, "???", AddressOf XXX, AddressOf IMP, 5)
-            InitializeHandler(200, "INY", AddressOf INY, AddressOf IMP, 2)
-            InitializeHandler(201, "CMP", AddressOf CMP, AddressOf IMM, 2)
-            InitializeHandler(202, "DEX", AddressOf DEX, AddressOf IMP, 2)
-            InitializeHandler(203, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(204, "CPY", AddressOf CPY, AddressOf ABS, 4)
-            InitializeHandler(205, "CMP", AddressOf CMP, AddressOf ABS, 4)
-            InitializeHandler(206, "DEC", AddressOf DEC, AddressOf ABS, 6)
-            InitializeHandler(207, "???", AddressOf XXX, AddressOf IMP, 6)
-            InitializeHandler(208, "BNE", AddressOf BNE, AddressOf REL, 2)
-            InitializeHandler(209, "CMP", AddressOf CMP, AddressOf IZY, 5)
-            InitializeHandler(210, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(211, "???", AddressOf XXX, AddressOf IMP, 8)
-            InitializeHandler(212, "???", AddressOf NOP, AddressOf IMP, 4)
-            InitializeHandler(213, "CMP", AddressOf CMP, AddressOf ZPX, 4)
-            InitializeHandler(214, "DEC", AddressOf DEC, AddressOf ZPX, 6)
-            InitializeHandler(215, "???", AddressOf XXX, AddressOf IMP, 6)
-            InitializeHandler(216, "CLD", AddressOf CLD, AddressOf IMP, 2)
-            InitializeHandler(217, "CMP", AddressOf CMP, AddressOf ABY, 4)
-            InitializeHandler(218, "NOP", AddressOf NOP, AddressOf IMP, 2)
-            InitializeHandler(219, "???", AddressOf XXX, AddressOf IMP, 7)
-            InitializeHandler(220, "???", AddressOf NOP, AddressOf IMP, 4)
-            InitializeHandler(221, "CMP", AddressOf CMP, AddressOf ABX, 4)
-            InitializeHandler(222, "DEC", AddressOf DEC, AddressOf ABX, 7)
-            InitializeHandler(223, "???", AddressOf XXX, AddressOf IMP, 7)
-            InitializeHandler(224, "CPX", AddressOf CPX, AddressOf IMM, 2)
-            InitializeHandler(225, "SBC", AddressOf SBC, AddressOf IZX, 6)
-            InitializeHandler(226, "???", AddressOf NOP, AddressOf IMP, 2)
-            InitializeHandler(227, "???", AddressOf XXX, AddressOf IMP, 8)
-            InitializeHandler(228, "CPX", AddressOf CPX, AddressOf ZP0, 3)
-            InitializeHandler(229, "SBC", AddressOf SBC, AddressOf ZP0, 3)
-            InitializeHandler(230, "INC", AddressOf INC, AddressOf ZP0, 5)
-            InitializeHandler(231, "???", AddressOf XXX, AddressOf IMP, 5)
-            InitializeHandler(232, "INX", AddressOf INX, AddressOf IMP, 2)
-            InitializeHandler(233, "SBC", AddressOf SBC, AddressOf IMM, 2)
-            InitializeHandler(234, "NOP", AddressOf NOP, AddressOf IMP, 2)
-            InitializeHandler(235, "???", AddressOf SBC, AddressOf IMP, 2)
-            InitializeHandler(236, "CPX", AddressOf CPX, AddressOf ABS, 4)
-            InitializeHandler(237, "SBC", AddressOf SBC, AddressOf ABS, 4)
-            InitializeHandler(238, "INC", AddressOf INC, AddressOf ABS, 6)
-            InitializeHandler(239, "???", AddressOf XXX, AddressOf IMP, 6)
-            InitializeHandler(240, "BEQ", AddressOf BEQ, AddressOf REL, 2)
-            InitializeHandler(241, "SBC", AddressOf SBC, AddressOf IZY, 5)
-            InitializeHandler(242, "???", AddressOf XXX, AddressOf IMP, 2)
-            InitializeHandler(243, "???", AddressOf XXX, AddressOf IMP, 8)
-            InitializeHandler(244, "???", AddressOf NOP, AddressOf IMP, 4)
-            InitializeHandler(245, "SBC", AddressOf SBC, AddressOf ZPX, 4)
-            InitializeHandler(246, "INC", AddressOf INC, AddressOf ZPX, 6)
-            InitializeHandler(247, "???", AddressOf XXX, AddressOf IMP, 6)
-            InitializeHandler(248, "SED", AddressOf SED, AddressOf IMP, 2)
-            InitializeHandler(249, "SBC", AddressOf SBC, AddressOf ABY, 4)
-            InitializeHandler(250, "NOP", AddressOf NOP, AddressOf IMP, 2)
-            InitializeHandler(251, "???", AddressOf XXX, AddressOf IMP, 7)
-            InitializeHandler(252, "???", AddressOf NOP, AddressOf IMP, 4)
-            InitializeHandler(253, "SBC", AddressOf SBC, AddressOf ABX, 4)
-            InitializeHandler(254, "INC", AddressOf INC, AddressOf ABX, 7)
-            InitializeHandler(255, "???", AddressOf XXX, AddressOf IMP, 7)
+            InitializeHandler(&H0, "BRK", AddressOf BRK, AddressOf IMM, 7)
+            InitializeHandler(&H1, "ORA", AddressOf ORA, AddressOf IZX, 6)
+            InitializeHandler(&H2, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
+            InitializeHandler(&H3, "SLO", AddressOf SLO, AddressOf IZX, 8) ' ASL then ORA
+            InitializeHandler(&H4, "NOP", AddressOf NOP, AddressOf ZP0, 3)
+            InitializeHandler(&H5, "ORA", AddressOf ORA, AddressOf ZP0, 3)
+            InitializeHandler(&H6, "ASL", AddressOf ASL, AddressOf ZP0, 5)
+            InitializeHandler(&H7, "SLO", AddressOf SLO, AddressOf ZP0, 5)
+            InitializeHandler(&H8, "PHP", AddressOf PHP, AddressOf IMP, 3)
+            InitializeHandler(&H9, "ORA", AddressOf ORA, AddressOf IMM, 2)
+            InitializeHandler(&HA, "ASL", AddressOf ASL, AddressOf IMP, 2)
+            InitializeHandler(&HB, "ANC", AddressOf ANC, AddressOf IMM, 2)
+            InitializeHandler(&HC, "NOP", AddressOf NOP, AddressOf ABS, 4)
+            InitializeHandler(&HD, "ORA", AddressOf ORA, AddressOf ABS, 4)
+            InitializeHandler(&HE, "ASL", AddressOf ASL, AddressOf ABS, 6)
+            InitializeHandler(&HF, "SLO", AddressOf SLO, AddressOf ABS, 6)
+            InitializeHandler(&H10, "BPL", AddressOf BPL, AddressOf REL, 2)
+            InitializeHandler(&H11, "ORA", AddressOf ORA, AddressOf IZY, 5)
+            InitializeHandler(&H12, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
+            InitializeHandler(&H13, "SLO", AddressOf SLO, AddressOf IZY, 8)
+            InitializeHandler(&H14, "NOP", AddressOf NOP, AddressOf ZPX, 4)
+            InitializeHandler(&H15, "ORA", AddressOf ORA, AddressOf ZPX, 4)
+            InitializeHandler(&H16, "ASL", AddressOf ASL, AddressOf ZPX, 6)
+            InitializeHandler(&H17, "SLO", AddressOf SLO, AddressOf ZPX, 6)
+            InitializeHandler(&H18, "CLC", AddressOf CLC, AddressOf IMP, 2)
+            InitializeHandler(&H19, "ORA", AddressOf ORA, AddressOf ABY, 4)
+            InitializeHandler(&H1A, "NOP", AddressOf NOP, AddressOf IMP, 2)
+            InitializeHandler(&H1B, "SLO", AddressOf SLO, AddressOf ABY, 7)
+            InitializeHandler(&H1C, "NOP", AddressOf NOP, AddressOf ABX, 4)
+            InitializeHandler(&H1D, "ORA", AddressOf ORA, AddressOf ABX, 4)
+            InitializeHandler(&H1E, "ASL", AddressOf ASL, AddressOf ABX, 7)
+            InitializeHandler(&H1F, "SLO", AddressOf SLO, AddressOf ABX, 7)
+            InitializeHandler(&H20, "JSR", AddressOf JSR, AddressOf ABS, 6)
+            InitializeHandler(&H21, "AND", AddressOf AND_, AddressOf IZX, 6)
+            InitializeHandler(&H22, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
+            InitializeHandler(&H23, "RLA", AddressOf RLA, AddressOf IZX, 8) ' ROL then AND
+            InitializeHandler(&H24, "BIT", AddressOf BIT, AddressOf ZP0, 3)
+            InitializeHandler(&H25, "AND", AddressOf AND_, AddressOf ZP0, 3)
+            InitializeHandler(&H26, "ROL", AddressOf ROL, AddressOf ZP0, 5)
+            InitializeHandler(&H27, "RLA", AddressOf RLA, AddressOf ZP0, 5)
+            InitializeHandler(&H28, "PLP", AddressOf PLP, AddressOf IMP, 4)
+            InitializeHandler(&H29, "AND", AddressOf AND_, AddressOf IMM, 2)
+            InitializeHandler(&H2A, "ROL", AddressOf ROL, AddressOf IMP, 2)
+            InitializeHandler(&H2B, "ANC", AddressOf ANC, AddressOf IMM, 2)
+            InitializeHandler(&H2C, "BIT", AddressOf BIT, AddressOf ABS, 4)
+            InitializeHandler(&H2D, "AND", AddressOf AND_, AddressOf ABS, 4)
+            InitializeHandler(&H2E, "ROL", AddressOf ROL, AddressOf ABS, 6)
+            InitializeHandler(&H2F, "RLA", AddressOf RLA, AddressOf ABS, 6)
+            InitializeHandler(&H30, "BMI", AddressOf BMI, AddressOf REL, 2)
+            InitializeHandler(&H31, "AND", AddressOf AND_, AddressOf IZY, 5)
+            InitializeHandler(&H32, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
+            InitializeHandler(&H33, "RLA", AddressOf RLA, AddressOf IZY, 8)
+            InitializeHandler(&H34, "NOP", AddressOf NOP, AddressOf ZPX, 4)
+            InitializeHandler(&H35, "AND", AddressOf AND_, AddressOf ZPX, 4)
+            InitializeHandler(&H36, "ROL", AddressOf ROL, AddressOf ZPX, 6)
+            InitializeHandler(&H37, "RLA", AddressOf RLA, AddressOf ZPX, 6)
+            InitializeHandler(&H38, "SEC", AddressOf SEC, AddressOf IMP, 2)
+            InitializeHandler(&H39, "AND", AddressOf AND_, AddressOf ABY, 4)
+            InitializeHandler(&H3A, "NOP", AddressOf NOP, AddressOf IMP, 2)
+            InitializeHandler(&H3B, "RLA", AddressOf RLA, AddressOf ABY, 7)
+            InitializeHandler(&H3C, "NOP", AddressOf NOP, AddressOf ABX, 4)
+            InitializeHandler(&H3D, "AND", AddressOf AND_, AddressOf ABX, 4)
+            InitializeHandler(&H3E, "ROL", AddressOf ROL, AddressOf ABX, 7)
+            InitializeHandler(&H3F, "RLA", AddressOf RLA, AddressOf ABX, 7)
+            InitializeHandler(&H40, "RTI", AddressOf RTI, AddressOf IMP, 6)
+            InitializeHandler(&H41, "EOR", AddressOf EOR, AddressOf IZX, 6)
+            InitializeHandler(&H42, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
+            InitializeHandler(&H43, "SRE", AddressOf SRE, AddressOf IZX, 8) ' LSR then EOR
+            InitializeHandler(&H44, "NOP", AddressOf NOP, AddressOf ZP0, 3)
+            InitializeHandler(&H45, "EOR", AddressOf EOR, AddressOf ZP0, 3)
+            InitializeHandler(&H46, "LSR", AddressOf LSR, AddressOf ZP0, 5)
+            InitializeHandler(&H47, "SRE", AddressOf SRE, AddressOf ZP0, 5)
+            InitializeHandler(&H48, "PHA", AddressOf PHA, AddressOf IMP, 3)
+            InitializeHandler(&H49, "EOR", AddressOf EOR, AddressOf IMM, 2)
+            InitializeHandler(&H4A, "LSR", AddressOf LSR, AddressOf IMP, 2)
+            InitializeHandler(&H4B, "ALR", AddressOf ALR, AddressOf IMM, 2)
+            InitializeHandler(&H4C, "JMP", AddressOf JMP, AddressOf ABS, 3)
+            InitializeHandler(&H4D, "EOR", AddressOf EOR, AddressOf ABS, 4)
+            InitializeHandler(&H4E, "LSR", AddressOf LSR, AddressOf ABS, 6)
+            InitializeHandler(&H4F, "SRE", AddressOf SRE, AddressOf ABS, 6)
+            InitializeHandler(&H50, "BVC", AddressOf BVC, AddressOf REL, 2)
+            InitializeHandler(&H51, "EOR", AddressOf EOR, AddressOf IZY, 5)
+            InitializeHandler(&H52, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
+            InitializeHandler(&H53, "SRE", AddressOf SRE, AddressOf IZY, 8)
+            InitializeHandler(&H54, "NOP", AddressOf NOP, AddressOf ZPX, 4)
+            InitializeHandler(&H55, "EOR", AddressOf EOR, AddressOf ZPX, 4)
+            InitializeHandler(&H56, "LSR", AddressOf LSR, AddressOf ZPX, 6)
+            InitializeHandler(&H57, "SRE", AddressOf SRE, AddressOf ZPX, 6)
+            InitializeHandler(&H58, "CLI", AddressOf CLI, AddressOf IMP, 2)
+            InitializeHandler(&H59, "EOR", AddressOf EOR, AddressOf ABY, 4)
+            InitializeHandler(&H5A, "NOP", AddressOf NOP, AddressOf IMP, 2)
+            InitializeHandler(&H5B, "SRE", AddressOf SRE, AddressOf ABY, 7)
+            InitializeHandler(&H5C, "NOP", AddressOf NOP, AddressOf ABX, 4)
+            InitializeHandler(&H5D, "EOR", AddressOf EOR, AddressOf ABX, 4)
+            InitializeHandler(&H5E, "LSR", AddressOf LSR, AddressOf ABX, 7)
+            InitializeHandler(&H5F, "SRE", AddressOf SRE, AddressOf ABX, 7)
+            InitializeHandler(&H60, "RTS", AddressOf RTS, AddressOf IMP, 6)
+            InitializeHandler(&H61, "ADC", AddressOf ADC, AddressOf IZX, 6)
+            InitializeHandler(&H62, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
+            InitializeHandler(&H63, "RRA", AddressOf RRA, AddressOf IZX, 8) ' ROR then ADC
+            InitializeHandler(&H64, "NOP", AddressOf NOP, AddressOf ZP0, 3)
+            InitializeHandler(&H65, "ADC", AddressOf ADC, AddressOf ZP0, 3)
+            InitializeHandler(&H66, "ROR", AddressOf ROR, AddressOf ZP0, 5)
+            InitializeHandler(&H67, "RRA", AddressOf RRA, AddressOf ZP0, 5)
+            InitializeHandler(&H68, "PLA", AddressOf PLA, AddressOf IMP, 4)
+            InitializeHandler(&H69, "ADC", AddressOf ADC, AddressOf IMM, 2)
+            InitializeHandler(&H6A, "ROR", AddressOf ROR, AddressOf IMP, 2)
+            InitializeHandler(&H6B, "ARR", AddressOf ARR, AddressOf IMM, 2)
+            InitializeHandler(&H6C, "JMP", AddressOf JMP, AddressOf IND, 5)
+            InitializeHandler(&H6D, "ADC", AddressOf ADC, AddressOf ABS, 4)
+            InitializeHandler(&H6E, "ROR", AddressOf ROR, AddressOf ABS, 6)
+            InitializeHandler(&H6F, "RRA", AddressOf RRA, AddressOf ABS, 6)
+            InitializeHandler(&H70, "BVS", AddressOf BVS, AddressOf REL, 2)
+            InitializeHandler(&H71, "ADC", AddressOf ADC, AddressOf IZY, 5)
+            InitializeHandler(&H72, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
+            InitializeHandler(&H73, "RRA", AddressOf RRA, AddressOf IZY, 8)
+            InitializeHandler(&H74, "NOP", AddressOf NOP, AddressOf ZPX, 4)
+            InitializeHandler(&H75, "ADC", AddressOf ADC, AddressOf ZPX, 4)
+            InitializeHandler(&H76, "ROR", AddressOf ROR, AddressOf ZPX, 6)
+            InitializeHandler(&H77, "RRA", AddressOf RRA, AddressOf ZPX, 6)
+            InitializeHandler(&H78, "SEI", AddressOf SEI, AddressOf IMP, 2)
+            InitializeHandler(&H79, "ADC", AddressOf ADC, AddressOf ABY, 4)
+            InitializeHandler(&H7A, "NOP", AddressOf NOP, AddressOf IMP, 2)
+            InitializeHandler(&H7B, "RRA", AddressOf RRA, AddressOf ABY, 7)
+            InitializeHandler(&H7C, "NOP", AddressOf NOP, AddressOf ABX, 4)
+            InitializeHandler(&H7D, "ADC", AddressOf ADC, AddressOf ABX, 4)
+            InitializeHandler(&H7E, "ROR", AddressOf ROR, AddressOf ABX, 7)
+            InitializeHandler(&H7F, "RRA", AddressOf RRA, AddressOf ABX, 7)
+            InitializeHandler(&H80, "NOP", AddressOf NOP, AddressOf IMM, 2)
+            InitializeHandler(&H81, "STA", AddressOf STA, AddressOf IZX, 6)
+            InitializeHandler(&H82, "NOP", AddressOf NOP, AddressOf IMM, 2)
+            InitializeHandler(&H83, "SAX", AddressOf SAX, AddressOf IZX, 6) ' Store A AND X
+            InitializeHandler(&H84, "STY", AddressOf STY, AddressOf ZP0, 3)
+            InitializeHandler(&H85, "STA", AddressOf STA, AddressOf ZP0, 3)
+            InitializeHandler(&H86, "STX", AddressOf STX, AddressOf ZP0, 3)
+            InitializeHandler(&H87, "SAX", AddressOf SAX, AddressOf ZP0, 3)
+            InitializeHandler(&H88, "DEY", AddressOf DEY, AddressOf IMP, 2)
+            InitializeHandler(&H89, "NOP", AddressOf NOP, AddressOf IMM, 2)
+            InitializeHandler(&H8A, "TXA", AddressOf TXA, AddressOf IMP, 2)
+            InitializeHandler(&H8B, "XAA", AddressOf XAA, AddressOf IMM, 2)
+            InitializeHandler(&H8C, "STY", AddressOf STY, AddressOf ABS, 4)
+            InitializeHandler(&H8D, "STA", AddressOf STA, AddressOf ABS, 4)
+            InitializeHandler(&H8E, "STX", AddressOf STX, AddressOf ABS, 4)
+            InitializeHandler(&H8F, "SAX", AddressOf SAX, AddressOf ABS, 4)
+            InitializeHandler(&H90, "BCC", AddressOf BCC, AddressOf REL, 2)
+            InitializeHandler(&H91, "STA", AddressOf STA, AddressOf IZY, 6)
+            InitializeHandler(&H92, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
+            InitializeHandler(&H93, "SHA", AddressOf SHA, AddressOf IZY, 6)
+            InitializeHandler(&H94, "STY", AddressOf STY, AddressOf ZPX, 4)
+            InitializeHandler(&H95, "STA", AddressOf STA, AddressOf ZPX, 4)
+            InitializeHandler(&H96, "STX", AddressOf STX, AddressOf ZPY, 4)
+            InitializeHandler(&H97, "SAX", AddressOf SAX, AddressOf ZPY, 4)
+            InitializeHandler(&H98, "TYA", AddressOf TYA, AddressOf IMP, 2)
+            InitializeHandler(&H99, "STA", AddressOf STA, AddressOf ABY, 5)
+            InitializeHandler(&H9A, "TXS", AddressOf TXS, AddressOf IMP, 2)
+            InitializeHandler(&H9B, "TAS", AddressOf TAS, AddressOf ABY, 5)
+            InitializeHandler(&H9C, "SHY", AddressOf SHY, AddressOf ABX, 5)
+            InitializeHandler(&H9D, "STA", AddressOf STA, AddressOf ABX, 5)
+            InitializeHandler(&H9E, "SHX", AddressOf SHX, AddressOf ABY, 5)
+            InitializeHandler(&H9F, "SHA", AddressOf SHA, AddressOf ABY, 5)
+            InitializeHandler(&HA0, "LDY", AddressOf LDY, AddressOf IMM, 2)
+            InitializeHandler(&HA1, "LDA", AddressOf LDA, AddressOf IZX, 6)
+            InitializeHandler(&HA2, "LDX", AddressOf LDX, AddressOf IMM, 2)
+            InitializeHandler(&HA3, "LAX", AddressOf LAX, AddressOf IZX, 6) ' Load A and X
+            InitializeHandler(&HA4, "LDY", AddressOf LDY, AddressOf ZP0, 3)
+            InitializeHandler(&HA5, "LDA", AddressOf LDA, AddressOf ZP0, 3)
+            InitializeHandler(&HA6, "LDX", AddressOf LDX, AddressOf ZP0, 3)
+            InitializeHandler(&HA7, "LAX", AddressOf LAX, AddressOf ZP0, 3)
+            InitializeHandler(&HA8, "TAY", AddressOf TAY, AddressOf IMP, 2)
+            InitializeHandler(&HA9, "LDA", AddressOf LDA, AddressOf IMM, 2)
+            InitializeHandler(&HAA, "TAX", AddressOf TAX, AddressOf IMP, 2)
+            InitializeHandler(&HAB, "ARR", AddressOf ARR, AddressOf IMM, 2)
+            InitializeHandler(&HAC, "LDY", AddressOf LDY, AddressOf ABS, 4)
+            InitializeHandler(&HAD, "LDA", AddressOf LDA, AddressOf ABS, 4)
+            InitializeHandler(&HAE, "LDX", AddressOf LDX, AddressOf ABS, 4)
+            InitializeHandler(&HAF, "LAX", AddressOf LAX, AddressOf ABS, 4)
+            InitializeHandler(&HB0, "BCS", AddressOf BCS, AddressOf REL, 2)
+            InitializeHandler(&HB1, "LDA", AddressOf LDA, AddressOf IZY, 5)
+            InitializeHandler(&HB2, "KIL", AddressOf KIL, AddressOf IMP, 0) ' 2
+            InitializeHandler(&HB3, "LAX", AddressOf LAX, AddressOf IZY, 5) ' (+1 if crosses boundry)
+            InitializeHandler(&HB4, "LDY", AddressOf LDY, AddressOf ZPX, 4)
+            InitializeHandler(&HB5, "LDA", AddressOf LDA, AddressOf ZPX, 4)
+            InitializeHandler(&HB6, "LDX", AddressOf LDX, AddressOf ZPY, 4)
+            InitializeHandler(&HB7, "LAX", AddressOf LAX, AddressOf ZPY, 4)
+            InitializeHandler(&HB8, "CLV", AddressOf CLV, AddressOf IMP, 2)
+            InitializeHandler(&HB9, "LDA", AddressOf LDA, AddressOf ABY, 4)
+            InitializeHandler(&HBA, "TSX", AddressOf TSX, AddressOf IMP, 2)
+            InitializeHandler(&HBB, "LAS", AddressOf LAS, AddressOf ABY, 4)
+            InitializeHandler(&HBC, "LDY", AddressOf LDY, AddressOf ABX, 4)
+            InitializeHandler(&HBD, "LDA", AddressOf LDA, AddressOf ABX, 4)
+            InitializeHandler(&HBE, "LDX", AddressOf LDX, AddressOf ABY, 4)
+            InitializeHandler(&HBF, "LAX", AddressOf LAX, AddressOf ABY, 4) 'LAX BF 3 bytes 4 cycles (+1 if crosses boundry)
+            InitializeHandler(&HC0, "CPY", AddressOf CPY, AddressOf IMM, 2)
+            InitializeHandler(&HC1, "CMP", AddressOf CMP, AddressOf IZX, 6)
+            InitializeHandler(&HC2, "NOP", AddressOf NOP, AddressOf IMM, 2)
+            InitializeHandler(&HC3, "DCP", AddressOf DCP, AddressOf IZX, 8)
+            InitializeHandler(&HC4, "CPY", AddressOf CPY, AddressOf ZP0, 3)
+            InitializeHandler(&HC5, "CMP", AddressOf CMP, AddressOf ZP0, 3)
+            InitializeHandler(&HC6, "DEC", AddressOf DEC, AddressOf ZP0, 5)
+            InitializeHandler(&HC7, "DCP", AddressOf DCP, AddressOf ZP0, 5)
+            InitializeHandler(&HC8, "INY", AddressOf INY, AddressOf IMP, 2)
+            InitializeHandler(&HC9, "CMP", AddressOf CMP, AddressOf IMM, 2)
+            InitializeHandler(&HCA, "DEX", AddressOf DEX, AddressOf IMP, 2)
+            InitializeHandler(&HCB, "AXS", AddressOf AXS, AddressOf IMM, 2)
+            InitializeHandler(&HCC, "CPY", AddressOf CPY, AddressOf ABS, 4)
+            InitializeHandler(&HCD, "CMP", AddressOf CMP, AddressOf ABS, 4)
+            InitializeHandler(&HCE, "DEC", AddressOf DEC, AddressOf ABS, 6)
+            InitializeHandler(&HCF, "DCP", AddressOf DCP, AddressOf ABS, 6)
+            InitializeHandler(&HD0, "BNE", AddressOf BNE, AddressOf REL, 2)
+            InitializeHandler(&HD1, "CMP", AddressOf CMP, AddressOf IZY, 5)
+            InitializeHandler(&HD2, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
+            InitializeHandler(&HD3, "DCP", AddressOf DCP, AddressOf IZY, 8)
+            InitializeHandler(&HD4, "NOP", AddressOf NOP, AddressOf ZPX, 4)
+            InitializeHandler(&HD5, "CMP", AddressOf CMP, AddressOf ZPX, 4)
+            InitializeHandler(&HD6, "DEC", AddressOf DEC, AddressOf ZPX, 6)
+            InitializeHandler(&HD7, "DCP", AddressOf DCP, AddressOf ZPX, 6)
+            InitializeHandler(&HD8, "CLD", AddressOf CLD, AddressOf IMP, 2)
+            InitializeHandler(&HD9, "CMP", AddressOf CMP, AddressOf ABY, 4)
+            InitializeHandler(&HDA, "NOP", AddressOf NOP, AddressOf IMP, 2)
+            InitializeHandler(&HDB, "DCP", AddressOf DCP, AddressOf ABY, 7)
+            InitializeHandler(&HDC, "NOP", AddressOf NOP, AddressOf ABX, 4)
+            InitializeHandler(&HDD, "CMP", AddressOf CMP, AddressOf ABX, 4)
+            InitializeHandler(&HDE, "DEC", AddressOf DEC, AddressOf ABX, 7)
+            InitializeHandler(&HDF, "DCP", AddressOf DCP, AddressOf ABX, 7)
+            InitializeHandler(&HE0, "CPX", AddressOf CPX, AddressOf IMM, 2)
+            InitializeHandler(&HE1, "SBC", AddressOf SBC, AddressOf IZX, 6)
+            InitializeHandler(&HE2, "NOP", AddressOf NOP, AddressOf IMM, 2)
+            InitializeHandler(&HE3, "ISB", AddressOf ISB, AddressOf IZX, 8)
+            InitializeHandler(&HE4, "CPX", AddressOf CPX, AddressOf ZP0, 3)
+            InitializeHandler(&HE5, "SBC", AddressOf SBC, AddressOf ZP0, 3)
+            InitializeHandler(&HE6, "INC", AddressOf INC, AddressOf ZP0, 5)
+            InitializeHandler(&HE7, "ISB", AddressOf ISB, AddressOf ZP0, 5)
+            InitializeHandler(&HE8, "INX", AddressOf INX, AddressOf IMP, 2)
+            InitializeHandler(&HE9, "SBC", AddressOf SBC, AddressOf IMM, 2)
+            InitializeHandler(&HEA, "NOP", AddressOf NOP, AddressOf IMP, 2)
+            InitializeHandler(&HEB, "SBC", AddressOf SBC, AddressOf IMM, 2)
+            InitializeHandler(&HEC, "CPX", AddressOf CPX, AddressOf ABS, 4)
+            InitializeHandler(&HED, "SBC", AddressOf SBC, AddressOf ABS, 4)
+            InitializeHandler(&HEE, "INC", AddressOf INC, AddressOf ABS, 6)
+            InitializeHandler(&HEF, "ISB", AddressOf ISB, AddressOf ABS, 6)
+            InitializeHandler(&HF0, "BEQ", AddressOf BEQ, AddressOf REL, 2)
+            InitializeHandler(&HF1, "SBC", AddressOf SBC, AddressOf IZY, 5)
+            InitializeHandler(&HF2, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
+            InitializeHandler(&HF3, "ISB", AddressOf ISB, AddressOf IZY, 8)
+            InitializeHandler(&HF4, "NOP", AddressOf NOP, AddressOf ZPX, 4)
+            InitializeHandler(&HF5, "SBC", AddressOf SBC, AddressOf ZPX, 4)
+            InitializeHandler(&HF6, "INC", AddressOf INC, AddressOf ZPX, 6)
+            InitializeHandler(&HF7, "ISB", AddressOf ISB, AddressOf ZPX, 6)
+            InitializeHandler(&HF8, "SED", AddressOf SED, AddressOf IMP, 2)
+            InitializeHandler(&HF9, "SBC", AddressOf SBC, AddressOf ABY, 4)
+            InitializeHandler(&HFA, "NOP", AddressOf NOP, AddressOf IMP, 2)
+            InitializeHandler(&HFB, "ISB", AddressOf ISB, AddressOf ABY, 7)
+            InitializeHandler(&HFC, "NOP", AddressOf NOP, AddressOf ABX, 4)
+            InitializeHandler(&HFD, "SBC", AddressOf SBC, AddressOf ABX, 4)
+            InitializeHandler(&HFE, "INC", AddressOf INC, AddressOf ABX, 7)
+            InitializeHandler(&HFF, "ISB", AddressOf ISB, AddressOf ABX, 7)
         End Sub
 
         ' masswerk.at/6502/6502_instruction_set.html (another time perhaps)
@@ -548,6 +551,18 @@
             Return 1
         End Function
 
+        Public Function SAX() As Byte
+            ' 1. Calculate the value to store (A AND X)
+            Dim result As Byte = CByte(A And X)
+
+            ' 2. Write the result to memory
+            ' (addr_abs is calculated by the addressing mode function before this is called)
+            Write(addr_abs, result)
+
+            ' 3. SAX never affects flags and always returns 0 cycles to the main loop
+            Return 0
+        End Function
+
         Public Function SBC() As Byte
             Fetch()
 
@@ -570,6 +585,43 @@
             Return 1
         End Function
 
+        Public Function ALR() As Byte
+            ' 1. Perform AND with the immediate data
+            Dim data As Byte = Read(addr_abs)
+            A = A And data
+
+            ' 2. Perform LSR logic on the Accumulator
+            ' The bit shifted out (bit 0) goes into the Carry flag
+            SetFlag(FLAGS6502.C, (A And &H1US) <> 0)
+
+            ' Perform the shift right (bit 7 becomes 0)
+            A = CByte(A >> 1)
+
+            ' 3. Update Zero and Negative flags based on the final result
+            ' (Note: Negative flag will always be 0 because of the shift)
+            SetFlag(FLAGS6502.Z, A = 0)
+            SetFlag(FLAGS6502.N, (A And &H80US) <> 0)
+
+            Return 0
+        End Function
+
+
+        Public Function ANC() As Byte
+            ' 1. Perform standard AND with immediate data
+            ' (addr_abs is set to PC by the IMM addressing mode)
+            Dim data As Byte = Read(addr_abs)
+            A = A And data
+
+            ' 2. Update Zero and Negative flags based on result
+            SetFlag(FLAGS6502.Z, A = 0)
+            SetFlag(FLAGS6502.N, (A And &H80US) <> 0)
+
+            ' 3. Update Carry flag to match the Negative flag (bit 7)
+            SetFlag(FLAGS6502.C, GetFlag(FLAGS6502.N))
+
+            Return 0
+        End Function
+
         Public Function AND_() As Byte
             Fetch()
             A = A And fetched
@@ -577,6 +629,32 @@
             SetFlag(FLAGS6502.N, A And &H80)
             Return 1
         End Function
+
+        Public Function ARR() As Byte
+            ' 1. Perform AND with the immediate data
+            Dim data As Byte = Read(addr_abs)
+            Dim result As Byte = CByte(A And data)
+
+            ' 2. Perform ROR logic
+            ' Bit 7 of the result is filled by the OLD Carry flag
+            A = CByte((result >> 1) Or (CInt(GetFlag(FLAGS6502.C)) << 7))
+
+            ' 3. Update Standard Flags
+            SetFlag(FLAGS6502.Z, A = 0)
+            SetFlag(FLAGS6502.N, (A And &H80US) <> 0)
+
+            ' 4. Unique ARR Flag Logic (Critical for nestest 2026)
+            ' Carry flag is set to bit 6 of the result
+            SetFlag(FLAGS6502.C, (A And &H40US) <> 0)
+
+            ' Overflow flag is set if (bit 6 XOR bit 5) of the result is 1
+            Dim bit6 As Integer = (A >> 6) And 1
+            Dim bit5 As Integer = (A >> 5) And 1
+            SetFlag(FLAGS6502.V, (bit6 Xor bit5) <> 0)
+
+            Return 0
+        End Function
+
 
         Public Function ASL() As Byte
             Fetch()
@@ -592,6 +670,27 @@
             Else
                 Write(addr_abs, temp And &HFFUS)
             End If
+            Return 0
+        End Function
+
+        Public Function AXS() As Byte
+            ' 1. Fetch immediate data
+            Dim data As Byte = Read(addr_abs)
+
+            ' 2. AXS logic: (A AND X) - data
+            ' This works like CMP; it doesn't use the Carry flag as input
+            Dim combined As Byte = CByte(A And X)
+            Dim result As Integer = CInt(combined) - CInt(data)
+
+            ' 3. Update Flags
+            ' Carry flag is set if (A AND X) >= data (no borrow occurred)
+            SetFlag(FLAGS6502.C, combined >= data)
+
+            ' Update X and other flags
+            X = CByte(result And &HFF)
+            SetFlag(FLAGS6502.Z, X = 0)
+            SetFlag(FLAGS6502.N, (X And &H80US) <> 0)
+
             Return 0
         End Function
 
@@ -789,6 +888,28 @@
             Return 0
         End Function
 
+        Public Function DCP() As Byte
+            ' 1. Fetch data from memory
+            Dim data As Byte = Read(addr_abs)
+
+            ' 2. Decrement the value (with 8-bit wrap)
+            data = CByte((CInt(data) - 1) And &HFF)
+
+            ' 3. Write modified value back to memory
+            Write(addr_abs, data)
+
+            ' 4. Compare (CMP) logic: A - data
+            ' Carry flag is set if A is greater than or equal to data
+            SetFlag(FLAGS6502.C, A >= data)
+
+            ' Update Z and N based on the subtraction result
+            Dim temp As Byte = CByte((CInt(A) - CInt(data)) And &HFF)
+            SetFlag(FLAGS6502.Z, temp = 0)
+            SetFlag(FLAGS6502.N, (temp And &H80US) <> 0)
+
+            Return 0
+        End Function
+
         'Decrement ASM
         Public Function DEC() As Byte
             Fetch()
@@ -836,6 +957,39 @@
             Return 0
         End Function
 
+        Public Function ISB() As Byte
+            ' 1. Fetch data from memory
+            Dim data As Byte = Read(addr_abs)
+
+            ' 2. Increment the value (with 8-bit wrap)
+            data = CByte((CInt(data) + 1) And &HFF)
+
+            ' 3. Write modified value back to memory
+            Write(addr_abs, data)
+
+            ' 4. SBC logic (Subtract from Accumulator with Carry)
+            ' Remember: SBC on 6502 is A - M - (1 - Carry)
+            ' We use UShort to handle bit manipulation correctly for flags
+            Dim value As UShort = CUShort(data Xor &HFFUS) ' Invert bits for subtraction logic
+
+            Dim temp As UShort = CUShort(CUShort(A) + value + CUShort(GetFlag(FLAGS6502.C)))
+
+            ' Update Overflow flag (V)
+            SetFlag(FLAGS6502.V, ((temp Xor CUShort(A)) And (temp Xor value) And &H80US) <> 0)
+
+            ' Update Carry flag (C)
+            SetFlag(FLAGS6502.C, temp > 255)
+
+            ' Update Accumulator
+            A = CByte(temp And &HFFUS)
+
+            ' Update Negative (N) and Zero (Z)
+            SetFlag(FLAGS6502.N, (A And &H80US) <> 0)
+            SetFlag(FLAGS6502.Z, A = 0)
+
+            Return 0
+        End Function
+
         'Increment X
         Public Function INX() As Byte
             X = MathHelpers.SafeIncrementByte(X)
@@ -869,6 +1023,54 @@
 
             PC = addr_abs
             Return 0
+        End Function
+
+        Public Function KIL() As Byte
+            ' The CPU is jammed. It will no longer fetch new opcodes.
+            ' We keep the PC pointing at the KIL instruction.
+            PC = CUShort(PC - 1)
+
+            ' Optional: Log this event as it usually indicates a 
+            ' crash or a jump into a non-code data segment.
+            Debug.WriteLine($"CPU JAMMED at address: {PC:X4}")
+
+            Return 0
+        End Function
+
+        Public Function LAX() As Byte
+            ' 1. Fetch data from memory
+            Dim data As Byte = Read(addr_abs)
+
+            ' 2. Load into both registers
+            A = data
+            X = data
+
+            ' 3. Update flags based on the loaded data
+            SetFlag(FLAGS6502.Z, A = 0)
+            SetFlag(FLAGS6502.N, (A And &H80US) <> 0)
+
+            ' LAX can potentially take an extra cycle if a page boundary is crossed 
+            ' in certain addressing modes (ABY, IZY), which is handled by the 
+            ' return value of the addressing mode function in most architectures.
+            Return 1
+        End Function
+
+        Public Function LAS() As Byte
+            ' 1. Fetch data from memory
+            Dim data As Byte = Read(addr_abs)
+
+            ' 2. LAS logic: A, X, and SP all become (data AND StackPointer)
+            Dim result As Byte = CByte(data And StackPointer)
+            A = result
+            X = result
+            StackPointer = result
+
+            ' 3. Update Status Flags
+            SetFlag(FLAGS6502.Z, A = 0)
+            SetFlag(FLAGS6502.N, (A And &H80US) <> 0)
+
+            ' LAS supports the page-boundary cycle penalty
+            Return 1
         End Function
 
         'load accumulator
@@ -959,6 +1161,34 @@
             Return 0
         End Function
 
+        Public Function RLA() As Byte
+            ' 1. Fetch data from memory
+            Dim data As Byte = Read(addr_abs)
+
+            ' 2. ROL (Rotate Left) Logic
+            ' Save the bit that will shift out (bit 7)
+            Dim bit7 As Byte = If((data And &H80US) <> 0, 1, 0)
+
+            ' Perform the shift and bring in the OLD Carry flag to bit 0
+            ' (Assuming GetFlag returns 1 or 0)
+            data = CByte(((data << 1) Or GetFlag(FLAGS6502.C)) And &HFFUS)
+
+            ' 3. Update Carry flag with the bit that was shifted out
+            SetFlag(FLAGS6502.C, bit7 = 1)
+
+            ' 4. Write back the rotated value
+            Write(addr_abs, data)
+
+            ' 5. AND logic (AND with Accumulator)
+            A = A And data
+
+            ' 6. Final flag updates based on the Accumulator
+            SetFlag(FLAGS6502.N, (A And &H80US) <> 0)
+            SetFlag(FLAGS6502.Z, A = 0)
+
+            Return 0
+        End Function
+
         'rotate left
         Public Function ROL() As Byte
             Fetch()
@@ -991,6 +1221,45 @@
             Else
                 Write(addr_abs, temp And &HFF)
             End If
+            Return 0
+        End Function
+
+        Public Function RRA() As Byte
+            ' 1. Fetch data from memory
+            Dim data As Byte = Read(addr_abs)
+
+            ' 2. ROR (Rotate Right) Logic
+            ' Save the bit that will shift out (bit 0)
+            Dim bit0 As Byte = If((data And &H1US) <> 0, 1, 0)
+
+            ' Perform the shift and bring in the OLD Carry flag to bit 7
+            data = CByte((data >> 1) Or (CInt(GetFlag(FLAGS6502.C)) << 7))
+
+            ' 3. Update Carry flag for the NEXT step (the ADC portion)
+            SetFlag(FLAGS6502.C, bit0 = 1)
+
+            ' 4. Write back the rotated value
+            Write(addr_abs, data)
+
+            ' 5. ADC logic (Add with Carry)
+            ' We use UShort to handle the carry out (bit 8)
+            ' Note: On NES 6502, Decimal mode is ignored.
+            Dim temp As UShort = CUShort(CUShort(A) + CUShort(data) + CUShort(GetFlag(FLAGS6502.C)))
+
+            ' Update Overflow flag (V)
+            ' (A ^ temp) & (data ^ temp) & 0x0080
+            SetFlag(FLAGS6502.V, ((CUShort(A) Xor temp) And (CUShort(data) Xor temp) And &H80US) <> 0)
+
+            ' Update Carry flag (C)
+            SetFlag(FLAGS6502.C, temp > 255)
+
+            ' Update Accumulator
+            A = CByte(temp And &HFFUS)
+
+            ' Update Negative (N) and Zero (Z)
+            SetFlag(FLAGS6502.N, (A And &H80US) <> 0)
+            SetFlag(FLAGS6502.Z, A = 0)
+
             Return 0
         End Function
 
@@ -1034,6 +1303,86 @@
             Return 0
         End Function
 
+        Public Function SHA() As Byte
+            ' SHA logic: result = A AND X AND (High Byte of the target address + 1)
+            ' Note: addr_abs must have been calculated by your IZY addressing mode first
+            Dim highBytePlus1 As Byte = CByte(((addr_abs >> 8) And &HFFUS) + 1)
+            Dim result As Byte = CByte(A And X And highBytePlus1)
+
+            Write(addr_abs, result)
+            Return 0
+        End Function
+
+        Public Function SHX() As Byte
+            ' SHX logic: X AND (High Byte of target address + 1)
+            Dim targetHighByte As Byte = CByte((addr_abs >> 8) And &HFFUS)
+            Dim result As Byte = CByte(X And (targetHighByte + 1))
+
+            Write(addr_abs, result)
+            Return 0
+        End Function
+
+        Public Function SHY() As Byte
+            ' SHY logic: Y AND (High Byte of target address + 1)
+            Dim targetHighByte As Byte = CByte((addr_abs >> 8) And &HFFUS)
+            Dim result As Byte = CByte(Y And (targetHighByte + 1))
+
+            Write(addr_abs, result)
+            Return 0
+        End Function
+
+        Public Function SLO() As Byte
+            ' 1. Fetch the data from memory (Address calculated by addressing mode)
+            Dim data As Byte = Read(addr_abs)
+
+            ' 2. ASL (Shift Left) logic
+            ' Set Carry flag based on bit 7 before shifting
+            SetFlag(FLAGS6502.C, (data And &H80US) <> 0)
+
+            ' Perform the shift
+            data = CByte((data << 1) And &HFFUS)
+
+            ' Update N and Z flags based on the shift result
+            SetFlag(FLAGS6502.N, (data And &H80US) <> 0)
+            SetFlag(FLAGS6502.Z, data = 0)
+
+            ' 3. Write back the shifted value to memory
+            Write(addr_abs, data)
+
+            ' 4. ORA logic (OR with Accumulator)
+            A = A Or data
+
+            ' 5. Final flag updates based on the Accumulator
+            SetFlag(FLAGS6502.N, (A And &H80US) <> 0)
+            SetFlag(FLAGS6502.Z, A = 0)
+
+            Return 0
+        End Function
+
+        Public Function SRE() As Byte
+            ' 1. Fetch data from memory
+            Dim data As Byte = Read(addr_abs)
+
+            ' 2. LSR (Logical Shift Right) Logic
+            ' Set Carry flag to the bit that is being shifted out (bit 0)
+            SetFlag(FLAGS6502.C, (data And &H1US) <> 0)
+
+            ' Perform the shift (bit 7 automatically becomes 0)
+            data = CByte(data >> 1)
+
+            ' 3. Write back the shifted value
+            Write(addr_abs, data)
+
+            ' 4. EOR logic (Exclusive OR with Accumulator)
+            A = A Xor data
+
+            ' 5. Final flag updates based on the Accumulator
+            SetFlag(FLAGS6502.N, (A And &H80US) <> 0)
+            SetFlag(FLAGS6502.Z, A = 0)
+
+            Return 0
+        End Function
+
         Public Function STA() As Byte
             Write(addr_abs, A)
             Return 0
@@ -1063,6 +1412,23 @@
             Return 0
         End Function
 
+        Public Function TAS() As Byte
+            ' 1. Transfer A AND X to the Stack Pointer
+            ' This is the only instruction that modifies the Stack Pointer directly via math
+            StackPointer = CByte(A And X)
+
+            ' 2. Calculate the value to store in memory
+            ' Logic: StackPointer AND (High Byte of target address + 1)
+            Dim targetHighByte As Byte = CByte((addr_abs >> 8) And &HFFUS)
+            Dim result As Byte = CByte(StackPointer And (targetHighByte + 1))
+
+            ' 3. Write the result to the address calculated by ABY
+            Write(addr_abs, result)
+
+            Return 0
+        End Function
+
+
         Public Function TSX() As Byte
             X = StackPointer
             SetFlag(FLAGS6502.Z, X = &H0)
@@ -1086,6 +1452,23 @@
             A = Y
             SetFlag(FLAGS6502.Z, A = &H0)
             SetFlag(FLAGS6502.N, A And &H80)
+            Return 0
+        End Function
+
+        Public Function XAA() As Byte
+            ' 1. Fetch immediate data
+            Dim data As Byte = Read(addr_abs)
+
+            ' 2. XAA Logic: (A OR magic) AND X AND data
+            ' Most emulators use &HFF for the "magic" constant to maintain stability.
+            ' This effectively makes the operation: A = X AND data
+            Dim magic As Byte = &HFFUS
+            A = CByte((A Or magic) And X And data)
+
+            ' 3. Update Status Flags
+            SetFlag(FLAGS6502.Z, A = 0)
+            SetFlag(FLAGS6502.N, (A And &H80US) <> 0)
+
             Return 0
         End Function
 
