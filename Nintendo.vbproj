@@ -144,6 +144,12 @@
     <Compile Include="ApplicationCore\Hardware.vb" />
     <Compile Include="ApplicationCore\KeyboardVariables.vb" />
     <Compile Include="Chips\2C02\PPU2C02.vb" />
+    <Compile Include="Chips\6502\CPU.AddressingModes.vb" />
+    <Compile Include="Chips\6502\CPU.Core.vb" />
+    <Compile Include="Chips\6502\CPU.Instructions.Illegal.vb" />
+    <Compile Include="Chips\6502\CPU.Instructions.Official.vb" />
+    <Compile Include="Chips\6502\CPU.InstructionTable.vb" />
+    <Compile Include="Chips\6502\CPU.Interrupts.vb" />
     <Compile Include="Chips\Helpers\BitFields\BIT.FIELD.16.vb" />
     <Compile Include="Bus\NES.BUS2.vb" />
     <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.0.vb" />
@@ -188,8 +194,8 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="NES.6502.vb" />
     <Compile Include="Cartridge\NES.CARTRIDGE2.vb" />
+    <Compile Include="NES.6502.vb" />
     <Compile Include="NES.CONSTANTS.vb" />
     <Compile Include="Renderer\Pixel\Pixel.vb" />
     <Compile Include="Renderer\Sprite\Sprite.vb" />

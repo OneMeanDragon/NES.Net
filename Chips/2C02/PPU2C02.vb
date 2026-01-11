@@ -271,7 +271,8 @@ Namespace NintendoEntertainmentSystem
                         _addressLatch = 1
                     Else
                         _tramAddr.Reg = (_tramAddr.Reg And &HFF00US) Or data
-                        _vramAddr.Reg = _tramAddr.Reg
+                        '_vramAddr.Reg = _tramAddr.Reg
+                        _vramAddr = _tramAddr
                         _addressLatch = 0
                     End If
 
