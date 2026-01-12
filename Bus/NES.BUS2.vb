@@ -19,7 +19,7 @@ Namespace NintendoEntertainmentSystem
 
 #Region "Components"
         ' Core NES components
-        Public ReadOnly CPU As New em6502() 'CPU6502() 'em6502()
+        Public ReadOnly CPU As New CPU6502() 'CPU6502() 'em6502()
         Public ReadOnly PPU As New PPU2C02() 'em2C02()
         Public ReadOnly APU As New em2A03()
 
@@ -140,9 +140,9 @@ Namespace NintendoEntertainmentSystem
             End If
 
             ' APU Status ($4015)
-            If addr = &H4015US Then
-                Return APU.CpuRead(addr)
-            End If
+            'If addr = &H4015US Then
+            '    Return APU.CpuRead(addr)
+            'End If
 
             ' Controller reads ($4016-$4017)
             If addr >= &H4016US AndAlso addr <= &H4017US Then
@@ -180,10 +180,10 @@ Namespace NintendoEntertainmentSystem
             End If
 
             ' APU and I/O registers ($4000-$4017)
-            If addr >= &H4000US AndAlso addr <= &H4013US Then
-                APU.CpuWrite(addr, data)
-                Return
-            End If
+            'If addr >= &H4000US AndAlso addr <= &H4013US Then
+            '    APU.CpuWrite(addr, data)
+            '    Return
+            'End If
 
             If addr = &H4014US Then
                 ' OAM DMA
@@ -194,10 +194,10 @@ Namespace NintendoEntertainmentSystem
                 Return
             End If
 
-            If addr = &H4015US OrElse addr = &H4017US Then
-                APU.CpuWrite(addr, data)
-                Return
-            End If
+            'If addr = &H4015US OrElse addr = &H4017US Then
+            '    APU.CpuWrite(addr, data)
+            '    Return
+            'End If
 
             ' Controller strobe ($4016-$4017)
             If addr >= &H4016US AndAlso addr <= &H4017US Then
@@ -219,7 +219,7 @@ Namespace NintendoEntertainmentSystem
             ' Reset components
             CPU.Reset()
             PPU.Reset()
-            APU.Reset()
+            'APU.Reset()
 
             ' Clear RAM (actual NES has random values, but zeros are fine)
             _cpuRam.Span.Clear()
@@ -255,7 +255,7 @@ Namespace NintendoEntertainmentSystem
             PPU.Clock()
 
             ' Clock APU (runs every cycle)
-            APU.Clock()
+            'APU.Clock()
 
             ' CPU runs at 1/3 PPU speed
             If (_systemClockCounter Mod 3) = 0 Then
@@ -268,8 +268,8 @@ Namespace NintendoEntertainmentSystem
                 End If
             End If
 
-            ' Handle audio timing
-            Dim audioReady = ProcessAudio()
+            ' APU Handle audio timing
+            Dim audioReady = False 'ProcessAudio()
 
             ' Handle NMI from PPU
             If PPU.NmiRequested Then

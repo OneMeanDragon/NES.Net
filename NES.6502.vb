@@ -106,6 +106,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&HD, "ORA", AddressOf ORA, AddressOf ABS, 4)
             InitializeHandler(&HE, "ASL", AddressOf ASL, AddressOf ABS, 6)
             InitializeHandler(&HF, "SLO", AddressOf SLO, AddressOf ABS, 6)
+
             InitializeHandler(&H10, "BPL", AddressOf BPL, AddressOf REL, 2)
             InitializeHandler(&H11, "ORA", AddressOf ORA, AddressOf IZY, 5)
             InitializeHandler(&H12, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
@@ -122,6 +123,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&H1D, "ORA", AddressOf ORA, AddressOf ABX, 4)
             InitializeHandler(&H1E, "ASL", AddressOf ASL, AddressOf ABX, 7)
             InitializeHandler(&H1F, "SLO", AddressOf SLO, AddressOf ABX, 7)
+
             InitializeHandler(&H20, "JSR", AddressOf JSR, AddressOf ABS, 6)
             InitializeHandler(&H21, "AND", AddressOf AND_, AddressOf IZX, 6)
             InitializeHandler(&H22, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
@@ -138,6 +140,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&H2D, "AND", AddressOf AND_, AddressOf ABS, 4)
             InitializeHandler(&H2E, "ROL", AddressOf ROL, AddressOf ABS, 6)
             InitializeHandler(&H2F, "RLA", AddressOf RLA, AddressOf ABS, 6)
+
             InitializeHandler(&H30, "BMI", AddressOf BMI, AddressOf REL, 2)
             InitializeHandler(&H31, "AND", AddressOf AND_, AddressOf IZY, 5)
             InitializeHandler(&H32, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
@@ -154,6 +157,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&H3D, "AND", AddressOf AND_, AddressOf ABX, 4)
             InitializeHandler(&H3E, "ROL", AddressOf ROL, AddressOf ABX, 7)
             InitializeHandler(&H3F, "RLA", AddressOf RLA, AddressOf ABX, 7)
+
             InitializeHandler(&H40, "RTI", AddressOf RTI, AddressOf IMP, 6)
             InitializeHandler(&H41, "EOR", AddressOf EOR, AddressOf IZX, 6)
             InitializeHandler(&H42, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
@@ -170,6 +174,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&H4D, "EOR", AddressOf EOR, AddressOf ABS, 4)
             InitializeHandler(&H4E, "LSR", AddressOf LSR, AddressOf ABS, 6)
             InitializeHandler(&H4F, "SRE", AddressOf SRE, AddressOf ABS, 6)
+
             InitializeHandler(&H50, "BVC", AddressOf BVC, AddressOf REL, 2)
             InitializeHandler(&H51, "EOR", AddressOf EOR, AddressOf IZY, 5)
             InitializeHandler(&H52, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
@@ -186,6 +191,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&H5D, "EOR", AddressOf EOR, AddressOf ABX, 4)
             InitializeHandler(&H5E, "LSR", AddressOf LSR, AddressOf ABX, 7)
             InitializeHandler(&H5F, "SRE", AddressOf SRE, AddressOf ABX, 7)
+
             InitializeHandler(&H60, "RTS", AddressOf RTS, AddressOf IMP, 6)
             InitializeHandler(&H61, "ADC", AddressOf ADC, AddressOf IZX, 6)
             InitializeHandler(&H62, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
@@ -202,6 +208,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&H6D, "ADC", AddressOf ADC, AddressOf ABS, 4)
             InitializeHandler(&H6E, "ROR", AddressOf ROR, AddressOf ABS, 6)
             InitializeHandler(&H6F, "RRA", AddressOf RRA, AddressOf ABS, 6)
+
             InitializeHandler(&H70, "BVS", AddressOf BVS, AddressOf REL, 2)
             InitializeHandler(&H71, "ADC", AddressOf ADC, AddressOf IZY, 5)
             InitializeHandler(&H72, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
@@ -218,6 +225,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&H7D, "ADC", AddressOf ADC, AddressOf ABX, 4)
             InitializeHandler(&H7E, "ROR", AddressOf ROR, AddressOf ABX, 7)
             InitializeHandler(&H7F, "RRA", AddressOf RRA, AddressOf ABX, 7)
+
             InitializeHandler(&H80, "NOP", AddressOf NOP, AddressOf IMM, 2)
             InitializeHandler(&H81, "STA", AddressOf STA, AddressOf IZX, 6)
             InitializeHandler(&H82, "NOP", AddressOf NOP, AddressOf IMM, 2)
@@ -234,6 +242,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&H8D, "STA", AddressOf STA, AddressOf ABS, 4)
             InitializeHandler(&H8E, "STX", AddressOf STX, AddressOf ABS, 4)
             InitializeHandler(&H8F, "SAX", AddressOf SAX, AddressOf ABS, 4)
+
             InitializeHandler(&H90, "BCC", AddressOf BCC, AddressOf REL, 2)
             InitializeHandler(&H91, "STA", AddressOf STA, AddressOf IZY, 6)
             InitializeHandler(&H92, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
@@ -250,6 +259,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&H9D, "STA", AddressOf STA, AddressOf ABX, 5)
             InitializeHandler(&H9E, "SHX", AddressOf SHX, AddressOf ABY, 5)
             InitializeHandler(&H9F, "SHA", AddressOf SHA, AddressOf ABY, 5)
+
             InitializeHandler(&HA0, "LDY", AddressOf LDY, AddressOf IMM, 2)
             InitializeHandler(&HA1, "LDA", AddressOf LDA, AddressOf IZX, 6)
             InitializeHandler(&HA2, "LDX", AddressOf LDX, AddressOf IMM, 2)
@@ -266,6 +276,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&HAD, "LDA", AddressOf LDA, AddressOf ABS, 4)
             InitializeHandler(&HAE, "LDX", AddressOf LDX, AddressOf ABS, 4)
             InitializeHandler(&HAF, "LAX", AddressOf LAX, AddressOf ABS, 4)
+
             InitializeHandler(&HB0, "BCS", AddressOf BCS, AddressOf REL, 2)
             InitializeHandler(&HB1, "LDA", AddressOf LDA, AddressOf IZY, 5)
             InitializeHandler(&HB2, "KIL", AddressOf KIL, AddressOf IMP, 0) ' 2
@@ -282,6 +293,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&HBD, "LDA", AddressOf LDA, AddressOf ABX, 4)
             InitializeHandler(&HBE, "LDX", AddressOf LDX, AddressOf ABY, 4)
             InitializeHandler(&HBF, "LAX", AddressOf LAX, AddressOf ABY, 4) 'LAX BF 3 bytes 4 cycles (+1 if crosses boundry)
+
             InitializeHandler(&HC0, "CPY", AddressOf CPY, AddressOf IMM, 2)
             InitializeHandler(&HC1, "CMP", AddressOf CMP, AddressOf IZX, 6)
             InitializeHandler(&HC2, "NOP", AddressOf NOP, AddressOf IMM, 2)
@@ -298,6 +310,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&HCD, "CMP", AddressOf CMP, AddressOf ABS, 4)
             InitializeHandler(&HCE, "DEC", AddressOf DEC, AddressOf ABS, 6)
             InitializeHandler(&HCF, "DCP", AddressOf DCP, AddressOf ABS, 6)
+
             InitializeHandler(&HD0, "BNE", AddressOf BNE, AddressOf REL, 2)
             InitializeHandler(&HD1, "CMP", AddressOf CMP, AddressOf IZY, 5)
             InitializeHandler(&HD2, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
@@ -314,6 +327,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&HDD, "CMP", AddressOf CMP, AddressOf ABX, 4)
             InitializeHandler(&HDE, "DEC", AddressOf DEC, AddressOf ABX, 7)
             InitializeHandler(&HDF, "DCP", AddressOf DCP, AddressOf ABX, 7)
+
             InitializeHandler(&HE0, "CPX", AddressOf CPX, AddressOf IMM, 2)
             InitializeHandler(&HE1, "SBC", AddressOf SBC, AddressOf IZX, 6)
             InitializeHandler(&HE2, "NOP", AddressOf NOP, AddressOf IMM, 2)
@@ -330,6 +344,7 @@ Namespace NintendoEntertainmentSystem
             InitializeHandler(&HED, "SBC", AddressOf SBC, AddressOf ABS, 4)
             InitializeHandler(&HEE, "INC", AddressOf INC, AddressOf ABS, 6)
             InitializeHandler(&HEF, "ISB", AddressOf ISB, AddressOf ABS, 6)
+
             InitializeHandler(&HF0, "BEQ", AddressOf BEQ, AddressOf REL, 2)
             InitializeHandler(&HF1, "SBC", AddressOf SBC, AddressOf IZY, 5)
             InitializeHandler(&HF2, "KIL", AddressOf KIL, AddressOf IMP, 0) '2
@@ -1508,6 +1523,7 @@ Namespace NintendoEntertainmentSystem
             'reset time
             cycles = 8
         End Sub
+
         Public Sub IRQ()
             If GetFlag(FLAGS6502.I) = 0 Then
                 'push the program counter to the stack

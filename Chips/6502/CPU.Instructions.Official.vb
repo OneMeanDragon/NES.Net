@@ -1,6 +1,8 @@
 ﻿Namespace NintendoEntertainmentSystem
 
-    ' MOS Technology 6502 CPU - Official Instructions (Partial Class)
+    ''' <summary>
+    ''' MOS Technology 6502 CPU - Official Instructions (Partial Class)
+    ''' </summary>
     Partial Public NotInheritable Class CPU6502
 
 #Region "Arithmetic Instructions"
@@ -135,8 +137,8 @@
         ''' <summary>Increment Memory</summary>
         Friend Function INC() As Byte
             Fetch()
-            _temp = (_fetched + 1) And &HFF
-            Write(_addrAbs, _temp)
+            _temp = CUShort((CInt(_fetched) + 1) And &HFF)
+            Write(_addrAbs, CByte(_temp))
             SetFlag(StatusFlags.Z, _temp = 0)
             SetFlag(StatusFlags.N, (_temp And &H80) <> 0)
             Return 0
@@ -145,8 +147,8 @@
         ''' <summary>Decrement Memory</summary>
         Friend Function DEC() As Byte
             Fetch()
-            _temp = (_fetched - 1) And &HFF
-            Write(_addrAbs, _temp)
+            _temp = CUShort((CInt(_fetched) - 1) And &HFF)
+            Write(_addrAbs, CByte(_temp))
             SetFlag(StatusFlags.Z, _temp = 0)
             SetFlag(StatusFlags.N, (_temp And &H80) <> 0)
             Return 0
@@ -154,7 +156,7 @@
 
         ''' <summary>Increment X Register</summary>
         Friend Function INX() As Byte
-            X = (X + 1) And &HFF
+            X = CByte((CInt(X) + 1) And &HFF)
             SetFlag(StatusFlags.Z, X = 0)
             SetFlag(StatusFlags.N, (X And &H80) <> 0)
             Return 0
@@ -162,7 +164,7 @@
 
         ''' <summary>Decrement X Register</summary>
         Friend Function DEX() As Byte
-            X = (X - 1) And &HFF
+            X = CByte((CInt(X) - 1) And &HFF)
             SetFlag(StatusFlags.Z, X = 0)
             SetFlag(StatusFlags.N, (X And &H80) <> 0)
             Return 0
@@ -170,7 +172,7 @@
 
         ''' <summary>Increment Y Register</summary>
         Friend Function INY() As Byte
-            Y = (Y + 1) And &HFF
+            Y = CByte((CInt(Y) + 1) And &HFF)
             SetFlag(StatusFlags.Z, Y = 0)
             SetFlag(StatusFlags.N, (Y And &H80) <> 0)
             Return 0
@@ -178,7 +180,7 @@
 
         ''' <summary>Decrement Y Register</summary>
         Friend Function DEY() As Byte
-            Y = (Y - 1) And &HFF
+            Y = CByte((CInt(Y) - 1) And &HFF)
             SetFlag(StatusFlags.Z, Y = 0)
             SetFlag(StatusFlags.N, (Y And &H80) <> 0)
             Return 0
@@ -189,9 +191,9 @@
         ''' <summary>Compare Accumulator</summary>
         Friend Function CMP() As Byte
             Fetch()
-            _temp = A - _fetched
+            _temp = CUShort((CInt(A) - CInt(_fetched)) And &HFF)
             SetFlag(StatusFlags.C, A >= _fetched)
-            SetFlag(StatusFlags.Z, (_temp And &HFF) = 0)
+            SetFlag(StatusFlags.Z, _temp = 0)
             SetFlag(StatusFlags.N, (_temp And &H80) <> 0)
             Return 1
         End Function
@@ -199,9 +201,9 @@
         ''' <summary>Compare X Register</summary>
         Friend Function CPX() As Byte
             Fetch()
-            _temp = X - _fetched
+            _temp = CUShort((CInt(X) - CInt(_fetched)) And &HFF)
             SetFlag(StatusFlags.C, X >= _fetched)
-            SetFlag(StatusFlags.Z, (_temp And &HFF) = 0)
+            SetFlag(StatusFlags.Z, _temp = 0)
             SetFlag(StatusFlags.N, (_temp And &H80) <> 0)
             Return 0
         End Function
@@ -209,9 +211,9 @@
         ''' <summary>Compare Y Register</summary>
         Friend Function CPY() As Byte
             Fetch()
-            _temp = Y - _fetched
+            _temp = CUShort((CInt(Y) - CInt(_fetched)) And &HFF)
             SetFlag(StatusFlags.C, Y >= _fetched)
-            SetFlag(StatusFlags.Z, (_temp And &HFF) = 0)
+            SetFlag(StatusFlags.Z, _temp = 0)
             SetFlag(StatusFlags.N, (_temp And &H80) <> 0)
             Return 0
         End Function

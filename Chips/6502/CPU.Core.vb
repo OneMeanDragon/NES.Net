@@ -1,5 +1,4 @@
 ﻿Imports System.Runtime.CompilerServices
-'Imports Nintendo.NintendoEntertainmentSystem.em6502
 
 Namespace NintendoEntertainmentSystem
 
@@ -78,6 +77,7 @@ Namespace NintendoEntertainmentSystem
             IZY
             REL
         End Enum
+
         Friend Structure Instruction
             Public Name As String
             Public Operate As Func(Of Byte)
@@ -85,12 +85,12 @@ Namespace NintendoEntertainmentSystem
             Public Cycles As Byte
             Public ModeType As AddrMode
 
-            Public Sub New(name As String, op As Func(Of Byte), mode As Func(Of Byte), modetype As AddrMode, cycles As Byte)
+            Public Sub New(name As String, op As Func(Of Byte), mode As Func(Of Byte), modeType As AddrMode, cycles As Byte)
                 Me.Name = name
                 Me.Operate = op
                 Me.AddressingMode = mode
                 Me.Cycles = cycles
-                Me.ModeType = modetype
+                Me.ModeType = modeType
             End Sub
         End Structure
 
@@ -170,34 +170,35 @@ Namespace NintendoEntertainmentSystem
 #Region "Stack Operations"
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Sub Push(data As Byte)
-            Write(&H100US + SP, data)
-            SP = CByte((SP - 1) And &HFF)
+            Write(CUShort(&H100 + SP), data)
+            SP = CByte((CInt(SP) - 1) And &HFF)
         End Sub
 
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Function Pop() As Byte
-            SP = CByte((SP + 1) And &HFF)
-            Return Read(&H100US + SP)
+            SP = CByte((CInt(SP) + 1) And &HFF)
+            Return Read(CUShort(&H100 + SP))
         End Function
 
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Sub PushWord(data As UShort)
-            Push((data >> 8) And &HFF)
-            Push(data And &HFF)
+            Push(CByte((data >> 8) And &HFF))
+            Push(CByte(data And &HFF))
         End Sub
 
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Function PopWord() As UShort
             Dim lo = Pop()
             Dim hi = Pop()
-            Return (CUShort(hi) << 8) Or lo
+            Return CUShort((CUShort(hi) << 8) Or lo)
         End Function
 #End Region
 
 #Region "Fetch Helper"
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Function Fetch() As Byte
-            If _instructions(_opcode).ModeType = AddrMode.IMP Then
+            ' IMP addressing mode already sets _fetched to A, so don't read from memory
+            If _instructions(_opcode).ModeType <> AddrMode.IMP Then
                 _fetched = Read(_addrAbs)
             End If
             Return _fetched

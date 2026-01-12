@@ -17,7 +17,7 @@
             ' $00-$0F
             _instructions(&H0) = New Instruction("BRK", AddressOf BRK, AddressOf IMM, AddrMode.IMM, 7)
             _instructions(&H1) = New Instruction("ORA", AddressOf ORA, AddressOf IZX, AddrMode.IZX, 6)
-            _instructions(&H2) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 2)
+            _instructions(&H2) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 0) '2
             _instructions(&H3) = New Instruction("SLO", AddressOf SLO, AddressOf IZX, AddrMode.IZX, 8)
             _instructions(&H4) = New Instruction("NOP", AddressOf NOP, AddressOf ZP0, AddrMode.ZP0, 3)
             _instructions(&H5) = New Instruction("ORA", AddressOf ORA, AddressOf ZP0, AddrMode.ZP0, 3)
@@ -35,7 +35,7 @@
             ' $10-$1F
             _instructions(&H10) = New Instruction("BPL", AddressOf BPL, AddressOf REL, AddrMode.REL, 2)
             _instructions(&H11) = New Instruction("ORA", AddressOf ORA, AddressOf IZY, AddrMode.IZY, 5)
-            _instructions(&H12) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 2)
+            _instructions(&H12) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 0) '2
             _instructions(&H13) = New Instruction("SLO", AddressOf SLO, AddressOf IZY, AddrMode.IZY, 8)
             _instructions(&H14) = New Instruction("NOP", AddressOf NOP, AddressOf ZPX, AddrMode.ZPX, 4)
             _instructions(&H15) = New Instruction("ORA", AddressOf ORA, AddressOf ZPX, AddrMode.ZPX, 4)
@@ -53,7 +53,7 @@
             ' $20-$2F
             _instructions(&H20) = New Instruction("JSR", AddressOf JSR, AddressOf ABS, AddrMode.ABS, 6)
             _instructions(&H21) = New Instruction("AND", AddressOf AND_, AddressOf IZX, AddrMode.IZX, 6)
-            _instructions(&H22) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 2)
+            _instructions(&H22) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 0) '2
             _instructions(&H23) = New Instruction("RLA", AddressOf RLA, AddressOf IZX, AddrMode.IZX, 8)
             _instructions(&H24) = New Instruction("BIT", AddressOf BIT, AddressOf ZP0, AddrMode.ZP0, 3)
             _instructions(&H25) = New Instruction("AND", AddressOf AND_, AddressOf ZP0, AddrMode.ZP0, 3)
@@ -71,7 +71,7 @@
             ' $30-$3F
             _instructions(&H30) = New Instruction("BMI", AddressOf BMI, AddressOf REL, AddrMode.REL, 2)
             _instructions(&H31) = New Instruction("AND", AddressOf AND_, AddressOf IZY, AddrMode.IZY, 5)
-            _instructions(&H32) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 2)
+            _instructions(&H32) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 0) '2
             _instructions(&H33) = New Instruction("RLA", AddressOf RLA, AddressOf IZY, AddrMode.IZY, 8)
             _instructions(&H34) = New Instruction("NOP", AddressOf NOP, AddressOf ZPX, AddrMode.ZPX, 4)
             _instructions(&H35) = New Instruction("AND", AddressOf AND_, AddressOf ZPX, AddrMode.ZPX, 4)
@@ -89,7 +89,7 @@
             ' $40-$4F
             _instructions(&H40) = New Instruction("RTI", AddressOf RTI, AddressOf IMP, AddrMode.IMP, 6)
             _instructions(&H41) = New Instruction("EOR", AddressOf EOR, AddressOf IZX, AddrMode.IZX, 6)
-            _instructions(&H42) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 2)
+            _instructions(&H42) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 0) '2
             _instructions(&H43) = New Instruction("SRE", AddressOf SRE, AddressOf IZX, AddrMode.IZX, 8)
             _instructions(&H44) = New Instruction("NOP", AddressOf NOP, AddressOf ZP0, AddrMode.ZP0, 3)
             _instructions(&H45) = New Instruction("EOR", AddressOf EOR, AddressOf ZP0, AddrMode.ZP0, 3)
@@ -107,7 +107,7 @@
             ' $50-$5F
             _instructions(&H50) = New Instruction("BVC", AddressOf BVC, AddressOf REL, AddrMode.REL, 2)
             _instructions(&H51) = New Instruction("EOR", AddressOf EOR, AddressOf IZY, AddrMode.IZY, 5)
-            _instructions(&H52) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 2)
+            _instructions(&H52) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 0) '2
             _instructions(&H53) = New Instruction("SRE", AddressOf SRE, AddressOf IZY, AddrMode.IZY, 8)
             _instructions(&H54) = New Instruction("NOP", AddressOf NOP, AddressOf ZPX, AddrMode.ZPX, 4)
             _instructions(&H55) = New Instruction("EOR", AddressOf EOR, AddressOf ZPX, AddrMode.ZPX, 4)
@@ -125,7 +125,7 @@
             ' $60-$6F
             _instructions(&H60) = New Instruction("RTS", AddressOf RTS, AddressOf IMP, AddrMode.IMP, 6)
             _instructions(&H61) = New Instruction("ADC", AddressOf ADC, AddressOf IZX, AddrMode.IZX, 6)
-            _instructions(&H62) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 2)
+            _instructions(&H62) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 0) '2
             _instructions(&H63) = New Instruction("RRA", AddressOf RRA, AddressOf IZX, AddrMode.IZX, 8)
             _instructions(&H64) = New Instruction("NOP", AddressOf NOP, AddressOf ZP0, AddrMode.ZP0, 3)
             _instructions(&H65) = New Instruction("ADC", AddressOf ADC, AddressOf ZP0, AddrMode.ZP0, 3)
@@ -143,7 +143,7 @@
             ' $70-$7F
             _instructions(&H70) = New Instruction("BVS", AddressOf BVS, AddressOf REL, AddrMode.REL, 2)
             _instructions(&H71) = New Instruction("ADC", AddressOf ADC, AddressOf IZY, AddrMode.IZY, 5)
-            _instructions(&H72) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 2)
+            _instructions(&H72) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 0) '2
             _instructions(&H73) = New Instruction("RRA", AddressOf RRA, AddressOf IZY, AddrMode.IZY, 8)
             _instructions(&H74) = New Instruction("NOP", AddressOf NOP, AddressOf ZPX, AddrMode.ZPX, 4)
             _instructions(&H75) = New Instruction("ADC", AddressOf ADC, AddressOf ZPX, AddrMode.ZPX, 4)
@@ -179,7 +179,7 @@
             ' $90-$9F
             _instructions(&H90) = New Instruction("BCC", AddressOf BCC, AddressOf REL, AddrMode.REL, 2)
             _instructions(&H91) = New Instruction("STA", AddressOf STA, AddressOf IZY, AddrMode.IZY, 6)
-            _instructions(&H92) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 2)
+            _instructions(&H92) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 0) '2
             _instructions(&H93) = New Instruction("SHA", AddressOf SHA, AddressOf IZY, AddrMode.IZY, 6)
             _instructions(&H94) = New Instruction("STY", AddressOf STY, AddressOf ZPX, AddrMode.ZPX, 4)
             _instructions(&H95) = New Instruction("STA", AddressOf STA, AddressOf ZPX, AddrMode.ZPX, 4)
@@ -215,7 +215,7 @@
             ' $B0-$BF
             _instructions(&HB0) = New Instruction("BCS", AddressOf BCS, AddressOf REL, AddrMode.REL, 2)
             _instructions(&HB1) = New Instruction("LDA", AddressOf LDA, AddressOf IZY, AddrMode.IZY, 5)
-            _instructions(&HB2) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 2)
+            _instructions(&HB2) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 0) '2
             _instructions(&HB3) = New Instruction("LAX", AddressOf LAX, AddressOf IZY, AddrMode.IZY, 5)
             _instructions(&HB4) = New Instruction("LDY", AddressOf LDY, AddressOf ZPX, AddrMode.ZPX, 4)
             _instructions(&HB5) = New Instruction("LDA", AddressOf LDA, AddressOf ZPX, AddrMode.ZPX, 4)
@@ -251,7 +251,7 @@
             ' $D0-$DF
             _instructions(&HD0) = New Instruction("BNE", AddressOf BNE, AddressOf REL, AddrMode.REL, 2)
             _instructions(&HD1) = New Instruction("CMP", AddressOf CMP, AddressOf IZY, AddrMode.IZY, 5)
-            _instructions(&HD2) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 2)
+            _instructions(&HD2) = New Instruction("KIL", AddressOf KIL, AddressOf IMP, AddrMode.IMP, 0) '2
             _instructions(&HD3) = New Instruction("DCP", AddressOf DCP, AddressOf IZY, AddrMode.IZY, 8)
             _instructions(&HD4) = New Instruction("NOP", AddressOf NOP, AddressOf ZPX, AddrMode.ZPX, 4)
             _instructions(&HD5) = New Instruction("CMP", AddressOf CMP, AddressOf ZPX, AddrMode.ZPX, 4)

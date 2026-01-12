@@ -10,7 +10,7 @@
         ''' </summary>
         Public Sub Reset()
             ' Read reset vector
-            _addrAbs = &HFFFC
+            _addrAbs = &HFFFCUS
             Dim lo = Read(_addrAbs)
             Dim hi = Read(_addrAbs + 1)
             PC = (CUShort(hi) << 8) Or lo
@@ -49,7 +49,7 @@
                 Push(Status)
 
                 ' Read IRQ vector
-                _addrAbs = &HFFFE
+                _addrAbs = &HFFFEUS
                 Dim lo = Read(_addrAbs)
                 Dim hi = Read(_addrAbs + 1)
                 PC = (CUShort(hi) << 8) Or lo
@@ -75,9 +75,9 @@
             Push(Status)
 
             ' Read NMI vector
-            _addrAbs = &HFFFA
+            _addrAbs = &HFFFAUS
             Dim lo = Read(_addrAbs)
-            Dim hi = Read(_addrAbs + 1)
+            Dim hi = Read(_addrAbs + 1US)
             PC = (CUShort(hi) << 8) Or lo
 
             ' NMI takes 8 cycles
@@ -100,11 +100,12 @@
                 SetFlag(StatusFlags.U, True)
 
                 ' Increment program counter
-                PC += 1
-                Debug.WriteLine($"ProgramCounter: {PC}")
-                If PC >= &HFFFFUS Then
-                    Debug.WriteLine($"ProgramCounter MAX: {PC}")
-                End If
+                PC += 1US
+                'Debug.WriteLine($"ProgramCounter: {PC}")
+                'If PC >= &HFFFFUS Then
+                '    Debug.WriteLine($"ProgramCounter MAX: {PC}")
+                'End If
+
                 ' Get base cycle count for this instruction
                 _cycles = _instructions(_opcode).Cycles
 
