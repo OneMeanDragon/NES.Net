@@ -20,7 +20,7 @@ Namespace NintendoEntertainmentSystem
         Public Overrides Function CpuMapRead(addr As UInt16, ByRef mappedAddr As UInt32, ByRef data As Byte) As Boolean
             If addr >= &H8000US Then
                 ' 16KB: Mirror, 32KB: Direct map
-                mappedAddr = If(_prgBanks > 1, addr And &H7FFFUI, addr And &H3FFFUI)
+                mappedAddr = If(_prgBanks > 1UI, addr And &H7FFFUS, addr And &H3FFFUS)
                 Return True
             End If
             Return False

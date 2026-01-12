@@ -24,7 +24,7 @@ Namespace NintendoEntertainmentSystem
         Public Overrides Function CpuMapRead(addr As UInt16, ByRef mappedAddr As UInt32, ByRef data As Byte) As Boolean
             If addr >= &H8000US Then
                 ' 32KB bank
-                mappedAddr = CUInt(_prgBank) * &H8000UI + (addr And &H7FFFUI)
+                mappedAddr = CUInt(_prgBank) * &H8000UI + (addr And &H7FFFUS)
 
                 ' Bounds check
                 Dim maxAddr = CUInt(_prgBanks) * 16384UI
@@ -40,8 +40,8 @@ Namespace NintendoEntertainmentSystem
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Public Overrides Function CpuMapWrite(addr As UInt16, ByRef mappedAddr As UInt32, data As Byte) As Boolean
             If addr >= &H8000US Then
-                _chrBank = data And &H3
-                _prgBank = (data >> 4) And &H3
+                _chrBank = data And &H3UI
+                _prgBank = (data >> 4) And &H3UI
             End If
             Return False
         End Function

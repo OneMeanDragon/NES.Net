@@ -43,16 +43,16 @@ Namespace NintendoEntertainmentSystem
 
             ' PRG ROM ($8000-$FFFF)
             If addr >= &H8000US Then
-                If (_controlReg And &H8) <> 0 Then
+                If (_controlReg And &H8UI) <> 0 Then
                     ' 16KB mode
                     If addr < &HC000US Then
-                        mappedAddr = CUInt(_prgBank16Lo) * &H4000UI + (addr And &H3FFFUI)
+                        mappedAddr = CUInt(_prgBank16Lo) * &H4000UI + (addr And &H3FFFUS)
                     Else
-                        mappedAddr = CUInt(_prgBank16Hi) * &H4000UI + (addr And &H3FFFUI)
+                        mappedAddr = CUInt(_prgBank16Hi) * &H4000UI + (addr And &H3FFFUS)
                     End If
                 Else
                     ' 32KB mode
-                    mappedAddr = CUInt(_prgBank32) * &H8000UI + (addr And &H7FFFUI)
+                    mappedAddr = CUInt(_prgBank32) * &H8000UI + (addr And &H7FFFUS)
                 End If
                 Return True
             End If
@@ -74,46 +74,46 @@ Namespace NintendoEntertainmentSystem
 
             ' Control register writes
             If addr >= &H8000US Then
-                If (data And &H80) <> 0 Then
+                If (data And &H80UI) <> 0 Then
                     ' Reset shift register
                     _loadRegister = 0
                     _loadCounter = 0
-                    _controlReg = _controlReg Or &HC
+                    _controlReg = _controlReg Or &HCUI
                 Else
                     ' Load bit serially (LSB first)
-                    _loadRegister = (_loadRegister >> 1) Or ((data And &H1) << 4)
+                    _loadRegister = (_loadRegister >> 1) Or ((data And &H1UI) << 4)
                     _loadCounter += 1
 
                     If _loadCounter = 5 Then
-                        Dim target = (addr >> 13) And &H3
+                        Dim target = (addr >> 13) And &H3UI
 
                         Select Case target
                             Case 0 ' Control ($8000-$9FFF)
-                                _controlReg = _loadRegister And &H1F
-                                _mirrorMode = CType(_controlReg And &H3, MirrorMode)
+                                _controlReg = _loadRegister And &H1FUI
+                                _mirrorMode = CType(_controlReg And &H3UI, MirrorMode)
 
                             Case 1 ' CHR bank 0 ($A000-$BFFF)
-                                If (_controlReg And &H10) <> 0 Then
-                                    _chrBank4Lo = _loadRegister And &H1F
+                                If (_controlReg And &H10UI) <> 0 Then
+                                    _chrBank4Lo = _loadRegister And &H1FUI
                                 Else
-                                    _chrBank8 = _loadRegister And &H1E
+                                    _chrBank8 = _loadRegister And &H1EUI
                                 End If
 
                             Case 2 ' CHR bank 1 ($C000-$DFFF)
-                                If (_controlReg And &H10) <> 0 Then
-                                    _chrBank4Hi = _loadRegister And &H1F
+                                If (_controlReg And &H10UI) <> 0 Then
+                                    _chrBank4Hi = _loadRegister And &H1FUI
                                 End If
 
                             Case 3 ' PRG bank ($E000-$FFFF)
-                                Dim prgMode = (_controlReg >> 2) And &H3
+                                Dim prgMode = (_controlReg >> 2) And &H3UI
                                 Select Case prgMode
                                     Case 0, 1 ' 32KB
-                                        _prgBank32 = (_loadRegister And &HE) >> 1
+                                        _prgBank32 = (_loadRegister And &HEUI) >> 1
                                     Case 2 ' Fix first, swap second
                                         _prgBank16Lo = 0
-                                        _prgBank16Hi = _loadRegister And &HF
+                                        _prgBank16Hi = _loadRegister And &HFUI
                                     Case 3 ' Swap first, fix last
-                                        _prgBank16Lo = _loadRegister And &HF
+                                        _prgBank16Lo = _loadRegister And &HFUI
                                         _prgBank16Hi = _prgBanks - 1
                                 End Select
                         End Select
@@ -135,16 +135,16 @@ Namespace NintendoEntertainmentSystem
                     Return True
                 End If
 
-                If (_controlReg And &H10) <> 0 Then
+                If (_controlReg And &H10UI) <> 0 Then
                     ' 4KB mode
                     If addr < &H1000US Then
-                        mappedAddr = CUInt(_chrBank4Lo) * &H1000UI + (addr And &HFFFUI)
+                        mappedAddr = CUInt(_chrBank4Lo) * &H1000UI + (addr And &HFFFUS)
                     Else
-                        mappedAddr = CUInt(_chrBank4Hi) * &H1000UI + (addr And &HFFFUI)
+                        mappedAddr = CUInt(_chrBank4Hi) * &H1000UI + (addr And &HFFFUS)
                     End If
                 Else
                     ' 8KB mode
-                    mappedAddr = CUInt(_chrBank8) * &H2000UI + (addr And &H1FFFUI)
+                    mappedAddr = CUInt(_chrBank8) * &H2000UI + (addr And &H1FFFUS)
                 End If
                 Return True
             End If
@@ -163,7 +163,7 @@ Namespace NintendoEntertainmentSystem
         Public Overrides Sub Reset()
             _loadRegister = 0
             _loadCounter = 0
-            _controlReg = &H1C
+            _controlReg = &H1CUI
 
             _chrBank4Lo = 0
             _chrBank4Hi = 0

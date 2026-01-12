@@ -40,7 +40,7 @@ Namespace NintendoEntertainmentSystem
             Dim total8kbBanks As Integer = CInt(prgBanks) * 2
 
             ' The fixed 24KB block starts 3 banks (8KB each) from the end
-            _prgFixedOffset = CUInt((total8kbBanks - 3) * &H2000)
+            _prgFixedOffset = CUInt((total8kbBanks - 3) * &H2000UI)
 
             _cartRam = New Memory(Of Byte)(New Byte(8191) {})
             Reset()
@@ -64,10 +64,10 @@ Namespace NintendoEntertainmentSystem
                 mappedAddr = &HFFFFFFFFUI
                 data = _cartRam.Span(addr And &H1FFFUS)
                 Return True
-            ElseIf addr >= &H8000 AndAlso addr <= &H9FFF Then
-                mappedAddr = CUInt(_prgBankSelect * &H2000) + (addr And &H1FFF)
+            ElseIf addr >= &H8000US AndAlso addr <= &H9FFFUS Then
+                mappedAddr = CUInt(_prgBankSelect * &H2000I) + (addr And &H1FFFUS)
                 Return True
-            ElseIf addr >= &HA000 Then '$A000->$FFFF
+            ElseIf addr >= &HA000US Then '$A000->$FFFF
                 mappedAddr = _prgFixedOffset + (addr - &HA000US)
                 Return True
             End If
@@ -83,18 +83,18 @@ Namespace NintendoEntertainmentSystem
                 span(addr And &H1FFFUS) = data
                 Return True
             End If
-            If addr >= &HA000 AndAlso addr <= &HAFFF Then
-                _prgBankSelect = data And &HF
-            ElseIf addr >= &HB000 AndAlso addr <= &HBFFF Then
-                _chrBank0FD = data And &H1F
-            ElseIf addr >= &HC000 AndAlso addr <= &HCFFF Then
-                _chrBank0FE = data And &H1F
-            ElseIf addr >= &HD000 AndAlso addr <= &HDFFF Then
-                _chrBank1FD = data And &H1F
-            ElseIf addr >= &HE000 AndAlso addr <= &HEFFF Then
-                _chrBank1FE = data And &H1F
-            ElseIf addr >= &HF000 AndAlso addr <= &HFFFF Then
-                _mirrorMode = If((data And &H1) = 0, MirrorMode.Vertical, MirrorMode.Horizontal)
+            If addr >= &HA000US AndAlso addr <= &HAFFFUS Then
+                _prgBankSelect = data And &HFUI
+            ElseIf addr >= &HB000US AndAlso addr <= &HBFFFUS Then
+                _chrBank0FD = data And &H1FUI
+            ElseIf addr >= &HC000US AndAlso addr <= &HCFFFUS Then
+                _chrBank0FE = data And &H1FUI
+            ElseIf addr >= &HD000US AndAlso addr <= &HDFFFUS Then
+                _chrBank1FD = data And &H1FUI
+            ElseIf addr >= &HE000US AndAlso addr <= &HEFFFUS Then
+                _chrBank1FE = data And &H1FUI
+            ElseIf addr >= &HF000US AndAlso addr <= &HFFFFUS Then
+                _mirrorMode = If((data And &H1UI) = 0, MirrorMode.Vertical, MirrorMode.Horizontal)
             End If
             Return False ' CPU writes to mapper registers don't write to PRG RAM/ROM
         End Function
@@ -103,7 +103,7 @@ Namespace NintendoEntertainmentSystem
         Public Overrides Function PpuMapRead(addr As UShort, ByRef mappedAddr As UInteger) As Boolean
             If addr <= &HFFFUS Then
                 Dim bank As Integer = If(_latch0 = 0, _chrBank0FD, _chrBank0FE)
-                mappedAddr = CUInt(bank * &H1000) + (addr And &HFFFUS)
+                mappedAddr = CUInt(bank * &H1000I) + (addr And &HFFFUS)
 
                 If addr = &HFD8US Then _latch0 = 0
                 If addr = &HFE8US Then _latch0 = 1
@@ -111,7 +111,7 @@ Namespace NintendoEntertainmentSystem
                 Return True
             ElseIf addr >= &H1000US AndAlso addr <= &H1FFFUS Then
                 Dim bank As Integer = If(_latch1 = 0, _chrBank1FD, _chrBank1FE)
-                mappedAddr = CUInt(bank * &H1000) + (addr And &HFFFUS)
+                mappedAddr = CUInt(bank * &H1000I) + (addr And &HFFFUS)
 
                 If addr >= &H1FD8US AndAlso addr <= &H1FDFUS Then _latch1 = 0
                 If addr >= &H1FE8US AndAlso addr <= &H1FEFUS Then _latch1 = 1
@@ -131,10 +131,10 @@ Namespace NintendoEntertainmentSystem
                     ' Even with RAM, Mapper 9 logic still dictates which 4KB "window" is active
                     If addr <= &HFFFUS Then
                         Dim bank As Integer = If(_latch0 = 0, _chrBank0FD, _chrBank0FE)
-                        mappedAddr = CUInt(bank * &H1000) + (addr And &HFFFUS)
+                        mappedAddr = CUInt(bank * &H1000I) + (addr And &HFFFUS)
                     Else
                         Dim bank As Integer = If(_latch1 = 0, _chrBank1FD, _chrBank1FE)
-                        mappedAddr = CUInt(bank * &H1000) + (addr And &HFFFUS)
+                        mappedAddr = CUInt(bank * &H1000I) + (addr And &HFFFUS)
                     End If
                     Return True ' Signals to the Bus that this write is valid
                 End If

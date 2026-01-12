@@ -43,16 +43,16 @@ Namespace NintendoEntertainmentSystem
             End If
 
             If addr >= &H8000US AndAlso addr < &HA000US Then
-                mappedAddr = _prgBanksReg(0) + (addr And &H1FFFUI)
+                mappedAddr = _prgBanksReg(0) + (addr And &H1FFFUS)
                 Return True
             ElseIf addr >= &HA000US AndAlso addr < &HC000US Then
-                mappedAddr = _prgBanksReg(1) + (addr And &H1FFFUI)
+                mappedAddr = _prgBanksReg(1) + (addr And &H1FFFUS)
                 Return True
             ElseIf addr >= &HC000US AndAlso addr < &HE000US Then
-                mappedAddr = _prgBanksReg(2) + (addr And &H1FFFUI)
+                mappedAddr = _prgBanksReg(2) + (addr And &H1FFFUS)
                 Return True
             ElseIf addr >= &HE000US Then
-                mappedAddr = _prgBanksReg(3) + (addr And &H1FFFUI)
+                mappedAddr = _prgBanksReg(3) + (addr And &H1FFFUS)
                 Return True
             End If
 
@@ -72,9 +72,9 @@ Namespace NintendoEntertainmentSystem
 
             If addr >= &H8000US AndAlso addr < &HA000US Then
                 If (addr And 1) = 0 Then
-                    _targetRegister = data And &H7
-                    _prgBankMode = (data And &H40) <> 0
-                    _chrInversion = (data And &H80) <> 0
+                    _targetRegister = data And &H7UI
+                    _prgBankMode = (data And &H40UI) <> 0
+                    _chrInversion = (data And &H80UI) <> 0
                 Else
                     _registers(_targetRegister) = data
                     UpdateBanks()
@@ -105,7 +105,7 @@ Namespace NintendoEntertainmentSystem
         Public Overrides Function PpuMapRead(addr As UInt16, ByRef mappedAddr As UInt32) As Boolean
             If addr < &H2000US Then
                 Dim bank = addr >> 10 ' Divide by 1024 to get bank (0-7)
-                mappedAddr = _chrBanksReg(bank) + (addr And &H3FFUI)
+                mappedAddr = _chrBanksReg(bank) + (addr And &H3FFUS)
                 Return True
             End If
             Return False
@@ -123,15 +123,15 @@ Namespace NintendoEntertainmentSystem
                 _chrBanksReg(1) = CUInt(_registers(3)) * &H400UI
                 _chrBanksReg(2) = CUInt(_registers(4)) * &H400UI
                 _chrBanksReg(3) = CUInt(_registers(5)) * &H400UI
-                _chrBanksReg(4) = CUInt(_registers(0) And &HFE) * &H400UI
-                _chrBanksReg(5) = (CUInt(_registers(0)) Or 1) * &H400UI
-                _chrBanksReg(6) = CUInt(_registers(1) And &HFE) * &H400UI
-                _chrBanksReg(7) = (CUInt(_registers(1)) Or 1) * &H400UI
+                _chrBanksReg(4) = CUInt(_registers(0) And &HFEUI) * &H400UI
+                _chrBanksReg(5) = (CUInt(_registers(0)) Or 1UI) * &H400UI
+                _chrBanksReg(6) = CUInt(_registers(1) And &HFEUI) * &H400UI
+                _chrBanksReg(7) = (CUInt(_registers(1)) Or 1UI) * &H400UI
             Else
-                _chrBanksReg(0) = CUInt(_registers(0) And &HFE) * &H400UI
-                _chrBanksReg(1) = (CUInt(_registers(0)) Or 1) * &H400UI
-                _chrBanksReg(2) = CUInt(_registers(1) And &HFE) * &H400UI
-                _chrBanksReg(3) = (CUInt(_registers(1)) Or 1) * &H400UI
+                _chrBanksReg(0) = CUInt(_registers(0) And &HFEUI) * &H400UI
+                _chrBanksReg(1) = (CUInt(_registers(0)) Or 1UI) * &H400UI
+                _chrBanksReg(2) = CUInt(_registers(1) And &HFEUI) * &H400UI
+                _chrBanksReg(3) = (CUInt(_registers(1)) Or 1UI) * &H400UI
                 _chrBanksReg(4) = CUInt(_registers(2)) * &H400UI
                 _chrBanksReg(5) = CUInt(_registers(3)) * &H400UI
                 _chrBanksReg(6) = CUInt(_registers(4)) * &H400UI
@@ -141,12 +141,12 @@ Namespace NintendoEntertainmentSystem
             ' Update PRG banks
             If _prgBankMode Then
                 _prgBanksReg(0) = CUInt(_prgBanks * 2 - 2) * &H2000UI
-                _prgBanksReg(1) = CUInt(_registers(7) And &H3F) * &H2000UI
-                _prgBanksReg(2) = CUInt(_registers(6) And &H3F) * &H2000UI
+                _prgBanksReg(1) = CUInt(_registers(7) And &H3FUI) * &H2000UI
+                _prgBanksReg(2) = CUInt(_registers(6) And &H3FUI) * &H2000UI
                 _prgBanksReg(3) = CUInt(_prgBanks * 2 - 1) * &H2000UI
             Else
-                _prgBanksReg(0) = CUInt(_registers(6) And &H3F) * &H2000UI
-                _prgBanksReg(1) = CUInt(_registers(7) And &H3F) * &H2000UI
+                _prgBanksReg(0) = CUInt(_registers(6) And &H3FUI) * &H2000UI
+                _prgBanksReg(1) = CUInt(_registers(7) And &H3FUI) * &H2000UI
                 _prgBanksReg(2) = CUInt(_prgBanks * 2 - 2) * &H2000UI
                 _prgBanksReg(3) = CUInt(_prgBanks * 2 - 1) * &H2000UI
             End If

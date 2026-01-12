@@ -191,6 +191,7 @@ Namespace NintendoEntertainmentSystem
                 _dmaAddr = 0
                 _dmaTransfer = True
                 _dmaDummy = True
+                'Console.WriteLine($"*** DMA TRIGGERED from page ${data:X2} (base address ${data:X2}00) ***")
                 Return
             End If
 
@@ -305,23 +306,35 @@ Namespace NintendoEntertainmentSystem
             ' Perform DMA transfer
             If (_systemClockCounter Mod 2) = 0 Then
                 ' Even cycle: Read from CPU memory
-                Dim addr = CUShort((_dmaPage << 8) Or _dmaAddr)
+                Dim addr = CUShort((CUShort(_dmaPage) << 8) Or _dmaAddr)
                 _dmaData = CpuRead(addr)
+
+                ' DEBUG: Print first few reads
+                'If _dmaAddr < 16 Then
+                '    Console.WriteLine($"DMA read: page=${_dmaPage:X2}, addr=${_dmaAddr:X2}, full=${addr:X4} = ${_dmaData:X2}")
+                'End If
             Else
                 ' Odd cycle: Write to OAM
-                Dim oamIndex = _dmaAddr \ 4
-                Dim byteOffset = _dmaAddr Mod 4
+                Dim oamIndex = _dmaAddr >> 2  ' Divide by 4 to get sprite index (0-63)
+                Dim byteIndex = _dmaAddr And 3  ' Get byte within sprite (0-3)
 
                 If oamIndex < 64 Then
-                    PPU.OAM(oamIndex).SetByteAt(byteOffset, _dmaData)
+                    Select Case byteIndex
+                        Case 0 : PPU.OAM(oamIndex).Y = _dmaData
+                        Case 1 : PPU.OAM(oamIndex).TileID = _dmaData
+                        Case 2 : PPU.OAM(oamIndex).Attributes = _dmaData
+                        Case 3 : PPU.OAM(oamIndex).X = _dmaData
+                    End Select
                 End If
 
-                _dmaAddr = If(_dmaAddr = 255, 0, _dmaAddr + 1)
+                ' Increment address after write
+                _dmaAddr = CByte((_dmaAddr + 1) And &HFF)
 
                 ' Check if DMA complete
                 If _dmaAddr = 0 Then
                     _dmaTransfer = False
                     _dmaDummy = True
+                    'Console.WriteLine($"DMA complete! First sprite: Y={PPU.OAM(0).Y}, Tile=${PPU.OAM(0).TileID:X2}, X={PPU.OAM(0).X}")
                 End If
             End If
         End Sub

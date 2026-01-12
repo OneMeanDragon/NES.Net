@@ -97,75 +97,75 @@ Namespace NintendoEntertainmentSystem
         End Sub
 
         Private Sub InitializeSystemPalette()
-            _systemPalette(&H0) = New GraphicsObjects.Pixel(84, 84, 84)
-            _systemPalette(&H1) = New GraphicsObjects.Pixel(0, 30, 116)
-            _systemPalette(&H2) = New GraphicsObjects.Pixel(8, 16, 144)
-            _systemPalette(&H3) = New GraphicsObjects.Pixel(48, 0, 136)
-            _systemPalette(&H4) = New GraphicsObjects.Pixel(68, 0, 100)
-            _systemPalette(&H5) = New GraphicsObjects.Pixel(92, 0, 48)
-            _systemPalette(&H6) = New GraphicsObjects.Pixel(84, 4, 0)
-            _systemPalette(&H7) = New GraphicsObjects.Pixel(60, 24, 0)
-            _systemPalette(&H8) = New GraphicsObjects.Pixel(32, 42, 0)
-            _systemPalette(&H9) = New GraphicsObjects.Pixel(8, 58, 0)
-            _systemPalette(&HA) = New GraphicsObjects.Pixel(0, 64, 0)
-            _systemPalette(&HB) = New GraphicsObjects.Pixel(0, 60, 0)
-            _systemPalette(&HC) = New GraphicsObjects.Pixel(0, 50, 60)
-            _systemPalette(&HD) = New GraphicsObjects.Pixel(0, 0, 0)
-            _systemPalette(&HE) = New GraphicsObjects.Pixel(0, 0, 0)
-            _systemPalette(&HF) = New GraphicsObjects.Pixel(0, 0, 0)
-            _systemPalette(&H10) = New GraphicsObjects.Pixel(152, 150, 152)
-            _systemPalette(&H11) = New GraphicsObjects.Pixel(8, 76, 196)
-            _systemPalette(&H12) = New GraphicsObjects.Pixel(48, 50, 236)
-            _systemPalette(&H13) = New GraphicsObjects.Pixel(92, 30, 228)
-            _systemPalette(&H14) = New GraphicsObjects.Pixel(136, 20, 176)
-            _systemPalette(&H15) = New GraphicsObjects.Pixel(160, 20, 100)
-            _systemPalette(&H16) = New GraphicsObjects.Pixel(152, 34, 32)
-            _systemPalette(&H17) = New GraphicsObjects.Pixel(120, 60, 0)
-            _systemPalette(&H18) = New GraphicsObjects.Pixel(84, 90, 0)
-            _systemPalette(&H19) = New GraphicsObjects.Pixel(40, 114, 0)
-            _systemPalette(&H1A) = New GraphicsObjects.Pixel(8, 124, 0)
-            _systemPalette(&H1B) = New GraphicsObjects.Pixel(0, 118, 40)
-            _systemPalette(&H1C) = New GraphicsObjects.Pixel(0, 102, 120)
-            _systemPalette(&H1D) = New GraphicsObjects.Pixel(0, 0, 0)
-            _systemPalette(&H1E) = New GraphicsObjects.Pixel(0, 0, 0)
-            _systemPalette(&H1F) = New GraphicsObjects.Pixel(0, 0, 0)
-            _systemPalette(&H20) = New GraphicsObjects.Pixel(236, 238, 236)
-            _systemPalette(&H21) = New GraphicsObjects.Pixel(76, 154, 236)
-            _systemPalette(&H22) = New GraphicsObjects.Pixel(120, 124, 236)
-            _systemPalette(&H23) = New GraphicsObjects.Pixel(176, 98, 236)
-            _systemPalette(&H24) = New GraphicsObjects.Pixel(228, 84, 236)
-            _systemPalette(&H25) = New GraphicsObjects.Pixel(236, 88, 180)
-            _systemPalette(&H26) = New GraphicsObjects.Pixel(236, 106, 100)
-            _systemPalette(&H27) = New GraphicsObjects.Pixel(212, 136, 32)
-            _systemPalette(&H28) = New GraphicsObjects.Pixel(160, 170, 0)
-            _systemPalette(&H29) = New GraphicsObjects.Pixel(116, 196, 0)
-            _systemPalette(&H2A) = New GraphicsObjects.Pixel(76, 208, 32)
-            _systemPalette(&H2B) = New GraphicsObjects.Pixel(56, 204, 108)
-            _systemPalette(&H2C) = New GraphicsObjects.Pixel(56, 180, 204)
-            _systemPalette(&H2D) = New GraphicsObjects.Pixel(60, 60, 60)
-            _systemPalette(&H2E) = New GraphicsObjects.Pixel(0, 0, 0)
-            _systemPalette(&H2F) = New GraphicsObjects.Pixel(0, 0, 0)
-            _systemPalette(&H30) = New GraphicsObjects.Pixel(236, 238, 236)
-            _systemPalette(&H31) = New GraphicsObjects.Pixel(168, 204, 236)
-            _systemPalette(&H32) = New GraphicsObjects.Pixel(188, 188, 236)
-            _systemPalette(&H33) = New GraphicsObjects.Pixel(212, 178, 236)
-            _systemPalette(&H34) = New GraphicsObjects.Pixel(236, 174, 236)
-            _systemPalette(&H35) = New GraphicsObjects.Pixel(236, 174, 212)
-            _systemPalette(&H36) = New GraphicsObjects.Pixel(236, 180, 176)
-            _systemPalette(&H37) = New GraphicsObjects.Pixel(228, 196, 144)
-            _systemPalette(&H38) = New GraphicsObjects.Pixel(204, 210, 120)
-            _systemPalette(&H39) = New GraphicsObjects.Pixel(180, 222, 120)
-            _systemPalette(&H3A) = New GraphicsObjects.Pixel(168, 226, 144)
-            _systemPalette(&H3B) = New GraphicsObjects.Pixel(152, 226, 180)
-            _systemPalette(&H3C) = New GraphicsObjects.Pixel(160, 214, 228)
-            _systemPalette(&H3D) = New GraphicsObjects.Pixel(160, 162, 160)
-            _systemPalette(&H3E) = New GraphicsObjects.Pixel(0, 0, 0)
-            _systemPalette(&H3F) = New GraphicsObjects.Pixel(0, 0, 0)
+            _systemPalette(&H0UI) = New GraphicsObjects.Pixel(84, 84, 84)
+            _systemPalette(&H1UI) = New GraphicsObjects.Pixel(0, 30, 116)
+            _systemPalette(&H2UI) = New GraphicsObjects.Pixel(8, 16, 144)
+            _systemPalette(&H3UI) = New GraphicsObjects.Pixel(48, 0, 136)
+            _systemPalette(&H4UI) = New GraphicsObjects.Pixel(68, 0, 100)
+            _systemPalette(&H5UI) = New GraphicsObjects.Pixel(92, 0, 48)
+            _systemPalette(&H6UI) = New GraphicsObjects.Pixel(84, 4, 0)
+            _systemPalette(&H7UI) = New GraphicsObjects.Pixel(60, 24, 0)
+            _systemPalette(&H8UI) = New GraphicsObjects.Pixel(32, 42, 0)
+            _systemPalette(&H9UI) = New GraphicsObjects.Pixel(8, 58, 0)
+            _systemPalette(&HAUI) = New GraphicsObjects.Pixel(0, 64, 0)
+            _systemPalette(&HBUI) = New GraphicsObjects.Pixel(0, 60, 0)
+            _systemPalette(&HCUI) = New GraphicsObjects.Pixel(0, 50, 60)
+            _systemPalette(&HDUI) = New GraphicsObjects.Pixel(0, 0, 0)
+            _systemPalette(&HEUI) = New GraphicsObjects.Pixel(0, 0, 0)
+            _systemPalette(&HFUI) = New GraphicsObjects.Pixel(0, 0, 0)
+            _systemPalette(&H10UI) = New GraphicsObjects.Pixel(152, 150, 152)
+            _systemPalette(&H11UI) = New GraphicsObjects.Pixel(8, 76, 196)
+            _systemPalette(&H12UI) = New GraphicsObjects.Pixel(48, 50, 236)
+            _systemPalette(&H13UI) = New GraphicsObjects.Pixel(92, 30, 228)
+            _systemPalette(&H14UI) = New GraphicsObjects.Pixel(136, 20, 176)
+            _systemPalette(&H15UI) = New GraphicsObjects.Pixel(160, 20, 100)
+            _systemPalette(&H16UI) = New GraphicsObjects.Pixel(152, 34, 32)
+            _systemPalette(&H17UI) = New GraphicsObjects.Pixel(120, 60, 0)
+            _systemPalette(&H18UI) = New GraphicsObjects.Pixel(84, 90, 0)
+            _systemPalette(&H19UI) = New GraphicsObjects.Pixel(40, 114, 0)
+            _systemPalette(&H1AUI) = New GraphicsObjects.Pixel(8, 124, 0)
+            _systemPalette(&H1BUI) = New GraphicsObjects.Pixel(0, 118, 40)
+            _systemPalette(&H1CUI) = New GraphicsObjects.Pixel(0, 102, 120)
+            _systemPalette(&H1DUI) = New GraphicsObjects.Pixel(0, 0, 0)
+            _systemPalette(&H1EUI) = New GraphicsObjects.Pixel(0, 0, 0)
+            _systemPalette(&H1FUI) = New GraphicsObjects.Pixel(0, 0, 0)
+            _systemPalette(&H20UI) = New GraphicsObjects.Pixel(236, 238, 236)
+            _systemPalette(&H21UI) = New GraphicsObjects.Pixel(76, 154, 236)
+            _systemPalette(&H22UI) = New GraphicsObjects.Pixel(120, 124, 236)
+            _systemPalette(&H23UI) = New GraphicsObjects.Pixel(176, 98, 236)
+            _systemPalette(&H24UI) = New GraphicsObjects.Pixel(228, 84, 236)
+            _systemPalette(&H25UI) = New GraphicsObjects.Pixel(236, 88, 180)
+            _systemPalette(&H26UI) = New GraphicsObjects.Pixel(236, 106, 100)
+            _systemPalette(&H27UI) = New GraphicsObjects.Pixel(212, 136, 32)
+            _systemPalette(&H28UI) = New GraphicsObjects.Pixel(160, 170, 0)
+            _systemPalette(&H29UI) = New GraphicsObjects.Pixel(116, 196, 0)
+            _systemPalette(&H2AUI) = New GraphicsObjects.Pixel(76, 208, 32)
+            _systemPalette(&H2BUI) = New GraphicsObjects.Pixel(56, 204, 108)
+            _systemPalette(&H2CUI) = New GraphicsObjects.Pixel(56, 180, 204)
+            _systemPalette(&H2DUI) = New GraphicsObjects.Pixel(60, 60, 60)
+            _systemPalette(&H2EUI) = New GraphicsObjects.Pixel(0, 0, 0)
+            _systemPalette(&H2FUI) = New GraphicsObjects.Pixel(0, 0, 0)
+            _systemPalette(&H30UI) = New GraphicsObjects.Pixel(236, 238, 236)
+            _systemPalette(&H31UI) = New GraphicsObjects.Pixel(168, 204, 236)
+            _systemPalette(&H32UI) = New GraphicsObjects.Pixel(188, 188, 236)
+            _systemPalette(&H33UI) = New GraphicsObjects.Pixel(212, 178, 236)
+            _systemPalette(&H34UI) = New GraphicsObjects.Pixel(236, 174, 236)
+            _systemPalette(&H35UI) = New GraphicsObjects.Pixel(236, 174, 212)
+            _systemPalette(&H36UI) = New GraphicsObjects.Pixel(236, 180, 176)
+            _systemPalette(&H37UI) = New GraphicsObjects.Pixel(228, 196, 144)
+            _systemPalette(&H38UI) = New GraphicsObjects.Pixel(204, 210, 120)
+            _systemPalette(&H39UI) = New GraphicsObjects.Pixel(180, 222, 120)
+            _systemPalette(&H3AUI) = New GraphicsObjects.Pixel(168, 226, 144)
+            _systemPalette(&H3BUI) = New GraphicsObjects.Pixel(152, 226, 180)
+            _systemPalette(&H3CUI) = New GraphicsObjects.Pixel(160, 214, 228)
+            _systemPalette(&H3DUI) = New GraphicsObjects.Pixel(160, 162, 160)
+            _systemPalette(&H3EUI) = New GraphicsObjects.Pixel(0, 0, 0)
+            _systemPalette(&H3FUI) = New GraphicsObjects.Pixel(0, 0, 0)
         End Sub
 
         Public Sub Reset()
             For i = 0 To 63
-                OAM(i).Fill(&HFF)
+                OAM(i).Fill(&HFFUI)
             Next
             _oamAddress = 0
             _control.Reg = 0
@@ -220,7 +220,7 @@ Namespace NintendoEntertainmentSystem
             Else
                 Select Case addr
                     Case &H2US
-                        data = (_status.Reg And &HE0) Or (_dataBuffer And &H1F)
+                        data = (_status.Reg And &HE0UI) Or (_dataBuffer And &H1FUI)
                         _status.VerticalBlank = False
                         _addressLatch = 0
 
@@ -256,18 +256,18 @@ Namespace NintendoEntertainmentSystem
 
                 Case &H5US
                     If _addressLatch = 0 Then
-                        _fineX = data And &H7
+                        _fineX = data And &H7UI
                         _tramAddr.CoarseX = data >> 3
                         _addressLatch = 1
                     Else
-                        _tramAddr.FineY = data And &H7
+                        _tramAddr.FineY = data And &H7UI
                         _tramAddr.CoarseY = data >> 3
                         _addressLatch = 0
                     End If
 
                 Case &H6US
                     If _addressLatch = 0 Then
-                        _tramAddr.Reg = CUShort(((data And &H3F) << 8) Or (_tramAddr.Reg And &HFF))
+                        _tramAddr.Reg = CUShort((CUShort(data And &H3FUI) << 8) Or (_tramAddr.Reg And &HFFUS))
                         _addressLatch = 1
                     Else
                         _tramAddr.Reg = (_tramAddr.Reg And &HFF00US) Or data
@@ -286,91 +286,91 @@ Namespace NintendoEntertainmentSystem
 #Region "PPU Bus Interface"
         Public Function PpuRead(addr As UShort, Optional rdOnly As Boolean = False) As Byte
             Dim data As Byte = 0
-            addr = addr And &H3FFF
+            addr = addr And &H3FFFUS
 
             If Cart.PpuRead(addr, data) Then
                 ' Cartridge handled read
-            ElseIf addr <= &H1FFF Then
-                data = If(addr < &H1000, _patternTable0(addr), _patternTable1(addr And &HFFF))
-            ElseIf addr <= &H3EFF Then
-                addr = addr And &HFFF
+            ElseIf addr <= &H1FFFUS Then
+                data = If(addr < &H1000US, _patternTable0(addr), _patternTable1(addr And &HFFFUS))
+            ElseIf addr <= &H3EFFUS Then
+                addr = addr And &HFFFUS
                 Dim mirror = Cart.MirrorMode()
 
                 If mirror = MirrorMode.Vertical Then
-                    If addr < &H400 Then
+                    If addr < &H400US Then
                         data = _nametable0(addr)
-                    ElseIf addr < &H800 Then
-                        data = _nametable1(addr And &H3FF)
-                    ElseIf addr < &HC00 Then
-                        data = _nametable0(addr And &H3FF)
+                    ElseIf addr < &H800US Then
+                        data = _nametable1(addr And &H3FFUS)
+                    ElseIf addr < &HC00US Then
+                        data = _nametable0(addr And &H3FFUS)
                     Else
-                        data = _nametable1(addr And &H3FF)
+                        data = _nametable1(addr And &H3FFUS)
                     End If
                 Else
-                    If addr < &H400 Then
+                    If addr < &H400US Then
                         data = _nametable0(addr)
-                    ElseIf addr < &H800 Then
-                        data = _nametable0(addr And &H3FF)
-                    ElseIf addr < &HC00 Then
-                        data = _nametable1(addr And &H3FF)
+                    ElseIf addr < &H800US Then
+                        data = _nametable0(addr And &H3FFUS)
+                    ElseIf addr < &HC00US Then
+                        data = _nametable1(addr And &H3FFUS)
                     Else
-                        data = _nametable1(addr And &H3FF)
+                        data = _nametable1(addr And &H3FFUS)
                     End If
                 End If
             Else
                 addr = addr And &H1F
-                If addr = &H10 Then addr = &H0
-                If addr = &H14 Then addr = &H4
-                If addr = &H18 Then addr = &H8
-                If addr = &H1C Then addr = &HC
-                data = _paletteRam(addr) And If(_mask.Grayscale, &H30, &H3F)
+                If addr = &H10US Then addr = &H0US
+                If addr = &H14US Then addr = &H4US
+                If addr = &H18US Then addr = &H8US
+                If addr = &H1CUS Then addr = &HCUS
+                data = _paletteRam(addr) And If(_mask.Grayscale, &H30UI, &H3FUI)
             End If
 
             Return data
         End Function
 
         Public Sub PpuWrite(addr As UShort, data As Byte)
-            addr = addr And &H3FFF
+            addr = addr And &H3FFFUS
 
             If Cart.PpuWrite(addr, data) Then
                 ' Cartridge handled write
-            ElseIf addr <= &H1FFF Then
-                If addr < &H1000 Then
+            ElseIf addr <= &H1FFFUS Then
+                If addr < &H1000US Then
                     _patternTable0(addr) = data
                 Else
-                    _patternTable1(addr And &HFFF) = data
+                    _patternTable1(addr And &HFFFUS) = data
                 End If
-            ElseIf addr <= &H3EFF Then
-                addr = addr And &HFFF
+            ElseIf addr <= &H3EFFUS Then
+                addr = addr And &HFFFUS
                 Dim mirror = Cart.MirrorMode()
 
                 If mirror = MirrorMode.Vertical Then
-                    If addr < &H400 Then
+                    If addr < &H400US Then
                         _nametable0(addr) = data
-                    ElseIf addr < &H800 Then
-                        _nametable1(addr And &H3FF) = data
-                    ElseIf addr < &HC00 Then
-                        _nametable0(addr And &H3FF) = data
+                    ElseIf addr < &H800US Then
+                        _nametable1(addr And &H3FFUS) = data
+                    ElseIf addr < &HC00US Then
+                        _nametable0(addr And &H3FFUS) = data
                     Else
-                        _nametable1(addr And &H3FF) = data
+                        _nametable1(addr And &H3FFUS) = data
                     End If
                 Else
-                    If addr < &H400 Then
+                    If addr < &H400US Then
                         _nametable0(addr) = data
-                    ElseIf addr < &H800 Then
-                        _nametable0(addr And &H3FF) = data
-                    ElseIf addr < &HC00 Then
-                        _nametable1(addr And &H3FF) = data
+                    ElseIf addr < &H800US Then
+                        _nametable0(addr And &H3FFUS) = data
+                    ElseIf addr < &HC00US Then
+                        _nametable1(addr And &H3FFUS) = data
                     Else
-                        _nametable1(addr And &H3FF) = data
+                        _nametable1(addr And &H3FFUS) = data
                     End If
                 End If
             Else
-                addr = addr And &H1F
-                If addr = &H10 Then addr = &H0
-                If addr = &H14 Then addr = &H4
-                If addr = &H18 Then addr = &H8
-                If addr = &H1C Then addr = &HC
+                addr = addr And &H1FUS
+                If addr = &H10US Then addr = &H0US
+                If addr = &H14US Then addr = &H4US
+                If addr = &H18US Then addr = &H8US
+                If addr = &H1CUS Then addr = &HCUS
                 _paletteRam(addr) = data
             End If
         End Sub
@@ -384,7 +384,7 @@ Namespace NintendoEntertainmentSystem
         'End Function
 
         Public Function GetColorFromPalette(palette As Byte, pixel As Byte) As GraphicsObjects.Pixel
-            Return _systemPalette(PpuRead(&H3F00US + (palette << 2) + pixel) And &H3F)
+            Return _systemPalette(PpuRead(&H3F00US + (CUShort(palette) << 2) + pixel) And &H3FUI)
         End Function
 #End Region
 
@@ -437,10 +437,10 @@ Namespace NintendoEntertainmentSystem
 
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Private Sub LoadBackgroundShifters()
-            _bgShifterPatternLo = (_bgShifterPatternLo And &HFF00) Or _bgNextTileLsb
-            _bgShifterPatternHi = (_bgShifterPatternHi And &HFF00) Or _bgNextTileMsb
-            _bgShifterAttribLo = (_bgShifterAttribLo And &HFF00) Or If((_bgNextTileAttrib And 1) <> 0, &HFF, 0)
-            _bgShifterAttribHi = (_bgShifterAttribHi And &HFF00) Or If((_bgNextTileAttrib And 2) <> 0, &HFF, 0)
+            _bgShifterPatternLo = (_bgShifterPatternLo And &HFF00US) Or _bgNextTileLsb
+            _bgShifterPatternHi = (_bgShifterPatternHi And &HFF00US) Or _bgNextTileMsb
+            _bgShifterAttribLo = (_bgShifterAttribLo And &HFF00US) Or If((_bgNextTileAttrib And 1) <> 0, &HFFUS, 0)
+            _bgShifterAttribHi = (_bgShifterAttribHi And &HFF00US) Or If((_bgNextTileAttrib And 2) <> 0, &HFFUS, 0)
         End Sub
 
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
@@ -479,21 +479,24 @@ Namespace NintendoEntertainmentSystem
 
             Dim entry As Byte = 0
             While entry < 64 AndAlso _spriteCount < 9
-                Dim diff = _scanline - CInt(OAM(entry).Y)
+                Dim diff = (_scanline + 1) - CInt(OAM(entry).Y)
                 Dim height = If(_control.SpriteSize, 16, 8)
 
                 If diff >= 0 AndAlso diff < height Then
                     If _spriteCount < 8 Then
                         If entry = 0 Then _spriteZeroHitPossible = True
                         _spriteScanline(_spriteCount).CopyFrom(OAM(entry))
+                        _spriteCount += 1
+                    Else
+                        _spriteCount += 1
                     End If
-                    _spriteCount += 1
                 End If
                 entry += 1
             End While
 
-            _status.SpriteOverflow = (_spriteCount >= 8)
+            _status.SpriteOverflow = (_spriteCount > 8)
         End Sub
+
 
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Private Sub LoadSpriteShifters()
@@ -501,21 +504,23 @@ Namespace NintendoEntertainmentSystem
                 Dim patternLo, patternHi As Byte
                 Dim addrLo, addrHi As UShort
 
+                Dim spriteLine = (_scanline + 1) - CInt(_spriteScanline(i).Y)
+
                 If Not _control.SpriteSize Then
                     ' 8x8 mode
-                    Dim row = _scanline - _spriteScanline(i).Y
+                    Dim row = spriteLine
                     If _spriteScanline(i).IsFlippedVertically Then row = 7 - row
 
                     addrLo = (If(_control.PatternSprite, &H1000US, 0US)) Or
-                             (CUShort(_spriteScanline(i).TileID) << 4) Or
-                             CUShort(row)
+                     (CUShort(_spriteScanline(i).TileID) << 4) Or
+                     CUShort(row)
                 Else
                     ' 8x16 mode
-                    Dim row = _scanline - _spriteScanline(i).Y
+                    Dim row = spriteLine
                     If _spriteScanline(i).IsFlippedVertically Then row = 15 - row
 
                     Dim bank = (_spriteScanline(i).TileID And 1) << 12
-                    Dim tile = _spriteScanline(i).TileID And &HFE
+                    Dim tile = _spriteScanline(i).TileID And &HFEUI
                     If row >= 8 Then
                         tile += 1
                         row -= 8
@@ -541,9 +546,9 @@ Namespace NintendoEntertainmentSystem
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Private Function FlipByte(b As Byte) As Byte
             If b = 0 Then Return 0
-            b = ((b And &HF0) >> 4) Or ((b And &HF) << 4)
-            b = ((b And &HCC) >> 2) Or ((b And &H33) << 2)
-            b = ((b And &HAA) >> 1) Or ((b And &H55) << 1)
+            b = ((b And &HF0UI) >> 4) Or ((b And &HFUI) << 4)
+            b = ((b And &HCCUI) >> 2) Or ((b And &H33UI) << 2)
+            b = ((b And &HAAUI) >> 1) Or ((b And &H55UI) << 1)
             Return b
         End Function
 #End Region
@@ -574,7 +579,7 @@ Namespace NintendoEntertainmentSystem
                     Select Case ((_cycle - 1) Mod 8)
                         Case 0
                             LoadBackgroundShifters()
-                            _bgNextTileId = PpuRead(&H2000US Or (_vramAddr.Reg And &HFFF))
+                            _bgNextTileId = PpuRead(&H2000US Or (_vramAddr.Reg And &HFFFUS))
 
                         Case 2
                             _bgNextTileAttrib = PpuRead(&H23C0US Or
@@ -583,10 +588,10 @@ Namespace NintendoEntertainmentSystem
                                                        ((_vramAddr.CoarseY >> 2) << 3) Or
                                                        (_vramAddr.CoarseX >> 2))
 
-                            Dim shift = 0
+                            Dim shift As Byte = 0
                             If (_vramAddr.CoarseY And &H2) <> 0 Then shift += 4
                             If (_vramAddr.CoarseX And &H2) <> 0 Then shift += 2
-                            _bgNextTileAttrib = (_bgNextTileAttrib >> shift) And &H3
+                            _bgNextTileAttrib = (_bgNextTileAttrib >> shift) And &H3UI
 
                         Case 4
                             _bgNextTileLsb = PpuRead((If(_control.PatternBackground, &H1000US, 0US)) Or
@@ -611,15 +616,24 @@ Namespace NintendoEntertainmentSystem
                 End If
 
                 If _cycle = 338 OrElse _cycle = 340 Then
-                    _bgNextTileId = PpuRead(&H2000US Or (_vramAddr.Reg And &HFFF))
+                    _bgNextTileId = PpuRead(&H2000US Or (_vramAddr.Reg And &HFFFUS))
                 End If
 
                 If _scanline = -1 AndAlso _cycle >= 280 AndAlso _cycle < 305 Then
                     TransferAddressY()
                 End If
 
+                ' Sprite evaluation should happen at cycle 257 for the NEXT scanline
                 If _cycle = 257 AndAlso _scanline >= 0 Then
                     EvaluateSprites()
+
+                    ' DEBUG: Check OAM at scanline 100
+                    'If _scanline = 100 Then
+                    '    Console.WriteLine($"Scanline 100 - Sprite count: {_spriteCount}")
+                    '    For i = 0 To Math.Min(3, 63)
+                    '        Console.WriteLine($"OAM[{i}]: Y={OAM(i).Y}, Tile=${OAM(i).TileID:X2}, Attr=${OAM(i).Attributes:X2}, X={OAM(i).X}")
+                    '    Next
+                    'End If
                 End If
 
                 If _cycle = 340 Then
@@ -659,9 +673,9 @@ Namespace NintendoEntertainmentSystem
 
                     For i = 0 To Math.Min(_spriteCount - 1, 7)
                         If _spriteScanline(i).X = 0 Then
-                            fgPixel = (If((_spriteShifterHi(i) And &H80) <> 0, 1, 0) << 1) Or If((_spriteShifterLo(i) And &H80) <> 0, 1, 0)
-                            fgPalette = (_spriteScanline(i).Attributes And &H3) + 4
-                            fgPriority = If((_spriteScanline(i).Attributes And &H20) = 0, 1, 0)
+                            fgPixel = (If((_spriteShifterHi(i) And &H80UI) <> 0, 1, 0) << 1) Or If((_spriteShifterLo(i) And &H80UI) <> 0, 1, 0)
+                            fgPalette = (_spriteScanline(i).Attributes And &H3UI) + 4
+                            fgPriority = If((_spriteScanline(i).Attributes And &H20UI) = 0, 1, 0)
 
                             If fgPixel <> 0 Then
                                 If i = 0 Then _spriteZeroBeingRendered = True
@@ -729,8 +743,8 @@ Namespace NintendoEntertainmentSystem
                     Dim offset = (tileY * 256) + (tileX * 16)
 
                     For row = 0 To 7
-                        Dim tileLsb = PpuRead((i * &H1000US) + offset + row)
-                        Dim tileMsb = PpuRead((i * &H1000US) + offset + row + 8)
+                        Dim tileLsb = PpuRead((CUShort(i) * &H1000US) + offset + row)
+                        Dim tileMsb = PpuRead((CUShort(i) * &H1000US) + offset + row + 8)
 
                         For col = 0 To 7
                             Dim pixel = ((tileMsb And 1) << 1) Or (tileLsb And 1)
