@@ -100,23 +100,10 @@
             Return 0
         End Function
 
-        ''' <summary>Rotate Left, well the AI actually did something useful for a change</summary>
         Friend Function ROL() As Byte
-            ' 1. Determine the data source
-            ' If Implied mode (4Dh is ROL A), use A. Otherwise, Fetch from memory.
-            Dim value As Byte
-            If _instructions(_opcode).ModeType = AddrMode.IMP Then
-                value = A
-            Else
-                Fetch() ' This reads memory at _addrAbs into _fetched
-                value = _fetched
-            End If
+            Fetch()
+            _temp = CUShort(CUShort(_fetched) << 1) Or GetFlag(StatusFlags.C)
 
-            ' 2. Perform the Rotate Left logic
-            ' temp = (value << 1) OR (Old Carry)
-            _temp = CUShort((CUShort(value) << 1) Or GetFlag(StatusFlags.C))
-
-            ' 3. Update Flags
             ' Carry is the bit that was shifted out (bit 8 of our 16-bit temp)
             SetFlag(StatusFlags.C, (_temp And &H100US) <> 0)
             ' Z and N are based on the 8-bit result
@@ -124,20 +111,18 @@
             SetFlag(StatusFlags.Z, result = 0)
             SetFlag(StatusFlags.N, (result And &H80US) <> 0)
 
-            ' 4. Write back to the correct destination
             If _instructions(_opcode).ModeType = AddrMode.IMP Then
-                A = result
+                A = _temp And &HFF
             Else
-                Write(_addrAbs, result)
+                Write(_addrAbs, _temp And &HFF)
             End If
-
             Return 0
         End Function
 
         ''' <summary>Rotate Right</summary>
         Friend Function ROR() As Byte
             Fetch()
-            _temp = (GetFlag(StatusFlags.C) << 7) Or (_fetched >> 1)
+            _temp = (CUShort(GetFlag(StatusFlags.C)) << 7) Or (_fetched >> 1)
             SetFlag(StatusFlags.C, (_fetched And 1) <> 0)
             SetFlag(StatusFlags.Z, (_temp And &HFF) = 0)
             SetFlag(StatusFlags.N, (_temp And &H80) <> 0)

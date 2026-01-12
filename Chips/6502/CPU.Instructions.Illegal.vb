@@ -61,7 +61,7 @@
         Friend Function SLO() As Byte
             Dim data = Read(_addrAbs)
             SetFlag(StatusFlags.C, (data And &H80UI) <> 0)
-            data = (data << 1UI) And &HFFUI
+            data = (CUShort(data) << 1) And &HFFUI
             Write(_addrAbs, data)
             A = A Or data
             SetFlag(StatusFlags.N, (A And &H80UI) <> 0)
@@ -73,7 +73,7 @@
         Friend Function RLA() As Byte
             Dim data = Read(_addrAbs)
             Dim bit7 = If((data And &H80UI) <> 0, 1, 0)
-            data = ((data << 1UI) Or GetFlag(StatusFlags.C)) And &HFFUI
+            data = ((CUShort(data) << 1) Or GetFlag(StatusFlags.C)) And &HFFUI
             SetFlag(StatusFlags.C, bit7 = 1)
             Write(_addrAbs, data)
             A = A And data
