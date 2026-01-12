@@ -26,14 +26,14 @@ Namespace NintendoEntertainmentSystem
         Friend Function ZP0() As Byte
             _addrAbs = Read(PC)
             PC += 1US
-            _addrAbs = _addrAbs And &HFF
+            _addrAbs = _addrAbs And &HFFUS
             Return 0
         End Function
 
         ''' <summary>Zero Page, X - Zero page address + X</summary>
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Function ZPX() As Byte
-            _addrAbs = (Read(PC) + X) And &HFF
+            _addrAbs = (CUShort(Read(PC)) + X) And &HFFUS
             PC += 1US
             Return 0
         End Function
@@ -41,7 +41,7 @@ Namespace NintendoEntertainmentSystem
         ''' <summary>Zero Page, Y - Zero page address + Y</summary>
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Function ZPY() As Byte
-            _addrAbs = (Read(PC) + Y) And &HFF
+            _addrAbs = (CUShort(Read(PC)) + Y) And &HFFUS
             PC += 1US
             Return 0
         End Function
@@ -59,8 +59,8 @@ Namespace NintendoEntertainmentSystem
             PC += 1US
             ' Sign extend: if bit 7 is set, the value is negative.
             ' If _addrRel is an Integer/Short, this makes it a proper negative number.
-            If (_addrRel And &H80) <> 0 Then
-                _addrRel = _addrRel Or &HFF00
+            If (_addrRel And &H80US) <> 0 Then
+                _addrRel = _addrRel Or &HFF00US
             End If
             Return 0
         End Function
@@ -72,7 +72,7 @@ Namespace NintendoEntertainmentSystem
             PC += 1US
             Dim hi = Read(PC)
             PC += 1US
-            _addrAbs = (CUShort(hi) << 8) Or lo
+            _addrAbs = (CUShort(hi) << 8US) Or lo
             Return 0
         End Function
 
@@ -81,7 +81,7 @@ Namespace NintendoEntertainmentSystem
         Friend Function ABX() As Byte
             ABS()
             Dim baseAddr As UShort = _addrAbs
-            _addrAbs = CUShort((_addrAbs + X) And &HFFFFUS)
+            _addrAbs = ((_addrAbs + X) And &HFFFFUS)
             If (_addrAbs And &HFF00US) <> (baseAddr And &HFF00US) Then
                 Return 1
             End If
@@ -93,7 +93,7 @@ Namespace NintendoEntertainmentSystem
         Friend Function ABY() As Byte
             ABS()
             Dim baseAddr As UShort = _addrAbs
-            _addrAbs = CUShort((_addrAbs + Y) And &HFFFFUS)
+            _addrAbs = ((_addrAbs + Y) And &HFFFFUS)
             If (_addrAbs And &HFF00US) <> (baseAddr And &HFF00US) Then
                 Return 1
             End If
@@ -114,7 +114,7 @@ Namespace NintendoEntertainmentSystem
             End If
 
             Dim hi As Byte = Read(hiAddr)
-            _addrAbs = (CUShort(hi) << 8) Or lo
+            _addrAbs = (CUShort(hi) << 8US) Or lo
             Return 0
         End Function
 
@@ -123,19 +123,19 @@ Namespace NintendoEntertainmentSystem
         Friend Function IZX() As Byte
             Dim t = Read(PC)
             PC += 1US
-            Dim lo = Read(CUShort(t + X) And &HFF)
-            Dim hi = Read(CUShort(t + X + 1) And &HFF)
-            _addrAbs = (CUShort(hi) << 8) Or lo
+            Dim lo = Read((CUShort(t) + X) And &HFFUS)
+            Dim hi = Read((CUShort(t) + X + 1US) And &HFFUS)
+            _addrAbs = (CUShort(hi) << 8US) Or lo
             Return 0
         End Function
 
         ''' <summary>Indirect Indexed - Read address from zero page, then add Y</summary>
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Function IZY() As Byte
-            Dim t As Integer = Read(PC)
+            Dim t As Byte = Read(PC)
             PC += 1US
-            Dim lo = Read(CUShort(t And &HFF))
-            Dim hi = Read(CUShort((t + 1) And &HFF))
+            Dim lo = Read(CUShort(t) And &HFFUS)
+            Dim hi = Read((CUShort(t) + 1US) And &HFFUS)
 
             ' Store the base address to check for page crossing
             Dim baseAddr As UShort = (CUShort(hi) << 8) Or lo

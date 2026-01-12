@@ -2,10 +2,8 @@
 
 Namespace NintendoEntertainmentSystem
 
-    ''' <summary>
-    ''' MOS Technology 6502 CPU - Core (Partial Class)
-    ''' 8-bit Microprocessor used in the NES
-    ''' </summary>
+    ' MOS Technology 6502 CPU - Core (Partial Class)
+    ' 8-bit Microprocessor used in the NES
     Partial Public NotInheritable Class CPU6502
 
 #Region "CPU Flags"
@@ -170,27 +168,27 @@ Namespace NintendoEntertainmentSystem
 #Region "Stack Operations"
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Sub Push(data As Byte)
-            Write(CUShort(&H100 + SP), data)
-            SP = CByte((CInt(SP) - 1) And &HFF)
+            Write((&H100US + SP), data)
+            SP = CByte((SP - 1UI) And &HFFUI)
         End Sub
 
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Function Pop() As Byte
-            SP = CByte((CInt(SP) + 1) And &HFF)
-            Return Read(CUShort(&H100 + SP))
+            SP = CByte((SP + 1UI) And &HFFUI)
+            Return Read((&H100US + SP))
         End Function
 
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Sub PushWord(data As UShort)
-            Push(CByte((data >> 8) And &HFF))
-            Push(CByte(data And &HFF))
+            Push(CByte((data >> 8US) And &HFFUS))
+            Push(CByte(data And &HFFUS))
         End Sub
 
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Function PopWord() As UShort
             Dim lo = Pop()
             Dim hi = Pop()
-            Return CUShort((CUShort(hi) << 8) Or lo)
+            Return ((CUShort(hi) << 8US) Or lo)
         End Function
 #End Region
 

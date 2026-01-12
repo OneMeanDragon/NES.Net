@@ -1,8 +1,6 @@
 ﻿Namespace NintendoEntertainmentSystem
 
-    ''' <summary>
-    ''' MOS Technology 6502 CPU - Official Instructions (Partial Class)
-    ''' </summary>
+    ' MOS Technology 6502 CPU - Official Instructions (Partial Class)
     Partial Public NotInheritable Class CPU6502
 
 #Region "Arithmetic Instructions"
@@ -102,18 +100,37 @@
             Return 0
         End Function
 
-        ''' <summary>Rotate Left</summary>
+        ''' <summary>Rotate Left, well the AI actually did something useful for a change</summary>
         Friend Function ROL() As Byte
-            Fetch()
-            _temp = CUShort(_fetched << 1) Or GetFlag(StatusFlags.C)
-            SetFlag(StatusFlags.C, (_temp And &HFF00) <> 0)
-            SetFlag(StatusFlags.Z, (_temp And &HFF) = 0)
-            SetFlag(StatusFlags.N, (_temp And &H80) <> 0)
+            ' 1. Determine the data source
+            ' If Implied mode (4Dh is ROL A), use A. Otherwise, Fetch from memory.
+            Dim value As Byte
             If _instructions(_opcode).ModeType = AddrMode.IMP Then
-                A = _temp And &HFF
+                value = A
             Else
-                Write(_addrAbs, _temp And &HFF)
+                Fetch() ' This reads memory at _addrAbs into _fetched
+                value = _fetched
             End If
+
+            ' 2. Perform the Rotate Left logic
+            ' temp = (value << 1) OR (Old Carry)
+            _temp = CUShort((CUShort(value) << 1) Or GetFlag(StatusFlags.C))
+
+            ' 3. Update Flags
+            ' Carry is the bit that was shifted out (bit 8 of our 16-bit temp)
+            SetFlag(StatusFlags.C, (_temp And &H100US) <> 0)
+            ' Z and N are based on the 8-bit result
+            Dim result As Byte = CByte(_temp And &HFFUS)
+            SetFlag(StatusFlags.Z, result = 0)
+            SetFlag(StatusFlags.N, (result And &H80US) <> 0)
+
+            ' 4. Write back to the correct destination
+            If _instructions(_opcode).ModeType = AddrMode.IMP Then
+                A = result
+            Else
+                Write(_addrAbs, result)
+            End If
+
             Return 0
         End Function
 
@@ -409,7 +426,7 @@
 
         ''' <summary>Jump to Subroutine</summary>
         Friend Function JSR() As Byte
-            PC -= 1
+            PC -= 1US
             PushWord(PC)
             PC = _addrAbs
             Return 0
@@ -418,7 +435,7 @@
         ''' <summary>Return from Subroutine</summary>
         Friend Function RTS() As Byte
             PC = PopWord()
-            PC += 1
+            PC += 1US
             Return 0
         End Function
 
@@ -433,13 +450,13 @@
 
         ''' <summary>Break</summary>
         Friend Function BRK() As Byte
-            PC += 1
+            PC += 1US
             SetFlag(StatusFlags.I, True)
             PushWord(PC)
             SetFlag(StatusFlags.B, True)
             Push(Status)
             SetFlag(StatusFlags.B, False)
-            PC = (CUShort(Read(&HFFFF)) << 8) Or Read(&HFFFE)
+            PC = (CUShort(Read(&HFFFF)) << 8US) Or Read(&HFFFE)
             Return 0
         End Function
 #End Region

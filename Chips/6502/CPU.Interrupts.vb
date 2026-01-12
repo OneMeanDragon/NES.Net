@@ -101,8 +101,8 @@
 
                 ' Increment program counter
                 PC += 1US
-                'Debug.WriteLine($"ProgramCounter: {PC}")
-                'If PC >= &HFFFFUS Then
+                'Debug.WriteLine(String.Format("ProgramCounter: 0x{0:X4}", PC))
+                'If PC >= &HFFFFUS Then 'String.Format("CPU NMI() called! ProgramCounter: 0x{0:X4}, SP=0x{1:X2}", PC, StackPointer)
                 '    Debug.WriteLine($"ProgramCounter MAX: {PC}")
                 'End If
 
@@ -117,6 +117,7 @@
 
                 ' Add any additional cycles (only if both return 1)
                 _cycles += (additionalCycle1 And additionalCycle2)
+                'Debug.WriteLine($"Cycles: {_cycles}")
 
                 ' Always set unused flag
                 SetFlag(StatusFlags.U, True)

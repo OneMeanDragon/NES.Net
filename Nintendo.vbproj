@@ -195,7 +195,6 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="Cartridge\NES.CARTRIDGE2.vb" />
-    <Compile Include="NES.6502.vb" />
     <Compile Include="NES.CONSTANTS.vb" />
     <Compile Include="Renderer\Pixel\Pixel.vb" />
     <Compile Include="Renderer\Sprite\Sprite.vb" />
