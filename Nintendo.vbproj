@@ -144,6 +144,7 @@
     <Compile Include="ApplicationCore\Hardware.vb" />
     <Compile Include="ApplicationCore\KeyboardVariables.vb" />
     <Compile Include="Audio\AudioSystem.vb" />
+    <Compile Include="Audio\CallbackAudioSystem.vb" />
     <Compile Include="Chips\2C02\PPU2C02.vb" />
     <Compile Include="Chips\6502\CPU.AddressingModes.vb" />
     <Compile Include="Chips\6502\CPU.Core.vb" />

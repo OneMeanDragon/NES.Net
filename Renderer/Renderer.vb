@@ -21,6 +21,7 @@ Namespace Core
         ' Total canvas size
         Public Const CANVAS_WIDTH As Integer = GAME_WIDTH + 4 + ((PATTERN_SIZE + 2) * 2)
         Public Const CANVAS_HEIGHT As Integer = GAME_HEIGHT + 4
+        Public ReadOnly Property CanvasSize As New Size(CANVAS_WIDTH, CANVAS_HEIGHT)
 #End Region
 
 #Region "State"

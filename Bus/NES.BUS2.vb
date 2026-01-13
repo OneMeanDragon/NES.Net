@@ -1,5 +1,6 @@
 ﻿Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
+Imports Nintendo.Nintendo.NintendoEntertainmentSystem
 
 Namespace NintendoEntertainmentSystem
 
@@ -45,6 +46,73 @@ Namespace NintendoEntertainmentSystem
         Private _audioTime As Double
         Private _audioTimePerNESClock As Double
         Private _audioTimePerSystemSample As Double
+
+#Region "Audio System"
+        'Private ReadOnly _audioSystem As New Core.Audio.AudioSystem()
+        Private ReadOnly _audioSystem As New CallbackAudioSystem()
+
+        Public ReadOnly Property AudioSystem As CallbackAudioSystem
+            Get
+                Return _audioSystem
+            End Get
+        End Property
+
+        ' Add a circular buffer for samples
+        Private Const AUDIO_RINGBUFFER_SIZE As UInteger = 41983 '8191  ' Power of 2 minus 1
+        Private _audioBuffer(AUDIO_RINGBUFFER_SIZE) As Double
+        Private _audioBufferWrite As Integer = 0
+        Private _audioBufferRead As Integer = 0
+        Private _audioBufferLock As New Object()
+        Private _lastValidSample As Double = 0.0  ' Hold last valid sample
+        Private _bufferUnderrunCount As Long = 0
+
+        ''' <summary>
+        ''' Get number of samples currently in the ring buffer
+        ''' </summary>
+        Public ReadOnly Property AudioBufferLevel As Integer
+            Get
+                SyncLock _audioBufferLock
+                    Dim diff = _audioBufferWrite - _audioBufferRead
+                    If diff < 0 Then diff += (AUDIO_RINGBUFFER_SIZE + 1)
+                    Return diff
+                End SyncLock
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Audio callback - called by audio system when it needs samples
+        ''' </summary>
+        Private Function GetAudioSample(sampleIndex As Long, time As Double) As Double
+            SyncLock _audioBufferLock
+                ' Check if buffer has samples
+                Dim available = _audioBufferWrite - _audioBufferRead
+                If available < 0 Then available += (AUDIO_RINGBUFFER_SIZE + 1)
+
+                If available > 0 Then
+                    ' Get sample from buffer
+                    Dim sample = _audioBuffer(_audioBufferRead)
+                    _audioBufferRead = (_audioBufferRead + 1) And AUDIO_RINGBUFFER_SIZE
+
+                    ' Clamp to valid range (critical!)
+                    sample = Math.Max(-1.0, Math.Min(1.0, sample))
+
+                    ' Store as last valid sample
+                    _lastValidSample = sample
+                    Return sample
+                Else
+                    ' Buffer underrun - return last valid sample (not silence!)
+                    _bufferUnderrunCount += 1
+
+                    ' Debug every 10000 underruns
+                    If (_bufferUnderrunCount Mod 10000) = 0 Then
+                        Debug.WriteLine($"[Audio] Buffer underrun #{_bufferUnderrunCount}, level={available}")
+                    End If
+
+                    Return _lastValidSample  ' Hold last sample instead of silence
+                End If
+            End SyncLock
+        End Function
+#End Region
 #End Region
 
 #Region "System State"
@@ -95,12 +163,29 @@ Namespace NintendoEntertainmentSystem
             ' Setup audio timing
             SetSampleFrequency(AUDIO_SAMPLE_RATE)
 
+            ' Setup audio timing
+            SetSampleFrequency(AUDIO_SAMPLE_RATE)
+
+            ' Initialize audio system
+            'If Not _audioSystem.Initialize(AUDIO_SAMPLE_RATE) Then
+            '    Debug.WriteLine("[Bus] Warning: Audio system failed to initialize")
+            'End If
+            If Not _audioSystem.Initialize(44100, 1, 16, 512, AddressOf GetAudioSample) Then
+                Debug.WriteLine("[Bus] Warning: Audio system failed to initialize")
+            End If
+            For i = 0 To 2047
+                _audioBuffer(i) = 0.0
+            Next
+            _audioBufferWrite = 2048
+
             ' Initialize state (reminder to reset at some point)
             ' Reset()
         End Sub
 
+
         Public Sub Dispose() Implements IDisposable.Dispose
             If Not _isDisposed Then
+                _audioSystem?.Dispose()
                 _isDisposed = True
             End If
         End Sub
@@ -237,6 +322,16 @@ Namespace NintendoEntertainmentSystem
             _audioSample = 0.0
             _audioTime = 0.0
 
+            ' Clear audio buffer
+            SyncLock _audioBufferLock
+                Array.Clear(_audioBuffer, 0, _audioBuffer.Length)
+                _audioBufferWrite = 0
+                _audioBufferRead = 0
+                _lastValidSample = 0.0
+                _bufferUnderrunCount = 0
+            End SyncLock
+            _audioSystem?.Reset()  ' Reset the audio system too!
+
             ' Reset clock
             _systemClockCounter = 0
 
@@ -259,19 +354,46 @@ Namespace NintendoEntertainmentSystem
             ' Clock APU (runs every cycle)
             APU.Clock()
 
-            ' CPU runs at 1/3 PPU speed
+            ' CPU runs at 1/3 PPU speed _dmaDummy
             If (_systemClockCounter Mod 3) = 0 Then
-                If _dmaTransfer Then
-                    ' DMA in progress - CPU is halted
+                If _dmaTransfer Then ' DMA in progress - CPU is halted
                     ProcessDMA()
-                Else
-                    ' Normal CPU operation
+                Else ' Normal CPU operation
                     CPU.Clock()
                 End If
             End If
 
             ' APU Handle audio timing
             AudioSampleReady = ProcessAudio()
+            'If AudioSampleReady Then
+            '    _audioSystem.ProcessSample(_audioSample)
+            'End If
+            If AudioSampleReady Then
+                ' Check if APU sample is valid
+                Dim sample = _audioSample
+
+                ' Clamp sample to valid range BEFORE adding to buffer
+                sample = Math.Max(-1.0, Math.Min(1.0, sample))
+
+                ' Filter out NaN and Infinity
+                If Double.IsNaN(sample) OrElse Double.IsInfinity(sample) Then
+                    sample = 0.0
+                    Debug.WriteLine("[Audio] Invalid sample detected (NaN/Inf)")
+                End If
+
+                SyncLock _audioBufferLock
+                    ' Check if buffer has room
+                    Dim nextWrite = (_audioBufferWrite + 1) And AUDIO_RINGBUFFER_SIZE
+                    If nextWrite <> _audioBufferRead Then
+                        ' Room available - add sample
+                        _audioBuffer(_audioBufferWrite) = sample
+                        _audioBufferWrite = nextWrite
+                    Else
+                        ' Buffer full - skip this sample (overflow)
+                        ' This is rare and better than distortion
+                    End If
+                End SyncLock
+            End If
 
             ' Handle NMI from PPU
             If PPU.NmiRequested Then

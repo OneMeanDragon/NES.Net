@@ -85,6 +85,20 @@ Public Class Form1
         ' Update NES controller
         emNES.Controller(0) = controller
     End Sub
+
+    Private Sub ProcessHotKeys()
+        ' ESC to stop emulation
+        If InputSystem.IsKeyHeld(Keys.Escape) Then
+            running = False
+        End If
+
+        ' PrintScreen seems to come through only the KeyUp state
+        If InputSystem.IsKeyHeld(Keys.F1) Then
+            renderer?.SaveFrame("screenshot.png")
+        End If
+
+    End Sub
+
     'Private Sub ProcessHotkeys()
     '    ' ESC to stop emulation
     '    If InputSystem.IsKeyPressed(Keys.Escape) Then
@@ -130,24 +144,6 @@ Public Class Form1
     ' Add ProcessHotkeys() call to your Run() loop after BeginFrame()
 #End Region
 
-#Region "Audio System"
-    Private audioSystem As AudioSystem
-
-    ' Initialize audio system (call in Form1_Load)
-    Private Sub InitializeAudio()
-        audioSystem = New AudioSystem()
-        If audioSystem.Initialize(44100) Then
-            audioSystem.Volume = 0.5F  ' 50% volume
-            audioSystem.LowPassFilterStrength = 0.9 '85 ' Default, good balance
-            audioSystem.LowPassFilterEnabled = False ' Disable filter if you want raw audio
-            Debug.WriteLine("Audio system initialized successfully")
-        Else
-            MessageBox.Show("Failed to initialize audio system. Audio will be disabled.",
-                          strProgramTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning)
-        End If
-    End Sub
-#End Region
-
 #Region "Project Registry Information"
     'Since I already have this registry key im just going to use it.
     Public Const strProgramTitle As String = "NES Emulator"
@@ -178,13 +174,15 @@ Public Class Form1
         ' Initialize the renderer
         InitializeInput()
         InitializeRenderer()
-        InitializeAudio()
+
+        Me.ClientSize = renderer?.CanvasSize
     End Sub
+
     Private Sub Form1_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
         running = False
-        ' should probably wait until the thread joins back up if its still running before this 
+        ' should probably wait until the thread joins back up if its still running before this
+        VideoThread?.Join()
         renderer?.Dispose()
-        audioSystem?.Dispose()
     End Sub
 
     Private Sub Form1_KeyPress(sender As Object, e As KeyPressEventArgs) Handles Me.KeyPress
@@ -319,21 +317,19 @@ Public Class Form1
         'End While
         'Exit Sub
         '-----
+        emNES.AudioSystem.Play()
+        emNES.AudioSystem.Volume = 0.5F
+
         Dim frameCount As Integer = 0
         While running
             InputSystem.BeginFrame()
+
+            ProcessHotKeys()
             UpdateNESController()
 
             emNES.PPU.FrameComplete = False
             Do
                 emNES.Clock()
-
-                If audioSystem IsNot Nothing AndAlso audioSystem.IsInitialized Then
-                    ' Check if audio sample is ready (you'll need to implement this in your bus)
-                    If emNES.AudioSampleReady Then
-                        audioSystem.ProcessSample(emNES.AudioSample)
-                    End If
-                End If
 
                 If running = False Then
                     emNES.Reset()
@@ -348,19 +344,52 @@ Public Class Form1
             ' Render frame using the renderer
             renderer.RenderFrame(emNES.PPU, frameCount)
 
+            ' Audio diagnostics
+            'CheckAPUSamples()
+
             ' Update display
             UpdateDisplay()
-
-            ' Flush audio batch at frame boundary (optional - helps with timing)
-            audioSystem?.Flush()
         End While
+        emNES.AudioSystem.Stop()
 
         ' Clean up
-        audioSystem?.Flush()
-        audioSystem?.Stop()
         renderer.Clear(GraphicsObjects.PixelColors.DarkGrey)
         UpdateDisplay()
     End Sub
+
+    Private _audioSampleCheckCounter As Integer = 0
+    Private Sub CheckAPUSamples()
+        _audioSampleCheckCounter += 1
+
+        ' Check every 60 frames (once per second at 60fps)
+        If (_audioSampleCheckCounter Mod 60) = 0 Then
+            ' Get a sample directly from APU
+            Dim testSample = emNES.APU.GetOutputSample()
+
+            ' Check if it's valid
+            If Double.IsNaN(testSample) Then
+                Debug.WriteLine("[Audio] APU returning NaN!")
+            ElseIf Double.IsInfinity(testSample) Then
+                Debug.WriteLine("[Audio] APU returning Infinity!")
+            ElseIf Math.Abs(testSample) > 1.0 Then
+                Debug.WriteLine($"[Audio] APU sample out of range: {testSample}")
+            Else
+                Debug.WriteLine($"[Audio] APU sample OK: {testSample:F4}, Buffer level: {emNES.AudioBufferLevel}")
+            End If
+        End If
+    End Sub
+    'Private Sub showAudioDiagnosticsToolStripMenuItem_Click(sender As Object, e As EventArgs)
+    '    Dim bufferLevel = emNES.AudioBufferLevel
+    '    Dim stats = emNES.AudioSystem.Statistics
+    '
+    '    Dim msg = $"Audio Diagnostics:" & vbCrLf &
+    '          $"Buffer Level: {bufferLevel} samples" & vbCrLf &
+    '          $"Samples Generated: {stats.TotalSamplesProcessed:N0}" & vbCrLf &
+    '          $"Playback State: {emNES.AudioSystem.PlaybackState}" & vbCrLf &
+    '          $"Volume: {emNES.AudioSystem.Volume:P0}"
+    '
+    '    MessageBox.Show(msg, "Audio Diagnostics", MessageBoxButtons.OK, MessageBoxIcon.Information)
+    'End Sub
 
     Private Sub SaveCurrentFrame(filepath As String)
         renderer?.SaveFrame(filepath)
