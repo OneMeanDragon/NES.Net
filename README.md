@@ -1,18 +1,14 @@
 # NES.Net
-- Was going to be Total conversion of https://github.com/OneLoneCoder/olcNES
-- Couldent realy Convert that renderer
-  - So we have a crude pixel drawing VideoThread drawing to a picturebox.
-- Couldent realy convert the Audio (probably could have im just not that interested)
-  - We are using NAUDIO NuGet package.
-- We are also using System.Memory NuGet package because for some reason its not available by default?
+- Required Packages from NuGet
+  - NAUDIO
+  - System.Memory
 
 ## Status
-- Not working
+- Working (still slow)
   - (Arkanoid) Ball is Invisible
-  - (Arkanoid) Paddle is Invisible
-  - (Arkanoid) Enemys are Invisible
-  - (M.T. PunchOut) Loading screen glitchy
-  - (M.T. PunchOut) Title Scrren looks right, but boxing glove invisible when start pressed.
+  - Some others as well however still loads of bugs
+- Knowen Crashes
+  - Stop the emulator before closing the window (thread issue)
 
 ## Controls
 - "p"
