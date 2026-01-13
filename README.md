@@ -5,7 +5,8 @@
 
 ## Status
 - Working (still slow)
-  - (Arkanoid) Ball is Invisible
+  - (NESTEST) will link at some point if i remember.
+  - (Arkanoid)
   - Some others as well however still loads of bugs
 - Knowen Crashes
   - Stop the emulator before closing the window (thread issue)
