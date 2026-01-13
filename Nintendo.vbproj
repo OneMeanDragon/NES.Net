@@ -143,6 +143,7 @@
     <Compile Include="ApplicationCore\CoreApplication.vb" />
     <Compile Include="ApplicationCore\Hardware.vb" />
     <Compile Include="ApplicationCore\KeyboardVariables.vb" />
+    <Compile Include="Audio\AudioSystem.vb" />
     <Compile Include="Chips\2C02\PPU2C02.vb" />
     <Compile Include="Chips\6502\CPU.AddressingModes.vb" />
     <Compile Include="Chips\6502\CPU.Core.vb" />
@@ -176,6 +177,7 @@
     <Compile Include="GENERIC.ERRORS.vb" />
     <Compile Include="GENERIC.TIMER.vb" />
     <Compile Include="Chips\Helpers\BitFields\BIT.FIELD.8.vb" />
+    <Compile Include="Input\InputSystem.vb" />
     <Compile Include="MathHelpers.vb" />
     <Compile Include="My Project\Settings.Designer.vb">
       <AutoGen>True</AutoGen>
@@ -197,6 +199,8 @@
     <Compile Include="Cartridge\NES.CARTRIDGE2.vb" />
     <Compile Include="NES.CONSTANTS.vb" />
     <Compile Include="Renderer\Pixel\Pixel.vb" />
+    <Compile Include="Renderer\Pixel\PixelExtensions.vb" />
+    <Compile Include="Renderer\Renderer.vb" />
     <Compile Include="Renderer\Sprite\Sprite.vb" />
   </ItemGroup>
   <ItemGroup>
@@ -237,6 +241,9 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="NotUsed\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Chips\nestest_diagnose.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
 </Project>

@@ -40,6 +40,7 @@ Namespace NintendoEntertainmentSystem
 #End Region
 
 #Region "Audio Timing"
+        Public AudioSampleReady As Boolean
         Private _audioSample As Double
         Private _audioTime As Double
         Private _audioTimePerNESClock As Double
@@ -140,9 +141,9 @@ Namespace NintendoEntertainmentSystem
             End If
 
             ' APU Status ($4015)
-            'If addr = &H4015US Then
-            '    Return APU.CpuRead(addr)
-            'End If
+            If addr = &H4015US Then
+                Return APU.CpuRead(addr)
+            End If
 
             ' Controller reads ($4016-$4017)
             If addr >= &H4016US AndAlso addr <= &H4017US Then
@@ -180,10 +181,10 @@ Namespace NintendoEntertainmentSystem
             End If
 
             ' APU and I/O registers ($4000-$4017)
-            'If addr >= &H4000US AndAlso addr <= &H4013US Then
-            '    APU.CpuWrite(addr, data)
-            '    Return
-            'End If
+            If addr >= &H4000US AndAlso addr <= &H4013US Then
+                APU.CpuWrite(addr, data)
+                Return
+            End If
 
             If addr = &H4014US Then
                 ' OAM DMA
@@ -195,10 +196,10 @@ Namespace NintendoEntertainmentSystem
                 Return
             End If
 
-            'If addr = &H4015US OrElse addr = &H4017US Then
-            '    APU.CpuWrite(addr, data)
-            '    Return
-            'End If
+            If addr = &H4015US OrElse addr = &H4017US Then
+                APU.CpuWrite(addr, data)
+                Return
+            End If
 
             ' Controller strobe ($4016-$4017)
             If addr >= &H4016US AndAlso addr <= &H4017US Then
@@ -220,7 +221,7 @@ Namespace NintendoEntertainmentSystem
             ' Reset components
             CPU.Reset()
             PPU.Reset()
-            'APU.Reset()
+            APU.Reset()
 
             ' Clear RAM (actual NES has random values, but zeros are fine)
             _cpuRam.Span.Clear()
@@ -256,7 +257,7 @@ Namespace NintendoEntertainmentSystem
             PPU.Clock()
 
             ' Clock APU (runs every cycle)
-            'APU.Clock()
+            APU.Clock()
 
             ' CPU runs at 1/3 PPU speed
             If (_systemClockCounter Mod 3) = 0 Then
@@ -270,7 +271,7 @@ Namespace NintendoEntertainmentSystem
             End If
 
             ' APU Handle audio timing
-            Dim audioReady = False 'ProcessAudio()
+            AudioSampleReady = ProcessAudio()
 
             ' Handle NMI from PPU
             If PPU.NmiRequested Then
@@ -287,7 +288,7 @@ Namespace NintendoEntertainmentSystem
             ' Increment system clock
             _systemClockCounter += 1
 
-            Return audioReady
+            Return AudioSampleReady
         End Function
 
         ''' <summary>
@@ -315,16 +316,21 @@ Namespace NintendoEntertainmentSystem
                 'End If
             Else
                 ' Odd cycle: Write to OAM
-                Dim oamIndex = _dmaAddr >> 2  ' Divide by 4 to get sprite index (0-63)
-                Dim byteIndex = _dmaAddr And 3  ' Get byte within sprite (0-3)
+                'Dim oamIndex = _dmaAddr >> 2  ' Divide by 4 to get sprite index (0-63)
+                'If oamIndex < 64 Then
+                '    Dim byteIndex = _dmaAddr And 3  ' Get byte within sprite (0-3)
+                '    Select Case byteIndex
+                '        Case 0 : PPU.OAM(oamIndex).Y = _dmaData
+                '        Case 1 : PPU.OAM(oamIndex).TileID = _dmaData
+                '        Case 2 : PPU.OAM(oamIndex).Attributes = _dmaData
+                '        Case 3 : PPU.OAM(oamIndex).X = _dmaData
+                '    End Select
+                'End If
 
+                Dim oamIndex = _dmaAddr >> 2  ' Same as _dmaAddr \ 4 but MUCH faster
+                ' Your OAMEntry.SetByteAt already masks byteIndex with &H3, so this is safe!
                 If oamIndex < 64 Then
-                    Select Case byteIndex
-                        Case 0 : PPU.OAM(oamIndex).Y = _dmaData
-                        Case 1 : PPU.OAM(oamIndex).TileID = _dmaData
-                        Case 2 : PPU.OAM(oamIndex).Attributes = _dmaData
-                        Case 3 : PPU.OAM(oamIndex).X = _dmaData
-                    End Select
+                    PPU.OAM(oamIndex).SetByteAt(_dmaAddr, _dmaData)  ' Pass full address, it masks internally
                 End If
 
                 ' Increment address after write

@@ -221,102 +221,102 @@
         Public Sub CpuWrite(addr As UInt16, data As Byte)
             Select Case addr
         ' --- Pulse 1 ---
-                Case &H4000
-                    Select Case (data And &HC0) >> 6
-                        Case &H0 : pulse1_seq.new_sequence = &B1000000 : pulse1_osc.dutycycle = 0.125
-                        Case &H1 : pulse1_seq.new_sequence = &B1100000 : pulse1_osc.dutycycle = 0.25
-                        Case &H2 : pulse1_seq.new_sequence = &B1111000 : pulse1_osc.dutycycle = 0.5
-                        Case &H3 : pulse1_seq.new_sequence = &B10011111 : pulse1_osc.dutycycle = 0.75
+                Case &H4000US
+                    Select Case (data And &HC0UI) >> 6
+                        Case &H0UI : pulse1_seq.new_sequence = &B1000000UI : pulse1_osc.dutycycle = 0.125
+                        Case &H1UI : pulse1_seq.new_sequence = &B1100000UI : pulse1_osc.dutycycle = 0.25
+                        Case &H2UI : pulse1_seq.new_sequence = &B1111000UI : pulse1_osc.dutycycle = 0.5
+                        Case &H3UI : pulse1_seq.new_sequence = &B10011111UI : pulse1_osc.dutycycle = 0.75
                     End Select
                     pulse1_seq.sequence = pulse1_seq.new_sequence
-                    pulse1_halt = (data And &H20) <> 0
-                    pulse1_env.volume = (data And &HF)
-                    pulse1_env.disable = (data And &H10) <> 0
+                    pulse1_halt = (data And &H20UI) <> 0
+                    pulse1_env.volume = (data And &HFUI)
+                    pulse1_env.disable = (data And &H10UI) <> 0
 
-                Case &H4001
-                    pulse1_sweep.Enabled = (data And &H80) <> 0
-                    pulse1_sweep.Period = (data And &H70) >> 4
-                    pulse1_sweep.Down = (data And &H8) <> 0
-                    pulse1_sweep.Shift = (data And &H7)
+                Case &H4001US
+                    pulse1_sweep.Enabled = (data And &H80UI) <> 0
+                    pulse1_sweep.Period = (data And &H70UI) >> 4
+                    pulse1_sweep.Down = (data And &H8UI) <> 0
+                    pulse1_sweep.Shift = (data And &H7UI)
                     pulse1_sweep.Reload = True
 
-                Case &H4002
-                    pulse1_seq.reload = (pulse1_seq.reload And &HFF00) Or data
+                Case &H4002US
+                    pulse1_seq.reload = (pulse1_seq.reload And &HFF00US) Or data
 
-                Case &H4003
-                    pulse1_seq.reload = CUShort((data And &H7) << 8) Or (pulse1_seq.reload And &HFF)
+                Case &H4003US
+                    pulse1_seq.reload = CUShort((data And &H7UI) << 8) Or (pulse1_seq.reload And &HFFUS)
                     pulse1_seq.timer = pulse1_seq.reload
                     pulse1_seq.sequence = pulse1_seq.new_sequence
-                    pulse1_lc.Counter = length_table((data And &HF8) >> 3)
+                    pulse1_lc.Counter = length_table((data And &HF8UI) >> 3)
                     pulse1_env.start = True
 
         ' --- Pulse 2 ---
-                Case &H4004
-                    Select Case (data And &HC0) >> 6
-                        Case &H0 : pulse2_seq.new_sequence = &B1000000 : pulse2_osc.dutycycle = 0.125
-                        Case &H1 : pulse2_seq.new_sequence = &B1100000 : pulse2_osc.dutycycle = 0.25
-                        Case &H2 : pulse2_seq.new_sequence = &B1111000 : pulse2_osc.dutycycle = 0.5
-                        Case &H3 : pulse2_seq.new_sequence = &B10011111 : pulse2_osc.dutycycle = 0.75
+                Case &H4004US
+                    Select Case (data And &HC0UI) >> 6
+                        Case &H0UI : pulse2_seq.new_sequence = &B1000000UI : pulse2_osc.dutycycle = 0.125
+                        Case &H1UI : pulse2_seq.new_sequence = &B1100000UI : pulse2_osc.dutycycle = 0.25
+                        Case &H2UI : pulse2_seq.new_sequence = &B1111000UI : pulse2_osc.dutycycle = 0.5
+                        Case &H3UI : pulse2_seq.new_sequence = &B10011111UI : pulse2_osc.dutycycle = 0.75
                     End Select
                     pulse2_seq.sequence = pulse2_seq.new_sequence
-                    pulse2_halt = (data And &H20) <> 0
-                    pulse2_env.volume = (data And &HF)
-                    pulse2_env.disable = (data And &H10) <> 0
+                    pulse2_halt = (data And &H20UI) <> 0
+                    pulse2_env.volume = (data And &HFUI)
+                    pulse2_env.disable = (data And &H10UI) <> 0
 
-                Case &H4005
-                    pulse2_sweep.Enabled = (data And &H80) <> 0
-                    pulse2_sweep.Period = (data And &H70) >> 4
-                    pulse2_sweep.Down = (data And &H8) <> 0
-                    pulse2_sweep.Shift = (data And &H7)
+                Case &H4005US
+                    pulse2_sweep.Enabled = (data And &H80UI) <> 0
+                    pulse2_sweep.Period = (data And &H70UI) >> 4
+                    pulse2_sweep.Down = (data And &H8UI) <> 0
+                    pulse2_sweep.Shift = (data And &H7UI)
                     pulse2_sweep.Reload = True
 
-                Case &H4006
-                    pulse2_seq.reload = (pulse2_seq.reload And &HFF00) Or data
+                Case &H4006US
+                    pulse2_seq.reload = (pulse2_seq.reload And &HFF00US) Or data
 
-                Case &H4007
-                    pulse2_seq.reload = CUShort((data And &H7) << 8) Or (pulse2_seq.reload And &HFF)
+                Case &H4007US
+                    pulse2_seq.reload = CUShort((data And &H7UI) << 8) Or (pulse2_seq.reload And &HFFUS)
                     pulse2_seq.timer = pulse2_seq.reload
                     pulse2_seq.sequence = pulse2_seq.new_sequence
-                    pulse2_lc.Counter = length_table((data And &HF8) >> 3)
+                    pulse2_lc.Counter = length_table((data And &HF8UI) >> 3)
                     pulse2_env.start = True
 
         ' --- Noise ---
-                Case &H400C
-                    noise_env.volume = (data And &HF)
-                    noise_env.disable = (data And &H10) <> 0
-                    noise_halt = (data And &H20) <> 0
+                Case &H400CUS
+                    noise_env.volume = (data And &HFUI)
+                    noise_env.disable = (data And &H10UI) <> 0
+                    noise_halt = (data And &H20UI) <> 0
 
-                Case &H400E
-                    Select Case (data And &HF)
-                        Case &H0 : noise_seq.reload = 0
-                        Case &H1 : noise_seq.reload = 4
-                        Case &H2 : noise_seq.reload = 8
-                        Case &H3 : noise_seq.reload = 16
-                        Case &H4 : noise_seq.reload = 32
-                        Case &H5 : noise_seq.reload = 64
-                        Case &H6 : noise_seq.reload = 96
-                        Case &H7 : noise_seq.reload = 128
-                        Case &H8 : noise_seq.reload = 160
-                        Case &H9 : noise_seq.reload = 202
-                        Case &HA : noise_seq.reload = 254
-                        Case &HB : noise_seq.reload = 380
-                        Case &HC : noise_seq.reload = 508
-                        Case &HD : noise_seq.reload = 1016
-                        Case &HE : noise_seq.reload = 2034
-                        Case &HF : noise_seq.reload = 4068
+                Case &H400EUS
+                    Select Case (data And &HFUI)
+                        Case &H0UI : noise_seq.reload = 0
+                        Case &H1UI : noise_seq.reload = 4
+                        Case &H2UI : noise_seq.reload = 8
+                        Case &H3UI : noise_seq.reload = 16
+                        Case &H4UI : noise_seq.reload = 32
+                        Case &H5UI : noise_seq.reload = 64
+                        Case &H6UI : noise_seq.reload = 96
+                        Case &H7UI : noise_seq.reload = 128
+                        Case &H8UI : noise_seq.reload = 160
+                        Case &H9UI : noise_seq.reload = 202
+                        Case &HAUI : noise_seq.reload = 254
+                        Case &HBUI : noise_seq.reload = 380
+                        Case &HCUI : noise_seq.reload = 508
+                        Case &HDUI : noise_seq.reload = 1016
+                        Case &HEUI : noise_seq.reload = 2034
+                        Case &HFUI : noise_seq.reload = 4068
                     End Select
 
-                Case &H400F
+                Case &H400FUS
                     pulse1_env.start = True
                     pulse2_env.start = True
                     noise_env.start = True
-                    noise_lc.Counter = length_table((data And &HF8) >> 3)
+                    noise_lc.Counter = length_table((data And &HF8UI) >> 3)
 
         ' --- Status Control ---
-                Case &H4015
-                    pulse1_enable = (data And &H1) <> 0
-                    pulse2_enable = (data And &H2) <> 0
-                    noise_enable = (data And &H4) <> 0
+                Case &H4015US
+                    pulse1_enable = (data And &H1UI) <> 0
+                    pulse2_enable = (data And &H2UI) <> 0
+                    noise_enable = (data And &H4UI) <> 0
             End Select
         End Sub
 
@@ -381,7 +381,7 @@
                 ' --- Update Pulse 1 ---
                 pulse1_seq.Clock(pulse1_enable, Sub(ByRef s As UInt32)
                                                     ' Shift right by 1 bit, wrapping around
-                                                    s = ((s And &H1) << 7) Or ((s And &HFE) >> 1)
+                                                    s = ((s And &H1UI) << 7) Or ((s And &HFEUI) >> 1)
                                                 End Sub)
 
                 pulse1_osc.frequency = 1789773.0 / (16.0 * (CDbl(pulse1_seq.reload) + 1.0))
@@ -398,7 +398,7 @@
                 ' --- Update Pulse 2 ---
                 pulse2_seq.Clock(pulse2_enable, Sub(ByRef s As UInt32)
                                                     ' Shift right by 1 bit, wrapping around
-                                                    s = ((s And &H1) << 7) Or ((s And &HFE) >> 1)
+                                                    s = ((s And &H1UI) << 7) Or ((s And &HFEUI) >> 1)
                                                 End Sub)
 
                 pulse2_osc.frequency = 1789773.0 / (16.0 * (CDbl(pulse2_seq.reload) + 1.0))
@@ -414,7 +414,7 @@
                 ' --- Update Noise ---
                 noise_seq.Clock(noise_enable, Sub(ByRef s As UInt32)
                                                   ' Pseudo-random shift logic
-                                                  s = (((s And &H1) Xor ((s And &H2) >> 1)) << 14) Or ((s And &H7FFF) >> 1)
+                                                  s = (((s And &H1UI) Xor ((s And &H2UI) >> 1)) << 14) Or ((s And &H7FFFUI) >> 1)
                                               End Sub)
 
                 If noise_lc.Counter > 0 AndAlso noise_seq.timer >= 8 Then
