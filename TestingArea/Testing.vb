@@ -1,13 +1,16 @@
 ﻿Imports System.Runtime.InteropServices
 
+#Const DIAGNOSE_CREATE_CARTRIDGE_CLASS = False
+
 Namespace TestingGrounds
 
     Public Class TestCartridge
         Implements IDisposable
 
+#Region "DLL Imports"
         Private Const DllPath As String = "NesCartridge.dll"
 
-#Region "Delegate Definitions"
+#Region "Cartridge Delegate Definitions"
         <UnmanagedFunctionPointer(CallingConvention.StdCall)>
         Public Delegate Sub DiagnosticLogDelegate(ByVal message As String)
 
@@ -15,7 +18,6 @@ Namespace TestingGrounds
         Private Shared Sub CartridgeSetDiagnosticLogCallback(cart As IntPtr, callback As DiagnosticLogDelegate)
         End Sub
 #End Region
-
 
         <DllImport(DllPath, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CreateCartridge() As IntPtr
@@ -31,6 +33,7 @@ Namespace TestingGrounds
         <DllImport(DllPath, CallingConvention:=CallingConvention.Cdecl, CharSet:=CharSet.Ansi)>
         Private Shared Function LoadRom(cart As IntPtr, path As String) As Boolean
         End Function
+#End Region
 
         Private _nativePtr As IntPtr
         Private _disposedValue As Boolean = False ' To detect redundant calls
@@ -41,10 +44,20 @@ Namespace TestingGrounds
         Public Sub New(filePath As String)
             _diagCallback = New DiagnosticLogDelegate(AddressOf DiagnosticLogger)
 
+#If DIAGNOSE_CREATE_CARTRIDGE_CLASS Then
             _nativePtr = CreateCartridgeDiag(_diagCallback)
             If _nativePtr = IntPtr.Zero Then
                 Throw New Exception("Failed to allocate native Cartridge.")
             End If
+#Else
+            ' If we creating the diagnostic manually
+            _nativePtr = CreateCartridge()
+            If _nativePtr = IntPtr.Zero Then
+                Throw New Exception("Failed to allocate native Cartridge.")
+            End If
+            DiagnosticLogger("Native Cartridge instance created.")
+            CartridgeSetDiagnosticLogCallback(_nativePtr, _diagCallback)
+#End If
 
             ' 4. Pass the delegate into the DLL function
             Dim result = LoadRom(_nativePtr, filePath)

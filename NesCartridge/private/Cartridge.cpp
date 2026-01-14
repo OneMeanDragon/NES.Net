@@ -124,7 +124,7 @@ DLLEXPORT Cartridge* CreateCartridgeDiag(DiagnosticLogCallback callback) {
     }
     cart->SetDiagnosticLogCallback(callback);
     cart->Log("Native Cartridge instance created.");
-	return cart;
+    return cart;
 }
 
 DLLEXPORT void DestroyCartridge(Cartridge* cart) { 
