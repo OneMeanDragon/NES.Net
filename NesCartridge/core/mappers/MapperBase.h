@@ -50,4 +50,7 @@ public:
 
     uint8_t GetPrgBanks() const { return _prgBanks; }
     uint8_t GetChrBanks() const { return _chrBanks; }
+
+public:
+    void Clock() {}
 };

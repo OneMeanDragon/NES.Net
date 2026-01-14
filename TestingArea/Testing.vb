@@ -195,12 +195,6 @@ Namespace TestingGrounds
             MyBase.Finalize()
         End Sub
 
-#Region "Diagnostics"
-        Private Sub DiagnosticLogger(ByVal message As String)
-            Debug.WriteLine("Debug: " & message)
-        End Sub
-#End Region
-
 #Region "Functionality"
 
         Public Function CpuRead(ByVal addr As UInt16, ByRef data As Byte) As Boolean
@@ -246,8 +240,33 @@ Namespace TestingGrounds
         End Property
 #End Region
 
+
+
+
+
+#Region "Diagnostics"
+        Private Sub DiagnosticLogger(ByVal message As String)
+            'Debug.WriteLine("Debug: " & message)
+            'Console.WriteLine("Debug: " & message)
+        End Sub
+#End Region
+
     End Class
 
 
 
 End Namespace
+
+'things to do not in the cart
+'DLLEXPORT void RenderScanline(Cartridge* cart, int scanline, uint32_t* outputBuffer)
+'DLLEXPORT void RenderFrame(Cartridge* cart, PPU* ppu, uint32_t* frameBuffer);
+'consider a direct return on reads.
+'DLLEXPORT uint8_t CartPpuReadDirect(Cartridge* cart, uint16_t addr) {
+'    uint8_t data = 0;
+'    cart->PpuRead(addr, data);
+'    Return data;  // Return In register, no pointer deref
+'}
+'High-level operations that do lots of work per call
+'DLLEXPORT void ClockCartridge(Cartridge* cart, int cycles);
+'DLLEXPORT void RenderPatternTable(Cartridge* cart, int table, uint32_t* output);
+'DLLEXPORT void ExecuteCpuCycle(Cartridge* cart, CPU* cpu);  // If you move CPU To C++

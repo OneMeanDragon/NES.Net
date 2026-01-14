@@ -54,7 +54,8 @@ public:
     bool CpuWrite(uint16_t addr, uint8_t data);
     bool PpuRead(uint16_t addr, uint8_t& data);
     bool PpuWrite(uint16_t addr, uint8_t data);
-
+    void Clock();
+    
 private:
     void LogDiagnostics();
 };

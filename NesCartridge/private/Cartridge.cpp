@@ -116,12 +116,112 @@ MapperBase* Cartridge::GetMapper() const {
 }
 #pragma endregion
 
+//bool Cartridge::Load(const char* path) {
+//    try {
+//        _isLoaded = false;
+//        // In C++, the mapper reset/deletion would happen here
+//        // e.g., _mapper.reset();
+//    
+//        // 1. Read entire file into memory
+//        std::ifstream file(path, std::ios::binary | std::ios::ate);
+//        if (!file.is_open()) {
+//            Log("Error: Unable to open Cartridge file.");
+//            return false;
+//        }
+//
+//        std::streamsize size = file.tellg();
+//        if (size < INES_HEADER_SIZE) {
+//            std::ostringstream out;
+//            out << "Error: Cartridge file too small: ";
+//            out << INES_HEADER_SIZE;
+//            Log(out.str().c_str());
+//            return false;
+//        }
+//
+//        file.seekg(0, std::ios::beg);
+//        _romData.resize(size);
+//
+//        if (!file.read(reinterpret_cast<char*>(_romData.data()), size)) {
+//            Log("Error: Unable to read Cartridge file.");
+//            return false;
+//        }
+//    
+//        // 2. Parse Header (direct copy into struct)
+//        std::memcpy(&_header, _romData.data(), INES_HEADER_SIZE);
+//    
+//        if (!_header.is_valid()) {
+//            Log("Error: Invalid iNES header.");
+//            return false;
+//        }
+//    
+//        // 3. Calculate offsets and Slice
+//        uint32_t offset = INES_HEADER_SIZE;
+//    
+//        // Handle Trainer
+//        if (_header.has_trainer()) {
+//            _trainer = std::span(_romData.data() + offset, TRAINER_SIZE);
+//            offset += TRAINER_SIZE;
+//        }
+//    
+//        // Extract PRG ROM
+//        uint32_t prgSize = _header.prg_rom_size * PRG_BANK_SIZE;
+//        if (offset + prgSize > _romData.size()) return false;
+//        _prgRom = std::span(_romData.data() + offset, prgSize);
+//        offset += prgSize;
+//    
+//        // Extract CHR ROM/RAM
+//        //if (_header.chr_rom_size == 0) {
+//        //    // CHR-RAM: Allocate 8KB of writable RAM
+//        //    _chrRom.assign(CHR_BANK_SIZE, 0);
+//        //}
+//        //else {
+//        //    // CHR-ROM: Copy from file into its own vector 
+//        //    // (Done so we can modify it if mappers require, or just span it)
+//        //    uint32_t chrSize = _header.chr_rom_size * CHR_BANK_SIZE;
+//        //    if (offset + chrSize > _romData.size()) return false;
+//        //
+//        //    _chrRom.assign(_romData.begin() + offset, _romData.begin() + offset + chrSize);
+//        //}
+//        if (_header.chr_rom_size == 0) {
+//            // CHR-RAM: Allocate 8KB of writable RAM
+//            _chrRom.assign(CHR_BANK_SIZE, 0);
+//        }
+//        else {
+//            // CHR-ROM: Copy from file into its own vector 
+//            // (Done so we can modify it if mappers require, or just span it)
+//            uint32_t chrSize = _header.chr_rom_size * CHR_BANK_SIZE;
+//            if (offset + chrSize > _romData.size()) return false;
+//
+//            _chrRom.assign(_romData.begin() + offset, _romData.begin() + offset + chrSize);
+//        }
+//
+//        // Log CHR buffer size for diagnostics
+//        Log(std::format("Debug: CHR buffer size = {} bytes (chr_rom_size field = {})", _chrRom.size(), _header.chr_rom_size).c_str());
+//
+//    
+//        // Initialize mapper
+//        if (!InitializeMapper()) {
+//            return false;
+//        }
+//    
+//        _isLoaded = true;
+//        LogDiagnostics();
+//        return true;
+//    
+//    }
+//    catch (const std::exception& e) {
+//        std::ostringstream out;
+//        out << "Error loading Cartridge: ";
+//        out << e.what();
+//        Log(out.str().c_str());
+//        return false;
+//    }
+//}
 bool Cartridge::Load(const char* path) {
     try {
         _isLoaded = false;
-        // In C++, the mapper reset/deletion would happen here
-        // e.g., _mapper.reset();
-    
+        // _mapper.reset(); // already handled elsewhere if needed
+
         // 1. Read entire file into memory
         std::ifstream file(path, std::ios::binary | std::ios::ate);
         if (!file.is_open()) {
@@ -132,8 +232,7 @@ bool Cartridge::Load(const char* path) {
         std::streamsize size = file.tellg();
         if (size < INES_HEADER_SIZE) {
             std::ostringstream out;
-            out << "Error: Cartridge file too small: ";
-            out << INES_HEADER_SIZE;
+            out << "Error: Cartridge file too small: " << INES_HEADER_SIZE;
             Log(out.str().c_str());
             return false;
         }
@@ -145,58 +244,83 @@ bool Cartridge::Load(const char* path) {
             Log("Error: Unable to read Cartridge file.");
             return false;
         }
-    
+
         // 2. Parse Header (direct copy into struct)
         std::memcpy(&_header, _romData.data(), INES_HEADER_SIZE);
-    
+
         if (!_header.is_valid()) {
             Log("Error: Invalid iNES header.");
             return false;
         }
-    
+
         // 3. Calculate offsets and Slice
         uint32_t offset = INES_HEADER_SIZE;
-    
+
         // Handle Trainer
         if (_header.has_trainer()) {
             _trainer = std::span(_romData.data() + offset, TRAINER_SIZE);
             offset += TRAINER_SIZE;
         }
-    
+
         // Extract PRG ROM
         uint32_t prgSize = _header.prg_rom_size * PRG_BANK_SIZE;
         if (offset + prgSize > _romData.size()) return false;
         _prgRom = std::span(_romData.data() + offset, prgSize);
         offset += prgSize;
-    
+
         // Extract CHR ROM/RAM
         if (_header.chr_rom_size == 0) {
             // CHR-RAM: Allocate 8KB of writable RAM
             _chrRom.assign(CHR_BANK_SIZE, 0);
         }
         else {
-            // CHR-ROM: Copy from file into its own vector 
-            // (Done so we can modify it if mappers require, or just span it)
+            // CHR-ROM: Copy from file into its own vector
             uint32_t chrSize = _header.chr_rom_size * CHR_BANK_SIZE;
             if (offset + chrSize > _romData.size()) return false;
-    
+
             _chrRom.assign(_romData.begin() + offset, _romData.begin() + offset + chrSize);
         }
-    
+
         // Initialize mapper
         if (!InitializeMapper()) {
             return false;
         }
-    
+
         _isLoaded = true;
+
+        // Diagnostic: report CHR buffer and dump a few regions important for pattern tables
+        Log(std::format("Debug: CHR buffer size = {} bytes (chr_rom_size field = {})", _chrRom.size(), _header.chr_rom_size).c_str());
+
+        // Dump first 32 bytes (0x0000..0x001F) and the 0x1240..0x127F range if present
+        {
+            std::string s = "Debug: CHR @0x0000..0x001F:";
+            size_t limit = std::min<size_t>(_chrRom.size(), 0x20);
+            for (size_t i = 0; i < limit; ++i) {
+                s += std::format(" {:02X}", _chrRom[i]);
+            }
+            Log(s.c_str());
+        }
+
+        const uint32_t probeAddr = 0x1240;
+        const uint32_t probeLen = 64;
+        if (probeAddr < _chrRom.size()) {
+            std::string s = std::format("Debug: CHR dump @0x{0:04X}..0x{1:04X}:", probeAddr, probeAddr + probeLen - 1);
+            size_t limit = std::min<size_t>(_chrRom.size(), probeAddr + probeLen);
+            for (size_t i = probeAddr; i < limit; ++i) {
+                s += std::format(" {:02X}", _chrRom[i]);
+            }
+            Log(s.c_str());
+        }
+        else {
+            Log(std::format("Debug: CHR probe @0x{0:04X} out-of-range (size={1})", probeAddr, _chrRom.size()).c_str());
+        }
+
         LogDiagnostics();
         return true;
-    
     }
     catch (const std::exception& e) {
         std::ostringstream out;
-        out << "Error loading Cartridge: ";
-        out << e.what();
+        out << "Error loading Cartridge: " << e.what();
         Log(out.str().c_str());
         return false;
     }
@@ -216,6 +340,12 @@ bool Cartridge::InitializeMapper() {
     else {
         Log(std::format("Unsupported mapper: {:d}", mapperID).c_str());
         return false;
+    }
+}
+
+void Cartridge::Clock() {
+    if (_mapper) {
+        _mapper->Clock();  // Let mapper handle its own timing
     }
 }
 
@@ -279,6 +409,37 @@ bool Cartridge::PpuRead(uint16_t addr, uint8_t& data) {
 
     return false;
 }
+//bool Cartridge::PpuRead(uint16_t addr, uint8_t& data) {
+//    // Basic state check
+//    if (!_isLoaded || _mapper == nullptr) {
+//        Log(std::format("PpuRead: ignored - not loaded or no mapper (addr=0x{:04X})", addr).c_str());
+//        return false;
+//    }
+//
+//    uint32_t mappedAddr = 0;
+//    bool mapped = _mapper->PpuMapRead(addr, mappedAddr);
+//
+//    if (!mapped) {
+//        Log(std::format("PpuRead: mapper did NOT map addr 0x{:04X}", addr).c_str());
+//        return false;
+//    }
+//
+//    Log(std::format("PpuRead: addr=0x{:04X} -> mappedAddr=0x{:06X} (CHR size={} bytes)",
+//        addr, mappedAddr, _chrRom.size()).c_str());
+//
+//    if (mappedAddr < _chrRom.size()) {
+//        data = _chrRom[mappedAddr];
+//        Log(std::format("PpuRead: returning 0x{:02X} for PPU addr 0x{:04X} (mapped 0x{:06X})",
+//            data, addr, mappedAddr).c_str());
+//        return true;
+//    }
+//    else {
+//        Log(std::format("PpuRead: mappedAddr 0x{:06X} out of bounds (CHR size {}) for PPU addr 0x{:04X}",
+//            mappedAddr, _chrRom.size(), addr).c_str());
+//    }
+//
+//    return false;
+//}
 
 bool Cartridge::PpuWrite(uint16_t addr, uint8_t data) {
     if (!_isLoaded || _mapper == nullptr) return false;
@@ -336,13 +497,17 @@ DLLEXPORT bool LoadCartridge(Cartridge* cart, const char* path) {
 }
 
 DLLEXPORT MirrorMode CartridgeGetMirrorMode(Cartridge* cart) {
-    if (cart) cart->GetMirrorMode();
+    if (cart) return cart->GetMirrorMode();
     return MirrorMode::Hardware;
 }
 
 DLLEXPORT bool CartridgeIsLoaded(Cartridge* cart) {
     if (cart) return cart->IsLoaded();
     return false;
+}
+
+DLLEXPORT void CartridgeClock(Cartridge* cart) {
+    if (cart) cart->Clock();
 }
 
 DLLEXPORT bool CartCpuRead(Cartridge* cart, uint16_t addr, uint8_t* data) {
