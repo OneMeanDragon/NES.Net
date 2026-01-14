@@ -8,10 +8,12 @@ Namespace TestingGrounds
         Private Const DllPath As String = "NesCartridge.dll"
 
         <UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        Public Delegate Sub DiagnosticDelegate(ByVal message As String)
+        Public Delegate Sub DiagnosticLogDelegate(ByVal message As String)
 
         <DllImport(DllPath, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function CreateCartridge() As IntPtr
+        Private Shared Function CreateCartridge(
+                                               callback As DiagnosticLogDelegate 'Where all our delegates will be set
+                                               ) As IntPtr
         End Function
 
         <DllImport(DllPath, CallingConvention:=CallingConvention.Cdecl)>
@@ -19,26 +21,25 @@ Namespace TestingGrounds
         End Sub
 
         <DllImport(DllPath, CallingConvention:=CallingConvention.Cdecl, CharSet:=CharSet.Ansi)>
-        Private Shared Function LoadRom(cart As IntPtr, path As String, callback As DiagnosticDelegate) As Boolean
+        Private Shared Function LoadRom(cart As IntPtr, path As String) As Boolean
         End Function
 
         Private _nativePtr As IntPtr
         Private _disposedValue As Boolean = False ' To detect redundant calls
 
-        Private _diagCallback As DiagnosticDelegate
+        Private _diagCallback As DiagnosticLogDelegate
         Private disposedValue As Boolean
 
         Public Sub New(filePath As String)
-            _nativePtr = CreateCartridge()
+            _diagCallback = New DiagnosticLogDelegate(AddressOf MyDiagnosticLogger)
+
+            _nativePtr = CreateCartridge(_diagCallback)
             If _nativePtr = IntPtr.Zero Then
                 Throw New Exception("Failed to allocate native Cartridge.")
             End If
 
-            ' 3. Instantiate the delegate with your VB function
-            _diagCallback = New DiagnosticDelegate(AddressOf MyDiagnosticLogger)
-
             ' 4. Pass the delegate into the DLL function
-            Dim result = LoadRom(_nativePtr, filePath, _diagCallback)
+            Dim result = LoadRom(_nativePtr, filePath)
             If Not result Then
                 Throw New Exception("Failed to load ROM")
             End If
