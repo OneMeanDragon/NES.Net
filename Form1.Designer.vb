@@ -28,6 +28,7 @@ Partial Class Form1
         Me.OpenToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.EmulationToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.StopToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.FpsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.dlgOpenFile = New System.Windows.Forms.OpenFileDialog()
         CType(Me.picScreen, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.MenuStrip1.SuspendLayout()
@@ -48,7 +49,7 @@ Partial Class Form1
         '
         'MenuStrip1
         '
-        Me.MenuStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.EmulationToolStripMenuItem})
+        Me.MenuStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.EmulationToolStripMenuItem, Me.FpsToolStripMenuItem})
         Me.MenuStrip1.Location = New System.Drawing.Point(0, 0)
         Me.MenuStrip1.Name = "MenuStrip1"
         Me.MenuStrip1.Size = New System.Drawing.Size(789, 24)
@@ -81,6 +82,12 @@ Partial Class Form1
         Me.StopToolStripMenuItem.Size = New System.Drawing.Size(98, 22)
         Me.StopToolStripMenuItem.Text = "Stop"
         '
+        'FpsToolStripMenuItem
+        '
+        Me.FpsToolStripMenuItem.Name = "FpsToolStripMenuItem"
+        Me.FpsToolStripMenuItem.Size = New System.Drawing.Size(35, 20)
+        Me.FpsToolStripMenuItem.Text = "fps"
+        '
         'dlgOpenFile
         '
         Me.dlgOpenFile.FileName = "dlgOpenFile"
@@ -110,4 +117,5 @@ Partial Class Form1
     Friend WithEvents picScreen As PictureBox
     Friend WithEvents EmulationToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents StopToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents FpsToolStripMenuItem As ToolStripMenuItem
 End Class

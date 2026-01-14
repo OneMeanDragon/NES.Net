@@ -1,11 +1,15 @@
-﻿Imports System.Drawing.Imaging
+﻿Imports System.Drawing
+Imports System.Drawing.Imaging
 Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
 Imports Nintendo.NintendoEntertainmentSystem
 
 Namespace Core
 
-    ''' <summary>Core.Renderer</summary>
+    ''' <summary>
+    ''' High-performance renderer for NES emulator output
+    ''' Handles all drawing operations with optimized memory access
+    ''' </summary>
     Public NotInheritable Class Renderer
         Implements IDisposable
 
@@ -21,7 +25,7 @@ Namespace Core
         ' Total canvas size
         Public Const CANVAS_WIDTH As Integer = GAME_WIDTH + 4 + ((PATTERN_SIZE + 2) * 2)
         Public Const CANVAS_HEIGHT As Integer = GAME_HEIGHT + 4
-        Public ReadOnly Property CanvasSize As New Size(CANVAS_WIDTH, CANVAS_HEIGHT)
+        Public ReadOnly Property CanvasSize As Size = New Size(CANVAS_WIDTH, CANVAS_HEIGHT)
 #End Region
 
 #Region "State"
@@ -220,7 +224,8 @@ Namespace Core
         ''' Get a clone of the current back buffer for UI display
         ''' </summary>
         Public Function GetDisplayBuffer() As Bitmap
-            Return DirectCast(_backBuffer?.Clone(), Bitmap)
+            ' Must clone for thread safety
+            Return DirectCast(_backBuffer.Clone(), Bitmap)
         End Function
 #End Region
 

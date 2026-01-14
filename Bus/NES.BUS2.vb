@@ -46,6 +46,7 @@ Namespace NintendoEntertainmentSystem
         Private _audioTime As Double
         Private _audioTimePerNESClock As Double
         Private _audioTimePerSystemSample As Double
+        Private _audioSampleCounter As Integer = 0  ' DEBUG counter
 
 #Region "Audio System"
         'Private ReadOnly _audioSystem As New Core.Audio.AudioSystem()
@@ -199,6 +200,9 @@ Namespace NintendoEntertainmentSystem
         Public Sub SetSampleFrequency(sampleRate As UInt32)
             _audioTimePerSystemSample = 1.0 / sampleRate
             _audioTimePerNESClock = 1.0 / NES_MASTER_CLOCK
+
+            Debug.WriteLine($"[Bus] Audio timing: {_audioTimePerNESClock:E6}s per clock, {_audioTimePerSystemSample:E6}s per sample")
+            Debug.WriteLine($"[Bus] Expected samples per frame: {NES_MASTER_CLOCK / sampleRate / 60.0:F2}")
         End Sub
 #End Region
 
@@ -321,6 +325,7 @@ Namespace NintendoEntertainmentSystem
             ' Reset audio
             _audioSample = 0.0
             _audioTime = 0.0
+            _audioSampleCounter = 0
 
             ' Clear audio buffer
             SyncLock _audioBufferLock
@@ -476,12 +481,25 @@ Namespace NintendoEntertainmentSystem
 
             If _audioTime >= _audioTimePerSystemSample Then
                 _audioTime -= _audioTimePerSystemSample
+
+                ' Get sample from APU
                 _audioSample = APU.GetOutputSample()
+
+                ' Debug counter
+                _audioSampleCounter += 1
+
                 Return True
             End If
 
             Return False
         End Function
+        ' Add this diagnostic method to check sample generation
+        Public Function GetAudioSampleRate() As Double
+            ' Calculate actual sample generation rate
+            Dim rate = _audioSampleCounter / (_systemClockCounter / NES_MASTER_CLOCK)
+            Return rate
+        End Function
+
 #End Region
 
     End Class

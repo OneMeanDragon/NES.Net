@@ -15,10 +15,11 @@ Namespace NintendoEntertainmentSystem
         Implements IDisposable
 
 #Region "Constants"
-        Private Const INES_HEADER_SIZE As Integer = 16
-        Private Const PRG_BANK_SIZE As Integer = 16384  ' 16KB
-        Private Const CHR_BANK_SIZE As Integer = 8192   ' 8KB
-        Private Const TRAINER_SIZE As Integer = 512
+        'KB_SIZE
+        Private Const INES_HEADER_SIZE As UInteger = 16
+        Private Const PRG_BANK_SIZE As UInteger = KB_SIZE * 16  ' 16KB
+        Private Const CHR_BANK_SIZE As UInteger = KB_SIZE * 8   ' 8KB
+        Private Const TRAINER_SIZE As UInteger = 512
 #End Region
 
 #Region "Header Structure"

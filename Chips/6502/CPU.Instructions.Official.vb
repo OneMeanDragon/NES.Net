@@ -1,4 +1,7 @@
-﻿Namespace NintendoEntertainmentSystem
+﻿#Const DUMMY_WRITES = True
+#Const DUMMY_READS = False
+
+Namespace NintendoEntertainmentSystem
 
     ' MOS Technology 6502 CPU - Official Instructions (Partial Class)
     Partial Public NotInheritable Class CPU6502
@@ -73,14 +76,20 @@
         ''' <summary>Arithmetic Shift Left</summary>
         Friend Function ASL() As Byte
             Fetch()
-            _temp = CUShort(_fetched) << 1
-            SetFlag(StatusFlags.C, (_temp And &HFF00) <> 0)
-            SetFlag(StatusFlags.Z, (_temp And &HFF) = 0)
-            SetFlag(StatusFlags.N, (_temp And &H80) <> 0)
+#If DUMMY_WRITES Then
+            If _instructions(_opcode).ModeType <> AddrMode.IMP Then
+                Write(_addrAbs, _fetched)
+            End If
+#End If
+            _temp = CUShort(CUShort(_fetched) << 1)
+            SetFlag(StatusFlags.C, (_temp And &HFF00US) <> 0)
+            SetFlag(StatusFlags.Z, (_temp And &HFFUS) = 0)
+            SetFlag(StatusFlags.N, (_temp And &H80US) <> 0)
+            Dim result As Byte = CByte(_temp And &HFFUS)
             If _instructions(_opcode).ModeType = AddrMode.IMP Then
-                A = _temp And &HFF
+                A = result
             Else
-                Write(_addrAbs, _temp And &HFF)
+                Write(_addrAbs, result)
             End If
             Return 0
         End Function
@@ -139,9 +148,14 @@
         ''' <summary>Increment Memory</summary>
         Friend Function INC() As Byte
             Fetch()
+#If DUMMY_WRITES Then
+            ' Official hardware writes the unmodified value back to the bus
+            ' before the CPU finishes the internal calculation.
+            Write(_addrAbs, _fetched)
+#End If
             _temp = CUShort((CInt(_fetched) + 1) And &HFF)
-            Write(_addrAbs, CByte(_temp))
-            SetFlag(StatusFlags.Z, _temp = 0)
+            Write(_addrAbs, CByte(_temp And &HFF))
+            SetFlag(StatusFlags.Z, (_temp And &HFF) = 0)
             SetFlag(StatusFlags.N, (_temp And &H80) <> 0)
             Return 0
         End Function
@@ -149,9 +163,14 @@
         ''' <summary>Decrement Memory</summary>
         Friend Function DEC() As Byte
             Fetch()
+#If DUMMY_WRITES Then
+            ' Official hardware writes the unmodified value back to the bus
+            ' before the CPU finishes the internal calculation.
+            Write(_addrAbs, _fetched)
+#End If
             _temp = CUShort((CInt(_fetched) - 1) And &HFF)
-            Write(_addrAbs, CByte(_temp))
-            SetFlag(StatusFlags.Z, _temp = 0)
+            Write(_addrAbs, CByte(_temp And &HFF))
+            SetFlag(StatusFlags.Z, (_temp And &HFF) = 0)
             SetFlag(StatusFlags.N, (_temp And &H80) <> 0)
             Return 0
         End Function
@@ -251,6 +270,23 @@
 
         ''' <summary>Store Accumulator</summary>
         Friend Function STA() As Byte
+#If DUMMY_READS Then
+            ' Check if we are using an indexed mode (ABX, ABY, IZY)
+            Dim mode = _instructions(_opcode).ModeType
+            ' Indexed Stores ALWAYS perform a dummy read on cycle 4
+            If mode = AddrMode.ABX OrElse mode = AddrMode.ABY Then
+                ' Calculate the address with ONLY the low-byte addition (partial carry)
+                Dim index = If(mode = AddrMode.ABX, X, Y)
+                ' Address = (Base High Byte) : (Base Low Byte + Index AND &HFF)
+                Dim dummyAddr As UShort = (_addrAbs_Base And &HFF00US) Or ((_addrAbs_Base + index) And &HFFUS)
+                Read(dummyAddr)
+            ElseIf mode = AddrMode.IZY Then
+                ' For Indirect Indexed, it's the same: original high byte + partial low byte
+                ' Note: IZY usually sets _addrAbs_Base to the 16-bit address found in Zero Page
+                Dim dummyAddr As UShort = (_addrAbs_Base And &HFF00US) Or ((_addrAbs_Base + Y) And &HFFUS)
+                Read(dummyAddr)
+            End If
+#End If
             Write(_addrAbs, A)
             Return 0
         End Function

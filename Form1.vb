@@ -19,6 +19,23 @@ Imports Nintendo.NintendoEntertainmentSystem
 
 Public Class Form1
 
+#Region "Logging"
+
+#Const DEBUG_LOGGING = True
+
+    ' Then use conditional compilation:
+    '#If DEBUG_LOGGING Then
+    '    Debug.WriteLine("Your message")
+    '#End If
+
+    ' Or use a conditional method:
+    <Conditional("DEBUG_LOGGING")>
+    Private Sub LogDebug(message As String)
+        Debug.WriteLine(message)
+    End Sub
+#End Region
+
+
 #Region "Rendering"
     Private renderer As Core.Renderer
 
@@ -29,19 +46,33 @@ Public Class Form1
         UpdateDisplay()
     End Sub
 
+    Private _pendingUpdate As Boolean = False
+
     Private Sub UpdateDisplay()
+        ' Skip if there's already a pending update (don't queue up hundreds)
+        If _pendingUpdate Then Return
+
+        _pendingUpdate = True
         Dim displayBmp As Bitmap = renderer.GetDisplayBuffer()
 
         If picScreen.InvokeRequired Then
             picScreen.BeginInvoke(Sub()
-                                      Dim oldImg = picScreen.Image
-                                      picScreen.Image = displayBmp
-                                      oldImg?.Dispose()
+                                      Try
+                                          Dim oldImg = picScreen.Image
+                                          picScreen.Image = displayBmp
+                                          oldImg?.Dispose()
+                                      Finally
+                                          _pendingUpdate = False
+                                      End Try
                                   End Sub)
         Else
-            Dim oldImg = picScreen.Image
-            picScreen.Image = displayBmp
-            oldImg?.Dispose()
+            Try
+                Dim oldImg = picScreen.Image
+                picScreen.Image = displayBmp
+                oldImg?.Dispose()
+            Finally
+                _pendingUpdate = False
+            End Try
         End If
     End Sub
 #End Region
@@ -317,11 +348,31 @@ Public Class Form1
         'End While
         'Exit Sub
         '-----
+        Dim frameCount As Integer = 0
+        Dim lastDiagnosticTime = DateTime.Now
+        Dim fpsFrameCount As Integer = 0
+        Dim lastFpsTime = DateTime.Now
+        Dim currentFPS As Double = 0
+
+        ' Frame timing
+        Const TARGET_FPS As Double = 60.0988
+        Const FRAME_TIME_MS As Double = 1000.0 / TARGET_FPS
+        Dim nextFrameTime As DateTime = DateTime.Now
+
+        Dim totalEmulationTime As Double = 0
+        Dim totalRenderTime As Double = 0
+        Dim totalDisplayTime As Double = 0
+        Dim perfSamples As Integer = 0
+
         emNES.AudioSystem.Play()
         emNES.AudioSystem.Volume = 0.5F
 
-        Dim frameCount As Integer = 0
+        Dim clocksPerFrame As Long = 0
+        ' PROFILE: Emulation time
+        Dim emuStart = DateTime.Now
         While running
+            Dim frameStart = DateTime.Now
+
             InputSystem.BeginFrame()
 
             ProcessHotKeys()
@@ -330,28 +381,98 @@ Public Class Form1
             emNES.PPU.FrameComplete = False
             Do
                 emNES.Clock()
-
+                clocksPerFrame += 1
                 If running = False Then
                     emNES.Reset()
                     Exit While
                 End If
             Loop While Not emNES.PPU.FrameComplete
+            ' Should be ~29780 clocks per frame (NTSC)
+            If (frameCount Mod 60) = 0 Then
+                Debug.WriteLine($"Clocks per frame: {clocksPerFrame / 60}")
+                clocksPerFrame = 0
+            End If
+
+            Dim emuTime = (DateTime.Now - emuStart).TotalMilliseconds
 
             emNES.PPU.FrameComplete = False
 
-            frameCount += 1UI
+            frameCount += 1
+            fpsFrameCount += 1
 
-            ' Render frame using the renderer
+            ' PROFILE: Render time
+            Dim renderStart = DateTime.Now
             renderer.RenderFrame(emNES.PPU, frameCount)
+            Dim renderTime = (DateTime.Now - renderStart).TotalMilliseconds
 
-            ' Audio diagnostics
-            'CheckAPUSamples()
-
-            ' Update display
+            ' PROFILE: Display update time
+            Dim displayStart = DateTime.Now
             UpdateDisplay()
-        End While
-        emNES.AudioSystem.Stop()
+            Dim displayTime = (DateTime.Now - displayStart).TotalMilliseconds
 
+            ' Accumulate times
+            totalEmulationTime += emuTime
+            totalRenderTime += renderTime
+            totalDisplayTime += displayTime
+            perfSamples += 1
+
+            ' Calculate FPS
+            If fpsFrameCount >= 30 Then
+                Dim now = DateTime.Now
+                Dim elapsed = (now - lastFpsTime).TotalSeconds
+                currentFPS = fpsFrameCount / elapsed
+                fpsFrameCount = 0
+                lastFpsTime = now
+            End If
+
+            ' ONLY apply frame limiting if we're running FASTER than target
+            'If currentFPS > TARGET_FPS Then
+            '    nextFrameTime = nextFrameTime.AddMilliseconds(FRAME_TIME_MS)
+            '    Dim now = DateTime.Now
+            '
+            '    If nextFrameTime > now Then
+            '        Dim sleepTime = CInt((nextFrameTime - now).TotalMilliseconds)
+            '        If sleepTime > 0 AndAlso sleepTime < 100 Then
+            '            Threading.Thread.Sleep(sleepTime)
+            '        End If
+            '    Else
+            '        If (now - nextFrameTime).TotalMilliseconds > 100 Then
+            '            nextFrameTime = now
+            '        End If
+            '    End If
+            'Else
+            '    ' Running slow - don't limit, just reset timing
+            '    nextFrameTime = DateTime.Now
+            'End If
+
+            ' Diagnostics
+            If (DateTime.Now - lastDiagnosticTime).TotalSeconds >= 1.0 Then
+                lastDiagnosticTime = DateTime.Now
+
+                Dim avgEmu = totalEmulationTime / perfSamples
+                Dim avgRender = totalRenderTime / perfSamples
+                Dim avgDisplay = totalDisplayTime / perfSamples
+                Dim avgTotal = avgEmu + avgRender + avgDisplay
+
+                MenuStrip1.Items.Item(2).Text = $"[Perf] FPS: {currentFPS:F1}"
+
+
+                LogDebug($"[Perf] FPS: {currentFPS:F1}")
+                LogDebug($"  Emulation: {avgEmu:F2}ms ({avgEmu / avgTotal * 100:F0}%)")
+                LogDebug($"  Render:    {avgRender:F2}ms ({avgRender / avgTotal * 100:F0}%)")
+                LogDebug($"  Display:   {avgDisplay:F2}ms ({avgDisplay / avgTotal * 100:F0}%)")
+                LogDebug($"  TOTAL:     {avgTotal:F2}ms")
+                LogDebug($"  Audio Buffer: {emNES.AudioBufferLevel}")
+
+                ' Reset averages
+                totalEmulationTime = 0
+                totalRenderTime = 0
+                totalDisplayTime = 0
+                perfSamples = 0
+            End If
+        End While
+
+        emNES.AudioSystem.Stop()
         ' Clean up
         renderer.Clear(GraphicsObjects.PixelColors.DarkGrey)
         UpdateDisplay()
@@ -427,4 +548,9 @@ Public Class Form1
         Next
     End Sub
 
+    Private tmpCart As TestingGrounds.TestCartridge
+
+    Private Sub FpsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles FpsToolStripMenuItem.Click
+        tmpCart = New TestingGrounds.TestCartridge("TurkeyEatingChampion.nes")
+    End Sub
 End Class

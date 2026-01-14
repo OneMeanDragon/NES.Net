@@ -1,9 +1,12 @@
-﻿Imports System.Runtime.CompilerServices
+﻿#Const DUMMY_READS = True
+
+Imports System.Runtime.CompilerServices
 
 Namespace NintendoEntertainmentSystem
 
     ' MOS Technology 6502 CPU - Addressing Modes (Partial Class)
     Partial Public NotInheritable Class CPU6502
+        Public _addrAbs_Base As UShort
 
 #Region "Addressing Modes"
         ''' <summary>Implied - Operates on accumulator</summary>
@@ -33,16 +36,18 @@ Namespace NintendoEntertainmentSystem
         ''' <summary>Zero Page, X - Zero page address + X</summary>
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Function ZPX() As Byte
-            _addrAbs = (CUShort(Read(PC)) + X) And &HFFUS
+            Dim base = Read(PC)
             PC += 1US
+            _addrAbs = (CUShort(base) + X) And &HFF
             Return 0
         End Function
 
         ''' <summary>Zero Page, Y - Zero page address + Y</summary>
         <MethodImpl(MethodImplOptions.AggressiveInlining)>
         Friend Function ZPY() As Byte
-            _addrAbs = (CUShort(Read(PC)) + Y) And &HFFUS
+            Dim base = Read(PC)
             PC += 1US
+            _addrAbs = (CUShort(base) + Y) And &HFF
             Return 0
         End Function
 
@@ -73,6 +78,7 @@ Namespace NintendoEntertainmentSystem
             Dim hi = Read(PC)
             PC += 1US
             _addrAbs = (CUShort(hi) << 8US) Or lo
+            _addrAbs_Base = _addrAbs
             Return 0
         End Function
 
@@ -83,6 +89,13 @@ Namespace NintendoEntertainmentSystem
             Dim baseAddr As UShort = _addrAbs
             _addrAbs = ((_addrAbs + X) And &HFFFFUS)
             If (_addrAbs And &HFF00US) <> (baseAddr And &HFF00US) Then
+#If DUMMY_READS Then
+                ' PERFORM DUMMY READ:
+                ' This reads from the original high byte but the new (correct) low byte.
+                ' Error 5 checks if this access correctly triggers side effects on registers like $2002.
+                Dim dummyAddr As UShort = (baseAddr And &HFF00US) Or (_addrAbs And &HFFUS)
+                Read(dummyAddr)
+#End If
                 Return 1
             End If
             Return 0
@@ -138,12 +151,19 @@ Namespace NintendoEntertainmentSystem
             Dim hi = Read((CUShort(t) + 1US) And &HFFUS)
 
             ' Store the base address to check for page crossing
-            Dim baseAddr As UShort = (CUShort(hi) << 8) Or lo
-            _addrAbs = CUShort((baseAddr + Y) And &HFFFFUS)
+            _addrAbs_Base = (CUShort(hi) << 8) Or lo
+            _addrAbs = CUShort((_addrAbs_Base + Y) And &HFFFFUS)
 
             ' Return 1 if page boundary crossed (high bytes differ)
             ' Using UShort cast ensures 16-bit safe comparison in .NET 10
-            If (_addrAbs And &HFF00US) <> (baseAddr And &HFF00US) Then
+            If (_addrAbs And &HFF00US) <> (_addrAbs_Base And &HFF00US) Then
+#If DUMMY_READS Then
+                ' PERFORM DUMMY READ:
+                ' This reads from the original high byte but the new (correct) low byte.
+                ' Error 5 checks if this access correctly triggers side effects on registers like $2002.
+                Dim dummyAddr As UShort = (_addrAbs_Base And &HFF00US) Or (_addrAbs And &HFFUS)
+                Read(dummyAddr)
+#End If
                 Return 1
             End If
             Return 0
