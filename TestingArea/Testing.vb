@@ -1,6 +1,6 @@
 ﻿Imports System.Runtime.InteropServices
 
-#Const DIAGNOSE_CREATE_CARTRIDGE_CLASS = False
+#Const DIAGNOSE_CREATE_CARTRIDGE_CLASS = True
 
 Namespace TestingGrounds
 
@@ -31,7 +31,7 @@ Namespace TestingGrounds
         End Sub
 
         <DllImport(DllPath, CallingConvention:=CallingConvention.Cdecl, CharSet:=CharSet.Ansi)>
-        Private Shared Function LoadRom(cart As IntPtr, path As String) As Boolean
+        Private Shared Function LoadCartridge(cart As IntPtr, path As String) As Boolean
         End Function
 #End Region
 
@@ -59,9 +59,7 @@ Namespace TestingGrounds
             CartridgeSetDiagnosticLogCallback(_nativePtr, _diagCallback)
 #End If
 
-            ' 4. Pass the delegate into the DLL function
-            Dim result = LoadRom(_nativePtr, filePath)
-            If Not result Then
+            If Not LoadCartridge(_nativePtr, filePath) Then
                 Throw New Exception("Failed to load ROM")
             End If
         End Sub
@@ -77,7 +75,6 @@ Namespace TestingGrounds
             If Not _disposedValue Then
                 ' If disposing is True, we are being called by user code
                 ' If False, we are being called by the Finalizer (GC)
-
                 If _nativePtr <> IntPtr.Zero Then
                     ' Call the C++ DLL to delete the object
                     DestroyCartridge(_nativePtr)

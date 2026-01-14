@@ -551,6 +551,20 @@ Public Class Form1
     Private tmpCart As TestingGrounds.TestCartridge
 
     Private Sub FpsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles FpsToolStripMenuItem.Click
-        tmpCart = New TestingGrounds.TestCartridge("TurkeyEatingChampion.nes")
+        WriteConfig = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(strRegistryPath)
+        ReadConfig = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(strRegistryPath)
+
+        dlgOpenFile.InitialDirectory = ReadConfig.GetValue("LastDirectory")
+        dlgOpenFile.Filter = "NES Files (*.nes)|*.nes|All files (*.*)|*.*"
+        dlgOpenFile.FilterIndex = 0
+
+        If dlgOpenFile.ShowDialog() = Windows.Forms.DialogResult.OK Then
+            strFilename = Path.GetFileName(dlgOpenFile.FileName)
+            strFilepath = Path.GetDirectoryName(dlgOpenFile.FileName)
+            WriteConfig.SetValue("LastDirectory", strFilepath)
+            Me.Text = strProgramTitle & " - " & strFilename
+        End If
+
+        tmpCart = New TestingGrounds.TestCartridge(dlgOpenFile.FileName)
     End Sub
 End Class
