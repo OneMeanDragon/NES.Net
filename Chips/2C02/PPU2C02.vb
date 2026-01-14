@@ -1,4 +1,5 @@
 ﻿Imports System.Runtime.CompilerServices
+Imports Nintendo.TestingGrounds
 
 Namespace NintendoEntertainmentSystem
 

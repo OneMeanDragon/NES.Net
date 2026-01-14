@@ -1,5 +1,5 @@
-#include "pch.h"
 #include "../core/Cartridge.h"
+#include "../core/mappers/MapperFactory.h"
 
 #include <iostream>
 #include <fstream>
@@ -82,6 +82,40 @@ void Cartridge::LogDiagnostics() {
     Log("===============================================================");
 }
 
+#pragma region "Cartridge Propertys"
+bool Cartridge::IsLoaded() const { return _isLoaded; }
+uint8_t Cartridge::MapperID() const { return _header.get_mapper_number(); }
+uint8_t Cartridge::PrgBanks() const { return _header.prg_rom_size; }
+uint8_t Cartridge::ChrBanks() const { return (_header.chr_rom_size == 0 ? 1 : _header.chr_rom_size); } // 0 means CHR-RAM
+MirrorMode Cartridge::GetMirrorMode() const {
+    if (_mapper != nullptr) {
+        MirrorMode mapperMirror = _mapper->GetMirrorMode();
+        if (mapperMirror != MirrorMode::Hardware) {
+            return mapperMirror;
+        }
+    }
+
+    if (_header.is_four_screen_mode()) {
+        // Some implementations define MirrorMode::FourScreen 
+        // to represent extra VRAM on the cartridge.
+        return MirrorMode::FourScreen;
+    }
+    else if (_header.is_vertical_mirroring()) {
+        return MirrorMode::Vertical;
+    }
+    else {
+        return MirrorMode::Horizontal;
+    }
+}
+bool Cartridge::HasBattery() const { return _header.has_battery_backed_ram(); }
+MapperBase* Cartridge::GetMapper() const {
+    if (_mapper != nullptr) {
+        return _mapper.get();
+    }
+    return nullptr;
+}
+#pragma endregion
+
 bool Cartridge::Load(const char* path) {
     try {
         _isLoaded = false;
@@ -106,6 +140,7 @@ bool Cartridge::Load(const char* path) {
 
         file.seekg(0, std::ios::beg);
         _romData.resize(size);
+
         if (!file.read(reinterpret_cast<char*>(_romData.data()), size)) {
             Log("Error: Unable to read Cartridge file.");
             return false;
@@ -148,8 +183,10 @@ bool Cartridge::Load(const char* path) {
             _chrRom.assign(_romData.begin() + offset, _romData.begin() + offset + chrSize);
         }
     
-        // 4. Initialize Mapper (Logic goes here)
-        // if (!InitializeMapper()) return false;
+        // Initialize mapper
+        if (!InitializeMapper()) {
+            return false;
+        }
     
         _isLoaded = true;
         LogDiagnostics();
@@ -165,17 +202,100 @@ bool Cartridge::Load(const char* path) {
     }
 }
 
-bool Cartridge::CpuRead(uint16_t addr, uint8_t& data) {
-	return true;
+bool Cartridge::InitializeMapper() {
+    uint8_t mapperID = _header.get_mapper_number();
+
+    if (nes::MapperFactory::IsSupported(mapperID)) {
+        // Create the mapper and store it in our unique_ptr
+        _mapper = nes::MapperFactory::CreateMapper(mapperID, _header.prg_rom_size, _header.chr_rom_size);
+
+        std::string name = nes::MapperFactory::GetMapperName(mapperID);
+        Log(std::format("Loaded: {}", name).c_str());
+        return true;
+    }
+    else {
+        Log(std::format("Unsupported mapper: {:d}", mapperID).c_str());
+        return false;
+    }
 }
 
-bool Cartridge::CpuWrite(uint16_t addr, uint8_t data)
-{
-	return true;
+bool Cartridge::CpuRead(uint16_t addr, uint8_t& data) {
+    if (!_isLoaded || _mapper == nullptr) return false;
+
+    uint32_t mappedAddr = 0;
+    // The mapper may update 'data' directly if it's an internal RAM read
+    if (_mapper->CpuMapRead(addr, mappedAddr, data)) {
+
+        // If the mapper returned the sentinel, it handled the 'data' itself (e.g., WRAM)
+        if (mappedAddr == 0xFFFFFFFF) {
+            return true;
+        }
+
+        // Otherwise, it's a standard PRG-ROM read.
+        // _prgRom can be a std::vector<uint8_t> or std::span<uint8_t>
+        if (mappedAddr < _prgRom.size()) {
+            data = _prgRom[mappedAddr];
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Cartridge::CpuWrite(uint16_t addr, uint8_t data) {
+    if (!_isLoaded || _mapper == nullptr) return false;
+
+    uint32_t mappedAddr = 0;
+    // Mapper handles writes to its internal registers or WRAM
+    if (_mapper->CpuMapWrite(addr, mappedAddr, data)) {
+
+        // Sentinel check: Mapper handled the write (Register update or WRAM)
+        if (mappedAddr == 0xFFFFFFFF) {
+            return true;
+        }
+
+        // If your architecture supports writing back to a PRG-RAM buffer 
+        // managed by the Cartridge class (instead of inside the Mapper), 
+        // you would handle that here.
+        return true;
+    }
+
+    return false;
+}
+
+bool Cartridge::PpuRead(uint16_t addr, uint8_t& data) {
+    // Basic state check
+    if (!_isLoaded || _mapper == nullptr) return false;
+
+    uint32_t mappedAddr = 0;
+    // Ask the mapper where this PPU address resides in the CHR data
+    if (_mapper->PpuMapRead(addr, mappedAddr)) {
+        // Bounds check against the loaded CHR data
+        if (mappedAddr < _chrRom.size()) {
+            data = _chrRom[mappedAddr];
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Cartridge::PpuWrite(uint16_t addr, uint8_t data) {
+    if (!_isLoaded || _mapper == nullptr) return false;
+
+    uint32_t mappedAddr = 0;
+    // Ask the mapper if this address is writable (e.g., CHR-RAM)
+    if (_mapper->PpuMapWrite(addr, mappedAddr)) {
+        if (mappedAddr < _chrRom.size()) {
+            _chrRom[mappedAddr] = data;
+            return true;
+        }
+    }
+
+    return false;
 }
 
 #pragma region "Exported Cartridge Functions"
-
 DLLEXPORT void CartridgeSetDiagnosticLogCallback(Cartridge* cart, DiagnosticLogCallback callback) {
     if (cart && callback) {
         cart->SetDiagnosticLogCallback(callback);
@@ -206,14 +326,66 @@ DLLEXPORT void DestroyCartridge(Cartridge* cart) {
 }
 
 DLLEXPORT bool LoadCartridge(Cartridge* cart, const char* path) {
-	bool result = cart->Load(path);
-	if (result) cart->Log("ROM loaded successfully.");
-	else cart->Log("Error: ROM load failed.");
-	return result;
+    if (cart && path) {
+        bool result = cart->Load(path);
+        if (result) cart->Log("ROM loaded successfully.");
+        else cart->Log("Error: ROM load failed.");
+        return result;
+    }
+    return false;
+}
+
+DLLEXPORT MirrorMode CartridgeGetMirrorMode(Cartridge* cart) {
+    if (cart) cart->GetMirrorMode();
+    return MirrorMode::Hardware;
+}
+
+DLLEXPORT bool CartridgeIsLoaded(Cartridge* cart) {
+    if (cart) return cart->IsLoaded();
+    return false;
 }
 
 DLLEXPORT bool CartCpuRead(Cartridge* cart, uint16_t addr, uint8_t* data) {
-	return cart->CpuRead(addr, *data);
+    if (cart) return cart->CpuRead(addr, *data);
+    return false;
 }
+
+DLLEXPORT bool CartCpuWrite(Cartridge* cart, uint16_t addr, uint8_t data) {
+    if (cart) return cart->CpuWrite(addr, data);
+    return false;
+}
+
+DLLEXPORT bool CartPpuRead(Cartridge* cart, uint16_t addr, uint8_t* data) {
+    if (cart) return cart->PpuRead(addr, *data);
+    return false;
+}
+
+DLLEXPORT bool CartPpuWrite(Cartridge* cart, uint16_t addr, uint8_t data) {
+    if (cart) return cart->PpuWrite(addr, data);
+    return false;
+}
+
+
+#pragma region "Exported MapperBase Functions"
+// ============================= MAPPER RELATED Functionality =============================
+DLLEXPORT MapperBase* CartridgeMapper(Cartridge* cart) {
+    if (cart) return cart->GetMapper();
+    return nullptr;
+}
+DLLEXPORT bool MapperIsIrqActive(MapperBase* mapper) {
+    if (mapper) return mapper->IsIrqActive();
+    return false;
+}
+DLLEXPORT void MapperClearIrq(MapperBase* mapper) {
+    if (mapper) mapper->ClearIrq();
+}
+DLLEXPORT void MapperReset(MapperBase* mapper) {
+    if (mapper) mapper->Reset();
+}
+DLLEXPORT MirrorMode MapperGetMirrorMode(MapperBase* mapper) {
+    if (mapper) return mapper->GetMirrorMode();
+    return MirrorMode::Hardware;
+}
+#pragma endregion
 
 #pragma endregion

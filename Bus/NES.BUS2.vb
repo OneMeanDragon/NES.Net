@@ -1,6 +1,7 @@
 ﻿Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
 Imports Nintendo.Nintendo.NintendoEntertainmentSystem
+Imports Nintendo.TestingGrounds
 
 Namespace NintendoEntertainmentSystem
 
@@ -105,9 +106,9 @@ Namespace NintendoEntertainmentSystem
                     _bufferUnderrunCount += 1
 
                     ' Debug every 10000 underruns
-                    If (_bufferUnderrunCount Mod 10000) = 0 Then
-                        Debug.WriteLine($"[Audio] Buffer underrun #{_bufferUnderrunCount}, level={available}")
-                    End If
+                    'If (_bufferUnderrunCount Mod 10000) = 0 Then
+                    '    Debug.WriteLine($"[Audio] Buffer underrun #{_bufferUnderrunCount}, level={available}")
+                    'End If
 
                     Return _lastValidSample  ' Hold last sample instead of silence
                 End If

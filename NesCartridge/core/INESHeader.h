@@ -13,15 +13,15 @@ constexpr size_t TRAINER_SIZE = 512;
 
 #pragma pack(push, 1)
 struct INESHeader {
-    uint8_t magic[4];          // "NES" + $1A
-    uint8_t prg_rom_size;      // PRG ROM size in 16KB units
-    uint8_t chr_rom_size;      // CHR ROM size in 8KB units
-    uint8_t flags6;            // Mapper, mirroring, battery, trainer
-    uint8_t flags7;            // Mapper, VS/Playchoice, NES 2.0
-    uint8_t flags8;            // PRG-RAM size
-    uint8_t flags9;            // TV system
-    uint8_t flags10;           // TV system, PRG-RAM presence
-    uint8_t unused[5];         // Unused padding
+    uint8_t magic[4]{0};          // "NES" + $1A
+    uint8_t prg_rom_size{0};      // PRG ROM size in 16KB units
+    uint8_t chr_rom_size{0};      // CHR ROM size in 8KB units
+    uint8_t flags6{0};            // Mapper, mirroring, battery, trainer
+    uint8_t flags7{0};            // Mapper, VS/Playchoice, NES 2.0
+    uint8_t flags8{0};            // PRG-RAM size
+    uint8_t flags9{0};            // TV system
+    uint8_t flags10{0};           // TV system, PRG-RAM presence
+    uint8_t unused[5]{0};         // Unused padding
 
     // --- Property Helpers ---
 

@@ -15,6 +15,7 @@ Imports Nintendo.Core.Input
 
 Imports Nintendo.FOREVERLOOP_HELPERS
 Imports Nintendo.NintendoEntertainmentSystem
+Imports Nintendo.TestingGrounds
 
 
 Public Class Form1
@@ -273,7 +274,7 @@ Public Class Form1
         'Need to Check if were currently emulating
         If running Then Return
         If IsNothing(Cart) Then
-            Cart = New CartridgeClass(dlgOpenFile.FileName)
+            Cart = New TestCartridge(dlgOpenFile.FileName) 'CartridgeClass(dlgOpenFile.FileName)
         Else
             Cart.Reset()
             Cart.LoadFromFile(dlgOpenFile.FileName)
@@ -286,25 +287,25 @@ Public Class Form1
         ' Reset the system
         emNES.Reset()
 
-        '----------- debug shit
-        ' Test the full read path
-        Debug.WriteLine("=== FULL PATH TEST ===")
-
-        ' Test 1: Read $FFFC via Bus
-        Dim testByte As Byte = emNES.CpuRead(&HFFFCUS)
-        Debug.WriteLine(String.Format("Bus.cpuRead($FFFC) = ${0:X2}", testByte))
-
-        ' Test 2: Read $FFFC via Cart directly
-        Dim cartByte As Byte = 0
-        Dim cartHandled As Boolean = Cart.CpuRead(&HFFFCUS, cartByte)
-        Debug.WriteLine(String.Format("Cart.cpuRead($FFFC) = handled:{0}, data:${1:X2}", cartHandled, cartByte))
-
-        ' Test 3: Read $8000
-        testByte = emNES.CpuRead(&H8000US)
-        Debug.WriteLine(String.Format("Bus.cpuRead($8000) = ${0:X2}", testByte))
-
-        Debug.WriteLine("=== END FULL PATH TEST ===")
-        Debug.WriteLine("")
+        ''----------- debug shit
+        '' Test the full read path
+        'Debug.WriteLine("=== FULL PATH TEST ===")
+        '
+        '' Test 1: Read $FFFC via Bus
+        'Dim testByte As Byte = emNES.CpuRead(&HFFFCUS)
+        'Debug.WriteLine(String.Format("Bus.cpuRead($FFFC) = ${0:X2}", testByte))
+        '
+        '' Test 2: Read $FFFC via Cart directly
+        'Dim cartByte As Byte = 0
+        'Dim cartHandled As Boolean = Cart.CpuRead(&HFFFCUS, cartByte)
+        'Debug.WriteLine(String.Format("Cart.cpuRead($FFFC) = handled:{0}, data:${1:X2}", cartHandled, cartByte))
+        '
+        '' Test 3: Read $8000
+        'testByte = emNES.CpuRead(&H8000US)
+        'Debug.WriteLine(String.Format("Bus.cpuRead($8000) = ${0:X2}", testByte))
+        '
+        'Debug.WriteLine("=== END FULL PATH TEST ===")
+        'Debug.WriteLine("")
 
         ' just a ref not actual data
         ' 78 D8 A9 10 8D 00 20 A9 00 8D 01 20 8D 05 20 8D
@@ -388,10 +389,10 @@ Public Class Form1
                 End If
             Loop While Not emNES.PPU.FrameComplete
             ' Should be ~29780 clocks per frame (NTSC)
-            If (frameCount Mod 60) = 0 Then
-                Debug.WriteLine($"Clocks per frame: {clocksPerFrame / 60}")
-                clocksPerFrame = 0
-            End If
+            'If (frameCount Mod 60) = 0 Then
+            '    Debug.WriteLine($"Clocks per frame: {clocksPerFrame / 60}")
+            '    clocksPerFrame = 0
+            'End If
 
             Dim emuTime = (DateTime.Now - emuStart).TotalMilliseconds
 
@@ -446,30 +447,30 @@ Public Class Form1
             'End If
 
             ' Diagnostics
-            If (DateTime.Now - lastDiagnosticTime).TotalSeconds >= 1.0 Then
-                lastDiagnosticTime = DateTime.Now
-
-                Dim avgEmu = totalEmulationTime / perfSamples
-                Dim avgRender = totalRenderTime / perfSamples
-                Dim avgDisplay = totalDisplayTime / perfSamples
-                Dim avgTotal = avgEmu + avgRender + avgDisplay
-
-                MenuStrip1.Items.Item(2).Text = $"[Perf] FPS: {currentFPS:F1}"
-
-
-                LogDebug($"[Perf] FPS: {currentFPS:F1}")
-                LogDebug($"  Emulation: {avgEmu:F2}ms ({avgEmu / avgTotal * 100:F0}%)")
-                LogDebug($"  Render:    {avgRender:F2}ms ({avgRender / avgTotal * 100:F0}%)")
-                LogDebug($"  Display:   {avgDisplay:F2}ms ({avgDisplay / avgTotal * 100:F0}%)")
-                LogDebug($"  TOTAL:     {avgTotal:F2}ms")
-                LogDebug($"  Audio Buffer: {emNES.AudioBufferLevel}")
-
-                ' Reset averages
-                totalEmulationTime = 0
-                totalRenderTime = 0
-                totalDisplayTime = 0
-                perfSamples = 0
-            End If
+            'If (DateTime.Now - lastDiagnosticTime).TotalSeconds >= 1.0 Then
+            '    lastDiagnosticTime = DateTime.Now
+            '
+            '    Dim avgEmu = totalEmulationTime / perfSamples
+            '    Dim avgRender = totalRenderTime / perfSamples
+            '    Dim avgDisplay = totalDisplayTime / perfSamples
+            '    Dim avgTotal = avgEmu + avgRender + avgDisplay
+            '
+            '    MenuStrip1.Items.Item(2).Text = $"[Perf] FPS: {currentFPS:F1}"
+            '
+            '
+            '    LogDebug($"[Perf] FPS: {currentFPS:F1}")
+            '    LogDebug($"  Emulation: {avgEmu:F2}ms ({avgEmu / avgTotal * 100:F0}%)")
+            '    LogDebug($"  Render:    {avgRender:F2}ms ({avgRender / avgTotal * 100:F0}%)")
+            '    LogDebug($"  Display:   {avgDisplay:F2}ms ({avgDisplay / avgTotal * 100:F0}%)")
+            '    LogDebug($"  TOTAL:     {avgTotal:F2}ms")
+            '    LogDebug($"  Audio Buffer: {emNES.AudioBufferLevel}")
+            '
+            '    ' Reset averages
+            '    totalEmulationTime = 0
+            '    totalRenderTime = 0
+            '    totalDisplayTime = 0
+            '    perfSamples = 0
+            'End If
         End While
 
         emNES.AudioSystem.Stop()

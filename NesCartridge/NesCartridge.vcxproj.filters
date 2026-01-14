@@ -15,26 +15,41 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="core\Cartridge.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="core\INESHeader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="core\mappers\MapperBase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\mappers\Mapper000.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\mappers\Mapper001.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\mappers\Mapper002.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\mappers\Mapper003.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\mappers\Mapper004.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\mappers\Mapper009.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\mappers\Mapper066.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\mappers\MapperFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dllmain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="private\Cartridge.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

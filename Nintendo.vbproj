@@ -47,14 +47,15 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>x64</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
+    <DebugType>none</DebugType>
     <DefineDebug>false</DefineDebug>
-    <DefineTrace>true</DefineTrace>
+    <DefineTrace>false</DefineTrace>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DocumentationFile>Nintendo.xml</DocumentationFile>
     <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
     <RemoveIntegerChecks>true</RemoveIntegerChecks>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup>
     <OptionExplicit>On</OptionExplicit>
@@ -154,15 +155,6 @@
     <Compile Include="Chips\6502\CPU.Interrupts.vb" />
     <Compile Include="Chips\Helpers\BitFields\BIT.FIELD.16.vb" />
     <Compile Include="Bus\NES.BUS2.vb" />
-    <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.0.vb" />
-    <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.1.vb" />
-    <Compile Include="Cartridge\MapperFactory\Mappers\MapperBase\NES.MAPPER.BASE.vb" />
-    <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.2.vb" />
-    <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.3.vb" />
-    <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.4.vb" />
-    <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.66.vb" />
-    <Compile Include="Cartridge\MapperFactory\Mappers\NES.MAPPER.9.vb" />
-    <Compile Include="Cartridge\MapperFactory\NES.MAPPER.FACTORY.vb" />
     <Compile Include="Chips\2C02\LoopyRegister\LoopyRegister.vb" />
     <Compile Include="Chips\2C02\ObjectAttributeEntry\ObjectAttributeEntry.vb" />
     <Compile Include="Chips\2C02\PpuControlRegister\PpuControlRegister.vb" />
@@ -197,7 +189,6 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="Cartridge\NES.CARTRIDGE2.vb" />
     <Compile Include="NES.CONSTANTS.vb" />
     <Compile Include="Renderer\Pixel\Pixel.vb" />
     <Compile Include="Renderer\Pixel\PixelExtensions.vb" />
@@ -242,6 +233,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Cartridge\MapperFactory\Mappers\MapperBase\" />
     <Folder Include="NotUsed\" />
   </ItemGroup>
   <ItemGroup>
