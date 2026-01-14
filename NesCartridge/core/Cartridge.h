@@ -36,4 +36,7 @@ public:
     bool Load(const char* path);
     bool CpuRead(uint16_t addr, uint8_t& data);
     bool CpuWrite(uint16_t addr, uint8_t data);
+
+private:
+    void LogDiagnostics();
 };

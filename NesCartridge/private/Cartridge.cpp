@@ -5,6 +5,8 @@
 #include <fstream>
 #include <sstream>
 
+#include <format>
+
 #pragma region "Cartridge Callback Setup"
 void Cartridge::SetDiagnosticLogCallback(DiagnosticLogCallback callback)
 {
@@ -20,6 +22,64 @@ void Cartridge::SetDiagnosticLogCallback(DiagnosticLogCallback callback)
 void Cartridge::Log(const char* msg)
 {
     if (_diagnosticCallback) _diagnosticCallback(msg);
+}
+
+void Cartridge::LogDiagnostics() {
+    Log("");
+    Log("===============================================================");
+    Log("          MODERN CARTRIDGE LOADER - DIAGNOSTIC REPORT          ");
+    Log("===============================================================");
+    Log("");
+
+    std::string msg;
+    msg = std::format("File Size:       {} bytes.", _romData.size());
+    Log(msg.c_str());
+    msg = std::format("Mapper:          {} (0x{:02X}).", _header.get_mapper_number(), _header.get_mapper_number());
+    Log(msg.c_str());
+    msg = std::format("PRG Banks:       {} * 16KB = {} KB.", _header.prg_rom_size, (_header.prg_rom_size * 16));
+    Log(msg.c_str());
+    msg = std::format("CHR Banks:       {} * 8KB = {} KB.", _header.chr_rom_size, (_header.chr_rom_size * 8));
+    Log(msg.c_str());
+    msg = std::format("CHR Type:        {}.", (_header.chr_rom_size == 0 ? "RAM" : "ROM"));
+    Log(msg.c_str());
+    msg = std::format("Mirroring:       {}.", (_header.is_vertical_mirroring() ? "Vertical" : "Horizontal"));
+    Log(msg.c_str());
+    msg = std::format("Battery:         {}.", _header.has_battery_backed_ram());
+    Log(msg.c_str());
+    msg = std::format("Trainer:         {}.", _header.has_trainer());
+    Log(msg.c_str());
+    msg = std::format("Format:          {}.", (_header.is_nes2_format() ? "iNES 2.0" : "iNES 1.0"));
+    Log(msg.c_str());
+
+    if (_prgRom.size() >= INES_HEADER_SIZE) {
+        Log("");
+        Log("PRG ROM - First 16 bytes:");
+
+        std::string first16 = "";
+        for (int i = 0; i < 16; ++i) {
+            // Append formatted hex string
+            first16 += std::format("{:02X} ", _prgRom[i]);
+        }
+        Log(first16.c_str());
+
+        Log("PRG ROM - Last 16 bytes (vectors):");
+        std::string last16 = "";
+        for (size_t i = _prgRom.size() - 16; i < _prgRom.size(); ++i) {
+            last16 += std::format("{:02X} ", _prgRom[i]);
+        }
+        Log(last16.c_str());
+
+        // Decode reset vector
+        // NES Reset vector is at $FFFC-$FFFD (the last 4th and 3rd bytes of PRG ROM)
+        uint8_t rstLo = _prgRom[_prgRom.size() - 4];
+        uint8_t rstHi = _prgRom[_prgRom.size() - 3];
+        uint16_t rstVec = (static_cast<uint16_t>(rstHi) << 8) | rstLo;
+
+        Log(std::format("Reset Vector:    ${:04X}", rstVec).c_str());
+    }
+
+    Log("");
+    Log("===============================================================");
 }
 
 bool Cartridge::Load(const char* path) {
@@ -92,6 +152,7 @@ bool Cartridge::Load(const char* path) {
         // if (!InitializeMapper()) return false;
     
         _isLoaded = true;
+        LogDiagnostics();
         return true;
     
     }
