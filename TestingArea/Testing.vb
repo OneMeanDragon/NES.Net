@@ -7,13 +7,21 @@ Namespace TestingGrounds
 
         Private Const DllPath As String = "NesCartridge.dll"
 
+#Region "Delegate Definitions"
         <UnmanagedFunctionPointer(CallingConvention.StdCall)>
         Public Delegate Sub DiagnosticLogDelegate(ByVal message As String)
 
         <DllImport(DllPath, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function CreateCartridge(
-                                               callback As DiagnosticLogDelegate 'Where all our delegates will be set
-                                               ) As IntPtr
+        Private Shared Sub CartridgeSetDiagnosticLogCallback(cart As IntPtr, callback As DiagnosticLogDelegate)
+        End Sub
+#End Region
+
+
+        <DllImport(DllPath, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Function CreateCartridge() As IntPtr
+        End Function
+        <DllImport(DllPath, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Function CreateCartridgeDiag(callback As DiagnosticLogDelegate) As IntPtr
         End Function
 
         <DllImport(DllPath, CallingConvention:=CallingConvention.Cdecl)>
@@ -31,9 +39,9 @@ Namespace TestingGrounds
         Private disposedValue As Boolean
 
         Public Sub New(filePath As String)
-            _diagCallback = New DiagnosticLogDelegate(AddressOf MyDiagnosticLogger)
+            _diagCallback = New DiagnosticLogDelegate(AddressOf DiagnosticLogger)
 
-            _nativePtr = CreateCartridge(_diagCallback)
+            _nativePtr = CreateCartridgeDiag(_diagCallback)
             If _nativePtr = IntPtr.Zero Then
                 Throw New Exception("Failed to allocate native Cartridge.")
             End If
@@ -61,8 +69,8 @@ Namespace TestingGrounds
                     ' Call the C++ DLL to delete the object
                     DestroyCartridge(_nativePtr)
                     _nativePtr = IntPtr.Zero
+                    DiagnosticLogger("Cartridge: Disposed.")
                 End If
-
                 _disposedValue = True
             End If
         End Sub
@@ -73,8 +81,8 @@ Namespace TestingGrounds
             MyBase.Finalize()
         End Sub
 
-#Region "Diagnostics Logs"
-        Private Sub MyDiagnosticLogger(ByVal message As String)
+#Region "Diagnostics"
+        Private Sub DiagnosticLogger(ByVal message As String)
             Debug.WriteLine("C++ Diagnostic: " & message)
         End Sub
 #End Region

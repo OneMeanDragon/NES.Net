@@ -4,6 +4,18 @@
 #include <iostream>
 #include <fstream>
 
+#pragma region "Cartridge Callback Setup"
+void Cartridge::SetDiagnosticLogCallback(DiagnosticLogCallback callback)
+{
+    if (callback != nullptr) {
+        _diagnosticCallback = callback;
+    }
+    else {
+        _diagnosticCallback = &DummyLogger;
+    }
+}
+#pragma endregion
+
 void Cartridge::Log(const char* msg)
 {
     if (_diagnosticCallback) _diagnosticCallback(msg);
@@ -90,13 +102,27 @@ bool Cartridge::CpuWrite(uint16_t addr, uint8_t data)
 
 #pragma region "Exported Cartridge Functions"
 
-DLLEXPORT Cartridge* CreateCartridge(DiagnosticLogCallback callback) {
+DLLEXPORT void CartridgeSetDiagnosticLogCallback(Cartridge* cart, DiagnosticLogCallback callback) {
+    if (cart && callback) {
+        cart->SetDiagnosticLogCallback(callback);
+        cart->Log("Info: Diagnostic Log Callback attached successfully.");
+    }
+    else if (cart == nullptr) {
+        if (callback) callback("Error: Cartridge instance is nullptr.");
+    }
+}
+
+DLLEXPORT Cartridge* CreateCartridge() {
+    return new Cartridge();
+}
+
+DLLEXPORT Cartridge* CreateCartridgeDiag(DiagnosticLogCallback callback) {
     Cartridge* cart = new Cartridge();
     if (cart == nullptr) {
         if (callback) callback("Error: Unable to create Cartridge instance.");
         return nullptr;
     }
-    cart->_diagnosticCallback = callback; // Attach it now
+    cart->SetDiagnosticLogCallback(callback);
     cart->Log("Native Cartridge instance created.");
 	return cart;
 }

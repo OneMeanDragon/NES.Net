@@ -23,8 +23,13 @@ private:
     INESHeader _header;
     bool _isLoaded = false;
 
+private:
+    static void __stdcall DummyLogger(const char* message) {}
+    DiagnosticLogCallback _diagnosticCallback = &DummyLogger;
 public:
-    DiagnosticLogCallback _diagnosticCallback = nullptr;
+    void SetDiagnosticLogCallback(DiagnosticLogCallback callback);
+
+public:
     void Log(const char* msg);
 
 public:
