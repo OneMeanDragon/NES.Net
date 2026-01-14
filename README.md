@@ -2,6 +2,7 @@
 - Required Packages from NuGet
   - NAUDIO
   - System.Memory
+- NesCartridge (currently you must compile this, still not optimal..)
 
 ## Status
 - Working (still slow)
