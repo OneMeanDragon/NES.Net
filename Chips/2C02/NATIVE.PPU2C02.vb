@@ -79,8 +79,15 @@ Namespace NintendoEntertainmentSystem
         End Sub
 
 
-        ' Instance fields
         Private _ppuHandle As IntPtr
+        Public ReadOnly Property NativeHandle As IntPtr
+            Get
+                Return _ppuHandle
+            End Get
+        End Property
+
+
+        ' Instance fields
         Private _pixelCallback As PixelCallback
         Private _diagnosticCallback As DiagnosticCallback
         Private _screen As GraphicsObjects.Sprite

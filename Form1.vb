@@ -189,7 +189,7 @@ Public Class Form1
 #End Region
 
 #Region "Emulation Information"
-    Private emNES As New NESBus
+    Private emNES As New NativeNESBus 'NESBus
 #End Region
 
     Public Shared running As Boolean = False
@@ -282,10 +282,16 @@ Public Class Form1
         End If
 
         ' Because the PPU needs the Cartridge pointer
-        If Not IsNothing(emNES.PPU) Then
-            emNES.PPU.Dispose()
-        End If
-        emNES.PPU = New NativePPU2C02(Cart.NativeHandle)
+        'If Not IsNothing(emNES.PPU) Then
+        '    emNES.PPU.Dispose() ' done at the Bus
+        'End If
+        'emNES.PPU = New NativePPU2C02(Cart.NativeHandle)
+
+        ' Connect our cartridge
+        emNES.ConnectCartridge(Cart.NativeHandle)
+
+
+
 
         ' Reset the system
         emNES.Reset()
@@ -359,8 +365,8 @@ Public Class Form1
         Dim currentFPS As Double = 0
 
         ' Frame timing
-        'Const TARGET_FPS As Double = 60.0988
-        'Const FRAME_TIME_MS As Double = 1000.0 / TARGET_FPS
+        Const TARGET_FPS As Double = 60.0988
+        Const FRAME_TIME_MS As Double = 1000.0 / TARGET_FPS
         Dim nextFrameTime As DateTime = DateTime.Now
 
         Dim totalEmulationTime As Double = 0
@@ -450,30 +456,30 @@ Public Class Form1
             'End If
 
             ' Diagnostics
-            'If (DateTime.Now - lastDiagnosticTime).TotalSeconds >= 1.0 Then
-            '    lastDiagnosticTime = DateTime.Now
-            '
-            '    Dim avgEmu = totalEmulationTime / perfSamples
-            '    Dim avgRender = totalRenderTime / perfSamples
-            '    Dim avgDisplay = totalDisplayTime / perfSamples
-            '    Dim avgTotal = avgEmu + avgRender + avgDisplay
-            '
-            '    MenuStrip1.Items.Item(2).Text = $"[Perf] FPS: {currentFPS:F1}"
-            '
-            '
-            '    LogDebug($"[Perf] FPS: {currentFPS:F1}")
-            '    LogDebug($"  Emulation: {avgEmu:F2}ms ({avgEmu / avgTotal * 100:F0}%)")
-            '    LogDebug($"  Render:    {avgRender:F2}ms ({avgRender / avgTotal * 100:F0}%)")
-            '    LogDebug($"  Display:   {avgDisplay:F2}ms ({avgDisplay / avgTotal * 100:F0}%)")
-            '    LogDebug($"  TOTAL:     {avgTotal:F2}ms")
-            '    LogDebug($"  Audio Buffer: {emNES.AudioBufferLevel}")
-            '
-            '    ' Reset averages
-            '    totalEmulationTime = 0
-            '    totalRenderTime = 0
-            '    totalDisplayTime = 0
-            '    perfSamples = 0
-            'End If
+            If (DateTime.Now - lastDiagnosticTime).TotalSeconds >= 1.0 Then
+                lastDiagnosticTime = DateTime.Now
+
+                Dim avgEmu = totalEmulationTime / perfSamples
+                Dim avgRender = totalRenderTime / perfSamples
+                Dim avgDisplay = totalDisplayTime / perfSamples
+                Dim avgTotal = avgEmu + avgRender + avgDisplay
+
+                MenuStrip1.Items.Item(2).Text = $"[Perf] FPS: {currentFPS:F1}"
+
+
+                LogDebug($"[Perf] FPS: {currentFPS:F1}")
+                LogDebug($"  Emulation: {avgEmu:F2}ms ({avgEmu / avgTotal * 100:F0}%)")
+                LogDebug($"  Render:    {avgRender:F2}ms ({avgRender / avgTotal * 100:F0}%)")
+                LogDebug($"  Display:   {avgDisplay:F2}ms ({avgDisplay / avgTotal * 100:F0}%)")
+                LogDebug($"  TOTAL:     {avgTotal:F2}ms")
+                LogDebug($"  Audio Buffer: {emNES.AudioBufferLevel}")
+
+                ' Reset averages
+                totalEmulationTime = 0
+                totalRenderTime = 0
+                totalDisplayTime = 0
+                perfSamples = 0
+            End If
         End While
 
         emNES.AudioSystem.Stop()

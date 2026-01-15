@@ -42,9 +42,9 @@ Namespace NintendoEntertainmentSystem
 #End Region
 
 #Region "Bus Connection"
-        Private Shared _bus As NESBus
+        Private Shared _bus As NativeNESBus 'NESBus
 
-        Public Sub ConnectBus(ByRef bus As NESBus)
+        Public Sub ConnectBus(ByRef bus As NativeNESBus)
             _bus = bus
         End Sub
 

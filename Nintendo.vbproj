@@ -146,6 +146,7 @@
     <Compile Include="ApplicationCore\KeyboardVariables.vb" />
     <Compile Include="Audio\AudioSystem.vb" />
     <Compile Include="Audio\CallbackAudioSystem.vb" />
+    <Compile Include="Bus\NATIVE.NES.BUS.vb" />
     <Compile Include="Chips\2C02\NATIVE.PPU2C02.vb" />
     <Compile Include="Chips\6502\CPU.AddressingModes.vb" />
     <Compile Include="Chips\6502\CPU.Core.vb" />
@@ -154,7 +155,6 @@
     <Compile Include="Chips\6502\CPU.InstructionTable.vb" />
     <Compile Include="Chips\6502\CPU.Interrupts.vb" />
     <Compile Include="Chips\Helpers\BitFields\BIT.FIELD.16.vb" />
-    <Compile Include="Bus\NES.BUS2.vb" />
     <Compile Include="Form1.vb">
       <SubType>Form</SubType>
     </Compile>

@@ -8,23 +8,17 @@
 #include <format>
 
 void Cartridge::ResetState() {
-    // 1. Invalidate the loaded flag immediately
     _isLoaded = false;
-
-    // 2. Destroy the mapper (unique_ptr reset calls the destructor automatically)
     _mapper.reset();
 
-    // 3. Clear owning vectors (this frees the actual memory)
     _romData.clear();
     _chrRom.clear();
 
-    // 4. Invalidate spans (set to empty/null views)
     // IMPORTANT: Spans MUST be reset if the owning vector is cleared 
     // to avoid dangling pointers.
     _prgRom = std::span<uint8_t>();
     _trainer = std::span<uint8_t>();
 
-    // 5. Zero out the header struct
     // Use memset or brace initialization to ensure no garbage data remains
     std::memset(&_header, 0, sizeof(INESHeader));
 
@@ -144,111 +138,9 @@ void Cartridge::EnableLogging(bool enable) {
 }
 #pragma endregion
 
-//bool Cartridge::Load(const char* path) {
-//    try {
-//        ResetState();
-//        // In C++, the mapper reset/deletion would happen here
-//        // e.g., _mapper.reset();
-//    
-//        // 1. Read entire file into memory
-//        std::ifstream file(path, std::ios::binary | std::ios::ate);
-//        if (!file.is_open()) {
-//            Log("Error: Unable to open Cartridge file.");
-//            return false;
-//        }
-//
-//        std::streamsize size = file.tellg();
-//        if (size < INES_HEADER_SIZE) {
-//            std::ostringstream out;
-//            out << "Error: Cartridge file too small: ";
-//            out << INES_HEADER_SIZE;
-//            Log(out.str().c_str());
-//            return false;
-//        }
-//
-//        file.seekg(0, std::ios::beg);
-//        _romData.resize(size);
-//
-//        if (!file.read(reinterpret_cast<char*>(_romData.data()), size)) {
-//            Log("Error: Unable to read Cartridge file.");
-//            return false;
-//        }
-//    
-//        // 2. Parse Header (direct copy into struct)
-//        std::memcpy(&_header, _romData.data(), INES_HEADER_SIZE);
-//    
-//        if (!_header.is_valid()) {
-//            Log("Error: Invalid iNES header.");
-//            return false;
-//        }
-//    
-//        // 3. Calculate offsets and Slice
-//        uint32_t offset = INES_HEADER_SIZE;
-//    
-//        // Handle Trainer
-//        if (_header.has_trainer()) {
-//            _trainer = std::span(_romData.data() + offset, TRAINER_SIZE);
-//            offset += TRAINER_SIZE;
-//        }
-//    
-//        // Extract PRG ROM
-//        uint32_t prgSize = _header.prg_rom_size * PRG_BANK_SIZE;
-//        if (offset + prgSize > _romData.size()) return false;
-//        _prgRom = std::span(_romData.data() + offset, prgSize);
-//        offset += prgSize;
-//    
-//        // Extract CHR ROM/RAM
-//        //if (_header.chr_rom_size == 0) {
-//        //    // CHR-RAM: Allocate 8KB of writable RAM
-//        //    _chrRom.assign(CHR_BANK_SIZE, 0);
-//        //}
-//        //else {
-//        //    // CHR-ROM: Copy from file into its own vector 
-//        //    // (Done so we can modify it if mappers require, or just span it)
-//        //    uint32_t chrSize = _header.chr_rom_size * CHR_BANK_SIZE;
-//        //    if (offset + chrSize > _romData.size()) return false;
-//        //
-//        //    _chrRom.assign(_romData.begin() + offset, _romData.begin() + offset + chrSize);
-//        //}
-//        if (_header.chr_rom_size == 0) {
-//            // CHR-RAM: Allocate 8KB of writable RAM
-//            _chrRom.assign(CHR_BANK_SIZE, 0);
-//        }
-//        else {
-//            // CHR-ROM: Copy from file into its own vector 
-//            // (Done so we can modify it if mappers require, or just span it)
-//            uint32_t chrSize = _header.chr_rom_size * CHR_BANK_SIZE;
-//            if (offset + chrSize > _romData.size()) return false;
-//
-//            _chrRom.assign(_romData.begin() + offset, _romData.begin() + offset + chrSize);
-//        }
-//
-//        // Log CHR buffer size for diagnostics
-//        Log(std::format("Debug: CHR buffer size = {} bytes (chr_rom_size field = {})", _chrRom.size(), _header.chr_rom_size).c_str());
-//
-//    
-//        // Initialize mapper
-//        if (!InitializeMapper()) {
-//            return false;
-//        }
-//    
-//        _isLoaded = true;
-//        LogDiagnostics();
-//        return true;
-//    
-//    }
-//    catch (const std::exception& e) {
-//        std::ostringstream out;
-//        out << "Error loading Cartridge: ";
-//        out << e.what();
-//        Log(out.str().c_str());
-//        return false;
-//    }
-//}
 bool Cartridge::Load(const char* path) {
     try {
         ResetState();
-        // _mapper.reset(); // already handled elsewhere if needed
 
         // 1. Read entire file into memory
         std::ifstream file(path, std::ios::binary | std::ios::ate);
@@ -437,37 +329,6 @@ bool Cartridge::PpuRead(uint16_t addr, uint8_t& data) {
 
     return false;
 }
-//bool Cartridge::PpuRead(uint16_t addr, uint8_t& data) {
-//    // Basic state check
-//    if (!_isLoaded || _mapper == nullptr) {
-//        Log(std::format("PpuRead: ignored - not loaded or no mapper (addr=0x{:04X})", addr).c_str());
-//        return false;
-//    }
-//
-//    uint32_t mappedAddr = 0;
-//    bool mapped = _mapper->PpuMapRead(addr, mappedAddr);
-//
-//    if (!mapped) {
-//        Log(std::format("PpuRead: mapper did NOT map addr 0x{:04X}", addr).c_str());
-//        return false;
-//    }
-//
-//    Log(std::format("PpuRead: addr=0x{:04X} -> mappedAddr=0x{:06X} (CHR size={} bytes)",
-//        addr, mappedAddr, _chrRom.size()).c_str());
-//
-//    if (mappedAddr < _chrRom.size()) {
-//        data = _chrRom[mappedAddr];
-//        Log(std::format("PpuRead: returning 0x{:02X} for PPU addr 0x{:04X} (mapped 0x{:06X})",
-//            data, addr, mappedAddr).c_str());
-//        return true;
-//    }
-//    else {
-//        Log(std::format("PpuRead: mappedAddr 0x{:06X} out of bounds (CHR size {}) for PPU addr 0x{:04X}",
-//            mappedAddr, _chrRom.size(), addr).c_str());
-//    }
-//
-//    return false;
-//}
 
 bool Cartridge::PpuWrite(uint16_t addr, uint8_t data) {
     if (!_isLoaded || _mapper == nullptr) return false;
@@ -514,7 +375,7 @@ DLLEXPORT void DestroyCartridge(Cartridge* cart) {
     DiagnosticLogCallback _log = cart->_diagnosticCallback;
     bool islogged = cart->LoggingEnabled();
 	delete cart;
-    if (islogged) _log("Destroyed Native Cartridge.");
+    if (islogged) _log("Destroyed Native Car");
 }
 
 DLLEXPORT bool LoadCartridge(Cartridge* cart, const char* path) {
@@ -565,7 +426,6 @@ DLLEXPORT bool CartPpuWrite(Cartridge* cart, uint16_t addr, uint8_t data) {
     return false;
 }
 
-
 #pragma region "Exported MapperBase Functions"
 // ============================= MAPPER RELATED Functionality =============================
 DLLEXPORT MapperBase* CartridgeMapper(Cartridge* cart) {
@@ -590,5 +450,15 @@ DLLEXPORT void MapperScanlineCounter(MapperBase* mapper) {
     if (mapper) mapper->ScanlineCounter();
 }
 #pragma endregion
+
+DLLEXPORT void ResetCartridge(Cartridge* cart) {
+    if (cart) {
+        // Cartridge doesn't have Reset, but mapper does
+        MapperBase* mapper = cart->GetMapper();
+        if (mapper) {
+            mapper->Reset();
+        }
+    }
+}
 
 #pragma endregion

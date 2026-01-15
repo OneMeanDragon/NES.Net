@@ -226,7 +226,7 @@ Namespace NintendoEntertainmentSystem
 
             ' PPU Registers ($2000-$3FFF, mirrored every 8 bytes)
             If addr >= &H2000US AndAlso addr <= &H3FFFUS Then
-                Return PPU.cpuRead(addr And PPU_REG_MIRROR_MASK, isReadOnly)
+                Return PPU.CpuRead(addr And PPU_REG_MIRROR_MASK, isReadOnly)
             End If
 
             ' APU Status ($4015)
@@ -265,7 +265,7 @@ Namespace NintendoEntertainmentSystem
 
             ' PPU Registers ($2000-$3FFF, mirrored every 8 bytes)
             If addr >= &H2000US AndAlso addr <= &H3FFFUS Then
-                PPU.cpuWrite(addr And PPU_REG_MIRROR_MASK, data)
+                PPU.CpuWrite(addr And PPU_REG_MIRROR_MASK, data)
                 Return
             End If
 
