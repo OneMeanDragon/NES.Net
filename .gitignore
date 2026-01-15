@@ -10,3 +10,5 @@
 /packages
 /NesChipset/x64/Release
 /x64/Release
+/NesChipset/vendor/FMOD/lib/arm64
+/NesChipset/vendor/FMOD/lib/x86
