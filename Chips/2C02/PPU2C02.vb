@@ -1,5 +1,5 @@
 ﻿Imports System.Runtime.CompilerServices
-Imports Nintendo.TestingGrounds
+Imports Nintendo.NesCartridge
 
 Namespace NintendoEntertainmentSystem
 

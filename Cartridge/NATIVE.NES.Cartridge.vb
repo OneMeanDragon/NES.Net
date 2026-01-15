@@ -1,13 +1,12 @@
 ﻿Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
-Imports Nintendo.TestingGrounds.TestCartridge
 
 
 #Const DIAGNOSE_CREATE_CARTRIDGE_CLASS = True
 
-Namespace TestingGrounds
+Namespace NesCartridge
     Public Module CartridgeGlobal
-        Public Cart As TestCartridge
+        Public Cart As NativeCartridge
     End Module
 
     Public Module DLLPath
@@ -23,7 +22,7 @@ Namespace TestingGrounds
         FourScreen = 5      ' Four-screen (extra VRAM)
     End Enum
 
-    Public Class TestMapperBase
+    Public Class NativeMapperBase
         <DllImport(DLLPath.NesCartridge, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CartridgeMapper(cart As IntPtr) As IntPtr
             ' Returned Pointer is a unique_ptr<MapperBase>().get()
@@ -74,7 +73,7 @@ Namespace TestingGrounds
 
     End Class
 
-    Public Class TestCartridge
+    Public Class NativeCartridge
         Implements IDisposable
 
 #Region "DLL Imports"
@@ -133,9 +132,9 @@ Namespace TestingGrounds
         Private _diagCallback As DiagnosticLogDelegate
         Private disposedValue As Boolean
 
-        Private _mapper As TestMapperBase
+        Private _mapper As NativeMapperBase
 
-        Public ReadOnly Property Mapper As TestMapperBase
+        Public ReadOnly Property Mapper As NativeMapperBase
             Get
                 Return _mapper
             End Get
@@ -163,7 +162,7 @@ Namespace TestingGrounds
                 Throw New Exception("Failed to load ROM")
             End If
 
-            _mapper = New TestMapperBase(_nativePtr)
+            _mapper = New NativeMapperBase(_nativePtr)
 
 
         End Sub
@@ -223,7 +222,7 @@ Namespace TestingGrounds
             End Get
         End Property
 
-        Public ReadOnly Property GetMapper() As TestMapperBase
+        Public ReadOnly Property GetMapper() As NativeMapperBase
             Get
                 Return _mapper
             End Get

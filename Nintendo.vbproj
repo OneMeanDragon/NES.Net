@@ -146,6 +146,7 @@
     <Compile Include="ApplicationCore\KeyboardVariables.vb" />
     <Compile Include="Audio\AudioSystem.vb" />
     <Compile Include="Audio\CallbackAudioSystem.vb" />
+    <Compile Include="Chips\2C02\NATIVE.PPU2C02.vb" />
     <Compile Include="Chips\2C02\PPU2C02.vb" />
     <Compile Include="Chips\6502\CPU.AddressingModes.vb" />
     <Compile Include="Chips\6502\CPU.Core.vb" />
@@ -194,7 +195,7 @@
     <Compile Include="Renderer\Pixel\PixelExtensions.vb" />
     <Compile Include="Renderer\Renderer.vb" />
     <Compile Include="Renderer\Sprite\Sprite.vb" />
-    <Compile Include="TestingArea\Testing.vb" />
+    <Compile Include="Cartridge\NATIVE.NES.Cartridge.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Form1.resx">

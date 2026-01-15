@@ -8,7 +8,11 @@
 #include "INESHeader.h"
 #include "mappers/MapperBase.h"
 
+#ifdef _WIN32
 #define DLLEXPORT extern "C" __declspec(dllexport)
+#else
+#define DLLEXPORT
+#endif
 
 #pragma region "Callback Types"
 typedef void(__stdcall* DiagnosticLogCallback)(const char* message);

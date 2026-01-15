@@ -48,6 +48,9 @@
     <ClInclude Include="core\mappers\MapperFactory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="core\Interfaces\CartridgeInterface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="private\Cartridge.cpp">

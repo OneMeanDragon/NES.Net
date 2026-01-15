@@ -15,7 +15,7 @@ Imports Nintendo.Core.Input
 
 Imports Nintendo.FOREVERLOOP_HELPERS
 Imports Nintendo.NintendoEntertainmentSystem
-Imports Nintendo.TestingGrounds
+Imports Nintendo.NesCartridge
 
 
 Public Class Form1
@@ -274,7 +274,7 @@ Public Class Form1
         'Need to Check if were currently emulating
         If running Then Return
         If IsNothing(Cart) Then
-            Cart = New TestCartridge(dlgOpenFile.FileName) 'CartridgeClass(dlgOpenFile.FileName)
+            Cart = New NativeCartridge(dlgOpenFile.FileName) 'CartridgeClass(dlgOpenFile.FileName)
         Else
             Cart.Reset()
             Cart.LoadFromFile(dlgOpenFile.FileName)
@@ -549,7 +549,7 @@ Public Class Form1
         Next
     End Sub
 
-    Private tmpCart As TestingGrounds.TestCartridge
+    Private tmpCart As NesCartridge.NativeCartridge
 
     Private Sub FpsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles FpsToolStripMenuItem.Click
         WriteConfig = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(strRegistryPath)
@@ -566,6 +566,6 @@ Public Class Form1
             Me.Text = strProgramTitle & " - " & strFilename
         End If
 
-        tmpCart = New TestingGrounds.TestCartridge(dlgOpenFile.FileName)
+        tmpCart = New NativeCartridge(dlgOpenFile.FileName)
     End Sub
 End Class

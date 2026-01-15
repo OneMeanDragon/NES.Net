@@ -1,7 +1,7 @@
 ﻿Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
 Imports Nintendo.Nintendo.NintendoEntertainmentSystem
-Imports Nintendo.TestingGrounds
+Imports Nintendo.NesCartridge
 
 Namespace NintendoEntertainmentSystem
 

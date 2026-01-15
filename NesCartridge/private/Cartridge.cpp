@@ -551,6 +551,9 @@ DLLEXPORT MirrorMode MapperGetMirrorMode(MapperBase* mapper) {
     if (mapper) return mapper->GetMirrorMode();
     return MirrorMode::Hardware;
 }
+DLLEXPORT void MapperScanlineCounter(MapperBase* mapper) {
+    if (mapper) mapper->ScanlineCounter();
+}
 #pragma endregion
 
 #pragma endregion
