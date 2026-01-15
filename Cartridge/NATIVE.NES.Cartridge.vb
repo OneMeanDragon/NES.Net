@@ -4,7 +4,7 @@ Imports System.Runtime.InteropServices
 
 #Const DIAGNOSE_CREATE_CARTRIDGE_CLASS = True
 
-Namespace NesCartridge
+Namespace NintendoEntertainmentSystem
     Public Module CartridgeGlobal
         Public Cart As NativeCartridge
     End Module
@@ -118,11 +118,14 @@ Namespace NesCartridge
         Private Shared Function CartPpuWrite(ByVal cart As IntPtr, ByVal addr As UInt16, ByVal data As Byte) As Boolean
         End Function
         <DllImport(DLLPath.NesCartridge, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function CartridgeGetMirrorMode(cart As IntPtr) As MirrorMode
+        Private Shared Function CartridgeGetMirrorMode(ByVal cart As IntPtr) As MirrorMode
         End Function
         <DllImport(DLLPath.NesCartridge, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function CartridgeIsLoaded(cart As IntPtr) As Boolean
+        Private Shared Function CartridgeIsLoaded(ByVal cart As IntPtr) As Boolean
         End Function
+        <DllImport(DLLPath.NesCartridge, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Sub CartridgeEnableLogging(ByVal cart As IntPtr, ByVal enable As Boolean)
+        End Sub
 
 #End Region
 
@@ -157,6 +160,9 @@ Namespace NesCartridge
             DiagnosticLogger("Native Cartridge instance created.")
             CartridgeSetDiagnosticLogCallback(_nativePtr, _diagCallback)
 #End If
+
+            'Turn on or off the Logger callback
+            CartridgeEnableLogging(_nativePtr, False)
 
             If Not LoadCartridge(_nativePtr, filePath) Then
                 Throw New Exception("Failed to load ROM")
@@ -245,8 +251,7 @@ Namespace NesCartridge
 
 #Region "Diagnostics"
         Private Sub DiagnosticLogger(ByVal message As String)
-            'Debug.WriteLine("Debug: " & message)
-            'Console.WriteLine("Debug: " & message)
+            Console.WriteLine("Debug: " & message)
         End Sub
 #End Region
 

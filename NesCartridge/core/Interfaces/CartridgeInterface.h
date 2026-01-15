@@ -1,7 +1,11 @@
 #pragma once
+/*
+    This Interface should take in the option to not need the LIB linkage
+	and instead use dynamic linking to call into the Cartridge DLL/SO.
+*/
 #pragma comment(lib, "NesCartridge.lib")
 
-#include <cstdint>
+#include <core/Interfaces/MirrorModeRequired.h>
 
 #ifdef _WIN32
 #define DLLIMPORT extern "C" __declspec(dllimport)
@@ -12,16 +16,7 @@
 // Forward declarations
 class Cartridge;
 class MapperBase;
-
-// Mirroring modes (must match your Cartridge.h)
-enum class MirrorMode : uint8_t {
-    Hardware = 0,
-    Horizontal = 1,
-    Vertical = 2,
-    OneScreenLo = 3,
-    OneScreenHi = 4,
-    FourScreen = 5
-};
+enum class MirrorMode : uint8_t;
 
 class MapperBase {
 public:

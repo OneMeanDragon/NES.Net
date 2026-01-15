@@ -163,7 +163,7 @@ Namespace Core
         ''' <summary>
         ''' Render a complete NES frame (game screen + debug views)
         ''' </summary>
-        Public Sub RenderFrame(ppu As PPU2C02, frameNumber As Integer)
+        Public Sub RenderFrame(ppu As NetPPU2C02, frameNumber As Integer)
             ' Always draw the main game screen
             DrawSprite(MARGIN, MARGIN, ppu.Screen)
 
@@ -183,7 +183,7 @@ Namespace Core
         ''' <summary>
         ''' Draw both pattern tables with current selected palette
         ''' </summary>
-        Private Sub DrawPatternTables(ppu As PPU2C02)
+        Private Sub DrawPatternTables(ppu As NetPPU2C02)
             Dim xOffset As Integer = GAME_WIDTH + 4
 
             ' Left pattern table
@@ -196,7 +196,7 @@ Namespace Core
         ''' <summary>
         ''' Draw palette selector with swatches
         ''' </summary>
-        Private Sub DrawPaletteSelector(ppu As PPU2C02)
+        Private Sub DrawPaletteSelector(ppu As NetPPU2C02)
             Dim xOffset As Integer = GAME_WIDTH + 4
             Dim yOffset As Integer = 132
 

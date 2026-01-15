@@ -2,7 +2,6 @@
 
 #include <cstdint>
 #include <cstring>
-#include <core/Interfaces/CartridgeInterface.h>
 
 #ifdef _WIN32
 #define DLLEXPORT extern "C" __declspec(dllexport)
@@ -13,6 +12,7 @@
 // Forward declaration
 class Cartridge;
 class MapperBase;
+class CartridgeInterface;
 
 // Callback types
 typedef void (*PixelCallback)(int x, int y, uint8_t r, uint8_t g, uint8_t b);

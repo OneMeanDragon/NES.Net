@@ -7,6 +7,30 @@
 
 #include <format>
 
+void Cartridge::ResetState() {
+    // 1. Invalidate the loaded flag immediately
+    _isLoaded = false;
+
+    // 2. Destroy the mapper (unique_ptr reset calls the destructor automatically)
+    _mapper.reset();
+
+    // 3. Clear owning vectors (this frees the actual memory)
+    _romData.clear();
+    _chrRom.clear();
+
+    // 4. Invalidate spans (set to empty/null views)
+    // IMPORTANT: Spans MUST be reset if the owning vector is cleared 
+    // to avoid dangling pointers.
+    _prgRom = std::span<uint8_t>();
+    _trainer = std::span<uint8_t>();
+
+    // 5. Zero out the header struct
+    // Use memset or brace initialization to ensure no garbage data remains
+    std::memset(&_header, 0, sizeof(INESHeader));
+
+    Log("Cartridge has been reset.");
+}
+
 #pragma region "Cartridge Callback Setup"
 void Cartridge::SetDiagnosticLogCallback(DiagnosticLogCallback callback)
 {
@@ -21,7 +45,7 @@ void Cartridge::SetDiagnosticLogCallback(DiagnosticLogCallback callback)
 
 void Cartridge::Log(const char* msg)
 {
-    if (_diagnosticCallback) _diagnosticCallback(msg);
+    if (_diagnosticCallback && _loggingEnabled) _diagnosticCallback(msg);
 }
 
 void Cartridge::LogDiagnostics() {
@@ -114,11 +138,15 @@ MapperBase* Cartridge::GetMapper() const {
     }
     return nullptr;
 }
+
+void Cartridge::EnableLogging(bool enable) {
+    _loggingEnabled = enable;
+}
 #pragma endregion
 
 //bool Cartridge::Load(const char* path) {
 //    try {
-//        _isLoaded = false;
+//        ResetState();
 //        // In C++, the mapper reset/deletion would happen here
 //        // e.g., _mapper.reset();
 //    
@@ -219,7 +247,7 @@ MapperBase* Cartridge::GetMapper() const {
 //}
 bool Cartridge::Load(const char* path) {
     try {
-        _isLoaded = false;
+        ResetState();
         // _mapper.reset(); // already handled elsewhere if needed
 
         // 1. Read entire file into memory
@@ -482,8 +510,11 @@ DLLEXPORT Cartridge* CreateCartridgeDiag(DiagnosticLogCallback callback) {
     return cart;
 }
 
-DLLEXPORT void DestroyCartridge(Cartridge* cart) { 
-	delete cart; 
+DLLEXPORT void DestroyCartridge(Cartridge* cart) {
+    DiagnosticLogCallback _log = cart->_diagnosticCallback;
+    bool islogged = cart->LoggingEnabled();
+	delete cart;
+    if (islogged) _log("Destroyed Native Cartridge.");
 }
 
 DLLEXPORT bool LoadCartridge(Cartridge* cart, const char* path) {
@@ -494,6 +525,10 @@ DLLEXPORT bool LoadCartridge(Cartridge* cart, const char* path) {
         return result;
     }
     return false;
+}
+
+DLLEXPORT void CartridgeEnableLogging(Cartridge* cart, bool enable) {
+    if (cart) return cart->EnableLogging(enable);
 }
 
 DLLEXPORT MirrorMode CartridgeGetMirrorMode(Cartridge* cart) {

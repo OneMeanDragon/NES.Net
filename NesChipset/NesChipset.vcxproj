@@ -80,10 +80,11 @@
     <OutDir>$(SolutionDir)\bin\Debug\</OutDir>
     <IntDir>$(SolutionDir)\bin\Debug\intermediates\$(ProjectName)\</IntDir>
     <LibraryPath>$(SolutionDir)\bin\Debug\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)\NesCartridge;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath);$(SolutionDir)\NesCartridge</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LibraryPath>$(SolutionDir)\bin\Release\;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);;$(SolutionDir)\NesCartridge</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

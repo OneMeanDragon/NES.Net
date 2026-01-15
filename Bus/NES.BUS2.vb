@@ -1,7 +1,6 @@
 ﻿Imports System.Runtime.CompilerServices
 Imports System.Runtime.InteropServices
 Imports Nintendo.Nintendo.NintendoEntertainmentSystem
-Imports Nintendo.NesCartridge
 
 Namespace NintendoEntertainmentSystem
 
@@ -21,8 +20,8 @@ Namespace NintendoEntertainmentSystem
 
 #Region "Components"
         ' Core NES components
-        Public ReadOnly CPU As New CPU6502() 'CPU6502() 'em6502()
-        Public ReadOnly PPU As New PPU2C02() 'em2C02()
+        Public ReadOnly CPU As New CPU6502()
+        Public ReadOnly PPU As New NetPPU2C02() 'NetPPU2C02() NativePPU2C02
         Public ReadOnly APU As New em2A03()
 
         ' Memory

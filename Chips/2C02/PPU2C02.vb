@@ -1,5 +1,4 @@
 ﻿Imports System.Runtime.CompilerServices
-Imports Nintendo.NesCartridge
 
 Namespace NintendoEntertainmentSystem
 
@@ -7,7 +6,7 @@ Namespace NintendoEntertainmentSystem
     ''' NES 2C02 Picture Processing Unit
     ''' Modernized implementation with improved code organization
     ''' </summary>
-    Public NotInheritable Class PPU2C02
+    Public NotInheritable Class NetPPU2C02
         Implements IDisposable
 
 #Region "Memory & Rendering Surfaces"

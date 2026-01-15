@@ -15,7 +15,6 @@ Imports Nintendo.Core.Input
 
 Imports Nintendo.FOREVERLOOP_HELPERS
 Imports Nintendo.NintendoEntertainmentSystem
-Imports Nintendo.NesCartridge
 
 
 Public Class Form1
@@ -276,8 +275,10 @@ Public Class Form1
         If IsNothing(Cart) Then
             Cart = New NativeCartridge(dlgOpenFile.FileName) 'CartridgeClass(dlgOpenFile.FileName)
         Else
-            Cart.Reset()
-            Cart.LoadFromFile(dlgOpenFile.FileName)
+            Cart.Dispose()
+            Cart = New NativeCartridge(dlgOpenFile.FileName)
+            'Cart.Reset()
+            'Cart.LoadFromFile(dlgOpenFile.FileName)
         End If
 
         If Not Cart.IsLoaded Then
@@ -549,7 +550,7 @@ Public Class Form1
         Next
     End Sub
 
-    Private tmpCart As NesCartridge.NativeCartridge
+    Private tmpCart As NativeCartridge
 
     Private Sub FpsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles FpsToolStripMenuItem.Click
         WriteConfig = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(strRegistryPath)

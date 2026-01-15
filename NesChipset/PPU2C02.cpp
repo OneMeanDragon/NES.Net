@@ -1,5 +1,6 @@
 #include "PPU2C02.h"
 #include <algorithm>
+#include <core/Interfaces/CartridgeInterface.h>
 
 PPU2C02::PPU2C02(Cartridge* cart)
     : _cart(nullptr), _pixelCallback(nullptr), _diagnosticCallback(nullptr)

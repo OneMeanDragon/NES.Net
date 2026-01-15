@@ -41,8 +41,13 @@ public: //readonly propertys
     MapperBase* GetMapper() const;
 
 private:
+    bool _loggingEnabled = false;
     static void __stdcall DummyLogger(const char* message) {}
+public:
+    // Destry needs to know the callback
     DiagnosticLogCallback _diagnosticCallback = &DummyLogger;
+    void EnableLogging(bool enable);
+	bool LoggingEnabled() const { return _loggingEnabled; }
 public:
     void SetDiagnosticLogCallback(DiagnosticLogCallback callback);
 
@@ -61,5 +66,6 @@ public:
     void Clock();
     
 private:
+    void ResetState();
     void LogDiagnostics();
 };
