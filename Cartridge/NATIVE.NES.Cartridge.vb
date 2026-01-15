@@ -11,6 +11,7 @@ Namespace NintendoEntertainmentSystem
 
     Public Module DLLPath
         Public Const NesCartridge As String = "NesCartridge.dll"
+        Public Const NesPPU As String = "NesChipset.dll"
     End Module
 
     Public Enum [MirrorMode] As Byte
@@ -130,6 +131,12 @@ Namespace NintendoEntertainmentSystem
 #End Region
 
         Private _nativePtr As IntPtr = IntPtr.Zero
+        Public ReadOnly Property NativeHandle As IntPtr
+            Get
+                Return _nativePtr
+            End Get
+        End Property
+
         Private _disposedValue As Boolean = False ' To detect redundant calls
 
         Private _diagCallback As DiagnosticLogDelegate

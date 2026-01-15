@@ -272,18 +272,20 @@ Public Class Form1
 
         'Need to Check if were currently emulating
         If running Then Return
-        If IsNothing(Cart) Then
-            Cart = New NativeCartridge(dlgOpenFile.FileName) 'CartridgeClass(dlgOpenFile.FileName)
-        Else
+        If Not IsNothing(Cart) Then
             Cart.Dispose()
-            Cart = New NativeCartridge(dlgOpenFile.FileName)
-            'Cart.Reset()
-            'Cart.LoadFromFile(dlgOpenFile.FileName)
         End If
+        Cart = New NativeCartridge(dlgOpenFile.FileName)
 
         If Not Cart.IsLoaded Then
             Return
         End If
+
+        ' Because the PPU needs the Cartridge pointer
+        If Not IsNothing(emNES.PPU) Then
+            emNES.PPU.Dispose()
+        End If
+        emNES.PPU = New NativePPU2C02(Cart.NativeHandle)
 
         ' Reset the system
         emNES.Reset()
@@ -357,8 +359,8 @@ Public Class Form1
         Dim currentFPS As Double = 0
 
         ' Frame timing
-        Const TARGET_FPS As Double = 60.0988
-        Const FRAME_TIME_MS As Double = 1000.0 / TARGET_FPS
+        'Const TARGET_FPS As Double = 60.0988
+        'Const FRAME_TIME_MS As Double = 1000.0 / TARGET_FPS
         Dim nextFrameTime As DateTime = DateTime.Now
 
         Dim totalEmulationTime As Double = 0

@@ -6,7 +6,7 @@ Namespace NintendoEntertainmentSystem
     ''' NES 2C02 Picture Processing Unit
     ''' Modernized implementation with improved code organization
     ''' </summary>
-    Public NotInheritable Class NetPPU2C02
+    Public NotInheritable Class NetPPU2C02x
         Implements IDisposable
 
 #Region "Memory & Rendering Surfaces"

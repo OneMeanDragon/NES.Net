@@ -836,3 +836,32 @@ DLLEXPORT void PPU_GetOAMEntry(PPU2C02* ppu, uint8_t index, OAMEntry* entry) {
         entry->CopyFrom(ppu->OAM[index]);
     }
 }
+
+DLLEXPORT void PPU_SetOAMEntry(PPU2C02* ppu, uint8_t index, OAMEntry* entry) {
+    if (ppu && entry && index < 64) {
+        ppu->OAM[index].CopyFrom(*entry);
+    }
+}
+
+DLLEXPORT uint8_t PPU_GetOAMByte(PPU2C02* ppu, uint8_t oamAddr) {
+    if (!ppu) return 0xFF;
+    uint8_t index = oamAddr / 4;
+    if (index >= 64) return 0xFF;
+    return ppu->OAM[index].GetByteAt(oamAddr);
+}
+
+DLLEXPORT void PPU_SetOAMByte(PPU2C02* ppu, uint8_t oamAddr, uint8_t data) {
+    if (!ppu) return;
+    uint8_t index = oamAddr / 4;
+    if (index >= 64) return;
+    ppu->OAM[index].SetByteAt(oamAddr, data);
+}
+
+DLLEXPORT void PPU_GetColorFromPalette(PPU2C02* ppu, uint8_t palette, uint8_t pixel, uint8_t* r, uint8_t* g, uint8_t* b) {
+    if (ppu && r && g && b) {
+        Pixel color = ppu->GetColorFromPalette(palette, pixel);
+        *r = color.r;
+        *g = color.g;
+        *b = color.b;
+    }
+}

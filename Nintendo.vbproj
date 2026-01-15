@@ -147,7 +147,6 @@
     <Compile Include="Audio\AudioSystem.vb" />
     <Compile Include="Audio\CallbackAudioSystem.vb" />
     <Compile Include="Chips\2C02\NATIVE.PPU2C02.vb" />
-    <Compile Include="Chips\2C02\PPU2C02.vb" />
     <Compile Include="Chips\6502\CPU.AddressingModes.vb" />
     <Compile Include="Chips\6502\CPU.Core.vb" />
     <Compile Include="Chips\6502\CPU.Instructions.Illegal.vb" />
@@ -156,11 +155,6 @@
     <Compile Include="Chips\6502\CPU.Interrupts.vb" />
     <Compile Include="Chips\Helpers\BitFields\BIT.FIELD.16.vb" />
     <Compile Include="Bus\NES.BUS2.vb" />
-    <Compile Include="Chips\2C02\LoopyRegister\LoopyRegister.vb" />
-    <Compile Include="Chips\2C02\ObjectAttributeEntry\ObjectAttributeEntry.vb" />
-    <Compile Include="Chips\2C02\PpuControlRegister\PpuControlRegister.vb" />
-    <Compile Include="Chips\2C02\PpuMaskRegister\PpuMaskRegister.vb" />
-    <Compile Include="Chips\2C02\PpuStatusRegister\PpuStatusRegister.vb" />
     <Compile Include="Form1.vb">
       <SubType>Form</SubType>
     </Compile>
@@ -235,6 +229,11 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Cartridge\MapperFactory\Mappers\MapperBase\" />
+    <Folder Include="Chips\2C02\LoopyRegister\" />
+    <Folder Include="Chips\2C02\ObjectAttributeEntry\" />
+    <Folder Include="Chips\2C02\PpuControlRegister\" />
+    <Folder Include="Chips\2C02\PpuMaskRegister\" />
+    <Folder Include="Chips\2C02\PpuStatusRegister\" />
     <Folder Include="NotUsed\" />
   </ItemGroup>
   <ItemGroup>

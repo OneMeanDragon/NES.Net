@@ -21,7 +21,7 @@ Namespace NintendoEntertainmentSystem
 #Region "Components"
         ' Core NES components
         Public ReadOnly CPU As New CPU6502()
-        Public ReadOnly PPU As New NetPPU2C02() 'NetPPU2C02() NativePPU2C02
+        Public PPU As NativePPU2C02 'New NetPPU2C02() ' NativePPU2C02
         Public ReadOnly APU As New em2A03()
 
         ' Memory

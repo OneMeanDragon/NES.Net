@@ -5,70 +5,160 @@ Namespace NintendoEntertainmentSystem
     ''' <summary>
     ''' P/Invoke wrapper for native PPU2C02 DLL
     ''' </summary>
-    Public Class NativePPU2C02x
+    Public Class NativePPU2C02
+        Implements IDisposable
+        Private _disposed As Boolean = False
 
         ' Delegates for callbacks
         Public Delegate Sub PixelCallback(x As Integer, y As Integer, r As Byte, g As Byte, b As Byte)
         Public Delegate Sub DiagnosticCallback(msg As String)
 
         ' DLL imports
-        <DllImport("NesEmulatorCore.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CreatePPU(cart As IntPtr) As IntPtr
         End Function
 
-        <DllImport("NesEmulatorCore.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub DestroyPPU(ppu As IntPtr)
         End Sub
 
-        <DllImport("NesEmulatorCore.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_Reset(ppu As IntPtr)
         End Sub
 
-        <DllImport("NesEmulatorCore.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_Clock(ppu As IntPtr)
         End Sub
 
-        <DllImport("NesEmulatorCore.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function PPU_CpuRead(ppu As IntPtr, addr As UShort, rdOnly As Boolean) As Byte
         End Function
 
-        <DllImport("NesEmulatorCore.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_CpuWrite(ppu As IntPtr, addr As UShort, data As Byte)
         End Sub
 
-        <DllImport("NesEmulatorCore.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function PPU_IsFrameComplete(ppu As IntPtr) As Boolean
         End Function
 
-        <DllImport("NesEmulatorCore.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_SetFrameComplete(ppu As IntPtr, value As Boolean)
         End Sub
 
-        <DllImport("NesEmulatorCore.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function PPU_GetNmiRequested(ppu As IntPtr) As Boolean
         End Function
 
-        <DllImport("NesEmulatorCore.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_ClearNmiRequested(ppu As IntPtr)
         End Sub
 
-        <DllImport("NesEmulatorCore.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_SetPixelCallback(ppu As IntPtr, callback As PixelCallback)
         End Sub
 
-        <DllImport("NesEmulatorCore.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_SetDiagnosticCallback(ppu As IntPtr, callback As DiagnosticCallback)
         End Sub
 
-        <DllImport("NesEmulatorCore.dll", CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_GetPatternTable(ppu As IntPtr, table As Byte, palette As Byte, buffer As Byte())
         End Sub
+
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Function PPU_GetOAMByte(ppu As IntPtr, oamAddr As Byte) As Byte
+        End Function
+
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Sub PPU_SetOAMByte(ppu As IntPtr, oamAddr As Byte, data As Byte)
+        End Sub
+
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Sub PPU_GetColorFromPalette(ppu As IntPtr, palette As Byte, pixel As Byte, ByRef r As Byte, ByRef g As Byte, ByRef b As Byte)
+        End Sub
+
 
         ' Instance fields
         Private _ppuHandle As IntPtr
         Private _pixelCallback As PixelCallback
         Private _diagnosticCallback As DiagnosticCallback
         Private _screen As GraphicsObjects.Sprite
+        Private _oamWrapper As OAMWrapper
+
+        ' OAM wrapper class
+        Public Class OAMWrapper
+            Private _ppuHandle As IntPtr
+
+            Public Sub New(ppuHandle As IntPtr)
+                _ppuHandle = ppuHandle
+            End Sub
+
+            ' Indexer to access OAM entries
+            Default Public ReadOnly Property Item(index As Byte) As OAMEntryWrapper
+                Get
+                    Return New OAMEntryWrapper(_ppuHandle, index)
+                End Get
+            End Property
+        End Class
+
+        ' Individual OAM entry wrapper
+        Public Class OAMEntryWrapper
+            Private _ppuHandle As IntPtr
+            Private _index As Byte
+
+            Public Sub New(ppuHandle As IntPtr, index As Byte)
+                _ppuHandle = ppuHandle
+                _index = index
+            End Sub
+
+            Public Sub SetByteAt(byteIndex As Byte, value As Byte)
+                Dim oamAddr As Byte = CByte(_index * 4 + (byteIndex And &H3))
+                PPU_SetOAMByte(_ppuHandle, oamAddr, value)
+            End Sub
+
+            Public Function GetByteAt(byteIndex As Byte) As Byte
+                Dim oamAddr As Byte = CByte(_index * 4 + (byteIndex And &H3))
+                Return PPU_GetOAMByte(_ppuHandle, oamAddr)
+            End Function
+
+            Public Property Y As Byte
+                Get
+                    Return GetByteAt(0)
+                End Get
+                Set(value As Byte)
+                    SetByteAt(0, value)
+                End Set
+            End Property
+
+            Public Property TileID As Byte
+                Get
+                    Return GetByteAt(1)
+                End Get
+                Set(value As Byte)
+                    SetByteAt(1, value)
+                End Set
+            End Property
+
+            Public Property Attributes As Byte
+                Get
+                    Return GetByteAt(2)
+                End Get
+                Set(value As Byte)
+                    SetByteAt(2, value)
+                End Set
+            End Property
+
+            Public Property X As Byte
+                Get
+                    Return GetByteAt(3)
+                End Get
+                Set(value As Byte)
+                    SetByteAt(3, value)
+                End Set
+            End Property
+        End Class
+
 
         Public Sub New(cartridge As IntPtr)
             _ppuHandle = CreatePPU(cartridge)
@@ -77,6 +167,7 @@ Namespace NintendoEntertainmentSystem
             End If
 
             _screen = New GraphicsObjects.Sprite(256, 240)
+            _oamWrapper = New OAMWrapper(_ppuHandle)
 
             ' Create callback that draws to our Sprite
             _pixelCallback = Sub(x As Integer, y As Integer, r As Byte, g As Byte, b As Byte)
@@ -89,6 +180,12 @@ Namespace NintendoEntertainmentSystem
         Public ReadOnly Property Screen As GraphicsObjects.Sprite
             Get
                 Return _screen
+            End Get
+        End Property
+
+        Public ReadOnly Property OAM As OAMWrapper
+            Get
+                Return _oamWrapper
             End Get
         End Property
 
@@ -141,16 +238,42 @@ Namespace NintendoEntertainmentSystem
             Return sprite
         End Function
 
+        Public Function GetColorFromPalette(palette As Byte, pixel As Byte) As GraphicsObjects.Pixel
+            Dim r, g, b As Byte
+            PPU_GetColorFromPalette(_ppuHandle, palette, pixel, r, g, b)
+            Return New GraphicsObjects.Pixel(r, g, b)
+        End Function
+
         Public Sub SetDiagnosticCallback(callback As Action(Of String))
             _diagnosticCallback = Sub(msg As String) callback(msg)
             PPU_SetDiagnosticCallback(_ppuHandle, _diagnosticCallback)
         End Sub
 
-        Protected Overrides Sub Finalize()
-            If _ppuHandle <> IntPtr.Zero Then
-                DestroyPPU(_ppuHandle)
-                _ppuHandle = IntPtr.Zero
+        ' IDisposable implementation
+        Protected Overridable Sub Dispose(disposing As Boolean)
+            If Not _disposed Then
+                If disposing Then
+                    ' Dispose managed resources
+                    _screen?.Dispose()
+                End If
+
+                ' Dispose unmanaged resources
+                If _ppuHandle <> IntPtr.Zero Then
+                    DestroyPPU(_ppuHandle)
+                    _ppuHandle = IntPtr.Zero
+                End If
+
+                _disposed = True
             End If
+        End Sub
+
+        Public Sub Dispose() Implements IDisposable.Dispose
+            Dispose(True)
+            GC.SuppressFinalize(Me)
+        End Sub
+
+        Protected Overrides Sub Finalize()
+            Dispose(False)
             MyBase.Finalize()
         End Sub
     End Class

@@ -219,8 +219,10 @@ private:
 
     // Helper functions
     void InitializeSystemPalette();
-    Pixel GetColorFromPalette(uint8_t palette, uint8_t pixel);
 
+public: /* for API call */
+    Pixel GetColorFromPalette(uint8_t palette, uint8_t pixel);
+private:
     // Background helpers
     void IncrementScrollX();
     void IncrementScrollY();
