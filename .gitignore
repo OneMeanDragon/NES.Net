@@ -8,3 +8,5 @@
 /NES.Net.nohelper.zip
 /bin/Release
 /packages
+/NesChipset/x64/Release
+/x64/Release
