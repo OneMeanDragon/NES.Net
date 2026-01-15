@@ -11,15 +11,6 @@ Namespace NintendoEntertainmentSystem
     Public Class NativeNESBus
         Implements IDisposable
 
-        ' Add a circular buffer for samples
-        Private Const AUDIO_RINGBUFFER_SIZE As UInteger = 41983 '8191  ' Power of 2 minus 1
-        Private _audioBuffer(AUDIO_RINGBUFFER_SIZE) As Double
-        Private _audioBufferWrite As Integer = 0
-        Private _audioBufferRead As Integer = 0
-        Private _audioBufferLock As New Object()
-        Private _lastValidSample As Double = 0.0  ' Hold last valid sample
-        Private _bufferUnderrunCount As Long = 0
-
         Private ReadOnly _audioSystem As New CallbackAudioSystem()
         Public ReadOnly Property AudioSystem As CallbackAudioSystem
             Get
@@ -155,50 +146,10 @@ Namespace NintendoEntertainmentSystem
         End Structure
         Private _cpuApi As CPUApi
 
-        <UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        Public Delegate Sub ClockAPUDelegate()
-        <UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        Public Delegate Sub ResetAPUDelegate()
-        <UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        Public Delegate Function APU_CpuReadDelegate(addr As UInt16) As Byte
-        <UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        Public Delegate Sub APU_CpuWriteDelegate(addr As UInt16, data As Byte)
-        <UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        Public Delegate Function APU_GetOutputSampleDelegate() As Double
-
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub UpdateAPUApi(bushandle As IntPtr, api As APUApi)
-        End Sub
-
-        Public Sub ApuClock()
-            APU?.Clock()
-        End Sub
-        Public Sub ApuReset()
-            APU?.Reset()
-        End Sub
-        Public Function ApuCpuRead(addr As UInt16) As Byte
-            Return APU?.CpuRead(addr)
-        End Function
-        Public Sub ApuCpuWrite(addr As UInt16, data As Byte)
-            APU?.CpuWrite(addr, data)
-        End Sub
-        Public Function ApuGetOutputSample() As Double
-            Return APU?.GetOutputSample()
-        End Function
-
-        Private Structure APUApi
-            Dim ClockAPU As ClockAPUDelegate
-            Dim ResetAPU As ResetAPUDelegate
-            Dim APU_CpuRead As APU_CpuReadDelegate
-            Dim APU_CpuWrite As APU_CpuWriteDelegate
-            Dim APU_GetOutputSample As APU_GetOutputSampleDelegate
-        End Structure
-        Private _apuApi As APUApi
-
 #End Region
         Public ReadOnly CPU As New CPU6502()
         Public PPU As NativePPU2C02 'New NetPPU2C02() ' NativePPU2C02
-        Public ReadOnly APU As New em2A03()
+        Public ReadOnly APU As New NativeAPU2A03()
 
         Private Const AUDIO_SAMPLE_RATE As UInt32 = 44100
 
@@ -208,19 +159,12 @@ Namespace NintendoEntertainmentSystem
             _cpuApi.TriggerNMI = New TriggerNMIDelegate(AddressOf NmiTrigger)
             _cpuApi.TriggerIRQ = New TriggerIRQDelegate(AddressOf IrqTrigger)
 
-            _apuApi.ClockAPU = New ClockAPUDelegate(AddressOf ApuClock)
-            _apuApi.ResetAPU = New ResetAPUDelegate(AddressOf ApuReset)
-            _apuApi.APU_CpuRead = New APU_CpuReadDelegate(AddressOf ApuCpuRead)
-            _apuApi.APU_CpuWrite = New APU_CpuWriteDelegate(AddressOf ApuCpuWrite)
-            _apuApi.APU_GetOutputSample = New APU_GetOutputSampleDelegate(AddressOf ApuGetOutputSample)
-
             _busHandle = CreateNESBus()
             If _busHandle = IntPtr.Zero Then
                 Throw New Exception("Failed to create native NES Bus")
             End If
 
             UpdateCPUApi(_busHandle, _cpuApi)
-            UpdateAPUApi(_busHandle, _apuApi)
 
             ' Connect CPU to this bus
             CPU.ConnectBus(Me)
@@ -251,6 +195,7 @@ Namespace NintendoEntertainmentSystem
             End If
             PPU = New NativePPU2C02(cartHandle)
             ConnectPPU(PPU.NativeHandle)
+            ConnectAPU(APU.NativeHandle)
             Bus_ConnectCartridge(_busHandle, cartHandle)
         End Sub
 

@@ -26,16 +26,30 @@ public:
 
 // External DLL functions from your Cartridge DLL
 // These should match your existing Cartridge exports
+DLLIMPORT bool CartCpuRead(Cartridge* cart, uint16_t addr, uint8_t* data);
+DLLIMPORT bool CartCpuWrite(Cartridge* cart, uint16_t addr, uint8_t data);
 DLLIMPORT bool CartPpuRead(Cartridge* cart, uint16_t addr, uint8_t* data);
 DLLIMPORT bool CartPpuWrite(Cartridge* cart, uint16_t addr, uint8_t data);
 DLLIMPORT MirrorMode CartridgeGetMirrorMode(Cartridge* cart);
 DLLIMPORT MapperBase* CartridgeMapper(Cartridge* cart);
 DLLIMPORT void MapperScanlineCounter(MapperBase* mapper);
+DLLIMPORT void ResetCartridge(Cartridge* cart);
 
 // Wrapper class that PPU uses to talk to Cartridge
 class CartridgeInterface {
 public:
     CartridgeInterface(Cartridge* cart) : _cart(cart) {}
+    virtual ~CartridgeInterface() {}
+
+    bool CpuRead(uint16_t addr, uint8_t& data) {
+        if (!_cart) return false;
+        return CartCpuRead(_cart, addr, &data);
+    }
+
+    bool CpuWrite(uint16_t addr, uint8_t data) {
+        if (!_cart) return false;
+        return CartCpuWrite(_cart, addr, data);
+    }
 
     bool PpuRead(uint16_t addr, uint8_t& data) {
         if (!_cart) return false;
@@ -55,6 +69,11 @@ public:
     MapperBase* GetMapper() const {
         if (!_cart) return nullptr;
         return CartridgeMapper(_cart);
+    }
+
+    void Reset() {
+        if (!_cart) return;
+        ResetCartridge(_cart);
     }
 
 private:

@@ -147,6 +147,7 @@
     <Compile Include="Audio\AudioSystem.vb" />
     <Compile Include="Audio\CallbackAudioSystem.vb" />
     <Compile Include="Bus\NATIVE.NES.BUS.vb" />
+    <Compile Include="Chips\2A03\NATIVE.APU2A03.vb" />
     <Compile Include="Chips\2C02\NATIVE.PPU2C02.vb" />
     <Compile Include="Chips\6502\CPU.AddressingModes.vb" />
     <Compile Include="Chips\6502\CPU.Core.vb" />
@@ -172,7 +173,6 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="Chips\2A03\NES.2A03.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
@@ -229,12 +229,11 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Cartridge\MapperFactory\Mappers\MapperBase\" />
-    <Folder Include="Chips\2C02\LoopyRegister\" />
-    <Folder Include="Chips\2C02\ObjectAttributeEntry\" />
-    <Folder Include="Chips\2C02\PpuControlRegister\" />
-    <Folder Include="Chips\2C02\PpuMaskRegister\" />
-    <Folder Include="Chips\2C02\PpuStatusRegister\" />
-    <Folder Include="NotUsed\" />
+    <Folder Include="NotUsed\LoopyRegister\" />
+    <Folder Include="NotUsed\ObjectAttributeEntry\" />
+    <Folder Include="NotUsed\PpuControlRegister\" />
+    <Folder Include="NotUsed\PpuMaskRegister\" />
+    <Folder Include="NotUsed\PpuStatusRegister\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Chips\nestest_diagnose.txt" />

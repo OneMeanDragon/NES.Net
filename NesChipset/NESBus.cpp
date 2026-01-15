@@ -1,10 +1,14 @@
 #include "NESBus.h"
-#include "BusInterfaces.h"
+
 #include <algorithm>
 #include <cmath>
+#include <core/Interfaces/CartridgeInterface.h>
+
+#include "APU2A03.h"
+#include "BusInterfaces.h"
 
 NESBus::NESBus()
-    : _cart(nullptr), _ppu(nullptr), //_cpu(nullptr), _apu(nullptr),
+    : _cart(nullptr), _ppu(nullptr), _apu(nullptr),//_cpu(nullptr),
     _dmaPage(0), _dmaAddr(0), _dmaData(0), _dmaDummy(true), _dmaTransfer(false),
     _audioSampleReady(false), _audioSample(0.0), _audioTime(0.0),
     _audioBufferWrite(0), _audioBufferRead(0), _lastValidSample(0.0),
@@ -19,6 +23,7 @@ NESBus::NESBus()
 }
 
 NESBus::~NESBus() {
+    if (_cart) delete _cart;
 }
 
 void NESBus::Log(const char* msg) {
@@ -28,7 +33,13 @@ void NESBus::Log(const char* msg) {
 }
 
 void NESBus::ConnectCartridge(Cartridge* cart) {
-    _cart = cart;
+    if (!_apu) {
+        Log("Warning: Connecting Cartridge before APU. APU must be connected first.");
+        return;
+	}
+    if (_cart) delete _cart;
+    _cart = new CartridgeInterface(cart);
+    if (_cart) _apu->SetCartridge(_cart);
 }
 
 void NESBus::ConnectPPU(PPU2C02* ppu) {
@@ -40,7 +51,7 @@ void NESBus::ConnectCPU(CPU6502* cpu) {
 }
 
 void NESBus::ConnectAPU(APU2A03* apu) {
-    //_apu = apu;
+    _apu = apu;
 }
 
 void NESBus::SetSampleFrequency(uint32_t sampleRate) {
@@ -64,7 +75,7 @@ uint8_t NESBus::GetController(uint8_t index) const {
 void NESBus::Reset() {
     // Reset cartridge
     if (_cart) {
-        ResetCartridge(_cart);
+        _cart->Reset();
     }
 
     // Reset components
@@ -78,11 +89,8 @@ void NESBus::Reset() {
     if (_ppu) {
         PPU_Reset(_ppu);
     }
-    //if (_apu) {
-    //    ResetAPU(_apu);
-    //}
-    if (APUApi.Reset) {
-        APUApi.Reset();
+    if (_apu) {
+        ResetAPU(_apu);
     }
 
     // Clear RAM
@@ -121,7 +129,7 @@ uint8_t NESBus::CpuRead(uint16_t addr, bool isReadOnly) {
     uint8_t data = 0;
 
     // Try cartridge first
-    if (_cart && CartCpuRead(_cart, addr, &data)) {
+    if (_cart && _cart->CpuRead(addr, data)) {
         return data;
     }
 
@@ -140,11 +148,8 @@ uint8_t NESBus::CpuRead(uint16_t addr, bool isReadOnly) {
 
     // APU Status ($4015)
     if (addr == 0x4015) {
-        //if (_apu) {
-        //    return APU_CpuRead(_apu, addr);
-        //}
-        if (APUApi.CpuRead) {
-            return APUApi.CpuRead(addr);
+        if (_apu) {
+            return APU_CpuRead(_apu, addr);
         }
         return 0;
     }
@@ -163,7 +168,7 @@ uint8_t NESBus::CpuRead(uint16_t addr, bool isReadOnly) {
 
 void NESBus::CpuWrite(uint16_t addr, uint8_t data) {
     // Try cartridge first
-    if (_cart && CartCpuWrite(_cart, addr, data)) {
+    if (_cart && _cart->CpuWrite(addr, data)) {
         return;
     }
 
@@ -183,11 +188,8 @@ void NESBus::CpuWrite(uint16_t addr, uint8_t data) {
 
     // APU and I/O registers ($4000-$4013)
     if (addr >= 0x4000 && addr <= 0x4013) {
-        //if (_apu) {
-        //    APU_CpuWrite(_apu, addr, data);
-        //}
-        if (APUApi.CpuWrite) {
-            APUApi.CpuWrite(addr, data);
+        if (_apu) {
+            APU_CpuWrite(_apu, addr, data);
         }
         return;
     }
@@ -203,11 +205,8 @@ void NESBus::CpuWrite(uint16_t addr, uint8_t data) {
 
     // APU registers ($4015, $4017)
     if (addr == 0x4015 || addr == 0x4017) {
-        //if (_apu) {
-        //    APU_CpuWrite(_apu, addr, data);
-        //}
-        if (APUApi.CpuWrite) {
-            APUApi.CpuWrite(addr, data);
+        if (_apu) {
+            APU_CpuWrite(_apu, addr, data);
         }
         return;
     }
@@ -259,11 +258,8 @@ bool NESBus::ProcessAudio() {
         _audioTime -= _audioTimePerSystemSample;
 
         // Get sample from APU
-        //if (_apu) {
-        //    _audioSample = APU_GetOutputSample(_apu);
-        //}
-        if (APUApi.GetSoundSample) {
-            _audioSample = APUApi.GetSoundSample();
+        if (_apu) {
+            _audioSample = APU_GetOutputSample(_apu);
         }
         else {
             _audioSample = 0.0;
@@ -328,11 +324,8 @@ bool NESBus::Clock() {
     }
 
     // Clock APU
-    //if (_apu) {
-    //    ClockAPU(_apu);
-    //}
-    if (APUApi.Clock) {
-        APUApi.Clock();
+    if (_apu) {
+        ClockAPU(_apu);
     }
 
     // CPU runs at 1/3 PPU speed
@@ -366,7 +359,7 @@ bool NESBus::Clock() {
 
     // Handle IRQ from cartridge mapper
     if (_cart) {
-        MapperBase* mapper = CartridgeMapper(_cart);
+        MapperBase* mapper = _cart->GetMapper();
         if (mapper && MapperIsIrqActive(mapper)) {
             MapperClearIrq(mapper);
             //if (_cpu) {
@@ -384,97 +377,91 @@ bool NESBus::Clock() {
     return _audioSampleReady;
 }
 
-// Exported C functions
-extern "C" {
-    DLLEXPORT NESBus* CreateNESBus() {
-        return new NESBus();
-    }
+// Exported Bus functions
+DLLEXPORT NESBus* CreateNESBus() {
+    return new NESBus();
+}
 
-    DLLEXPORT void DestroyNESBus(NESBus* bus) {
-        delete bus;
-    }
+DLLEXPORT void DestroyNESBus(NESBus* bus) {
+    delete bus;
+}
 
-    DLLEXPORT void Bus_Reset(NESBus* bus) {
-        if (bus) bus->Reset();
-    }
+DLLEXPORT void Bus_Reset(NESBus* bus) {
+    if (bus) bus->Reset();
+}
 
-    DLLEXPORT bool Bus_Clock(NESBus* bus) {
-        if (bus) return bus->Clock();
-        return false;
-    }
+DLLEXPORT bool Bus_Clock(NESBus* bus) {
+    if (bus) return bus->Clock();
+    return false;
+}
 
-    DLLEXPORT void Bus_ConnectCartridge(NESBus* bus, Cartridge* cart) {
-        if (bus) bus->ConnectCartridge(cart);
-    }
+DLLEXPORT void Bus_ConnectCartridge(NESBus* bus, Cartridge* cart) {
+    if (bus) bus->ConnectCartridge(cart);
+}
 
-    DLLEXPORT void Bus_ConnectPPU(NESBus* bus, PPU2C02* ppu) {
-        if (bus) bus->ConnectPPU(ppu);
-    }
+DLLEXPORT void Bus_ConnectPPU(NESBus* bus, PPU2C02* ppu) {
+    if (bus) bus->ConnectPPU(ppu);
+}
 
-    DLLEXPORT void Bus_ConnectCPU(NESBus* bus, CPU6502* cpu) {
-        if (bus) bus->ConnectCPU(cpu);
-    }
+DLLEXPORT void Bus_ConnectCPU(NESBus* bus, CPU6502* cpu) {
+    if (bus) bus->ConnectCPU(cpu);
+}
 
-    DLLEXPORT void Bus_ConnectAPU(NESBus* bus, APU2A03* apu) {
-        if (bus) bus->ConnectAPU(apu);
-    }
+DLLEXPORT void Bus_ConnectAPU(NESBus* bus, APU2A03* apu) {
+    if (bus) bus->ConnectAPU(apu);
+}
 
-    DLLEXPORT uint8_t Bus_CpuRead(NESBus* bus, uint16_t addr, bool isReadOnly) {
-        if (bus) return bus->CpuRead(addr, isReadOnly);
-        return 0;
-    }
+DLLEXPORT uint8_t Bus_CpuRead(NESBus* bus, uint16_t addr, bool isReadOnly) {
+    if (bus) return bus->CpuRead(addr, isReadOnly);
+    return 0;
+}
 
-    DLLEXPORT void Bus_CpuWrite(NESBus* bus, uint16_t addr, uint8_t data) {
-        if (bus) bus->CpuWrite(addr, data);
-    }
+DLLEXPORT void Bus_CpuWrite(NESBus* bus, uint16_t addr, uint8_t data) {
+    if (bus) bus->CpuWrite(addr, data);
+}
 
-    DLLEXPORT void Bus_SetController(NESBus* bus, uint8_t index, uint8_t state) {
-        if (bus) bus->SetController(index, state);
-    }
+DLLEXPORT void Bus_SetController(NESBus* bus, uint8_t index, uint8_t state) {
+    if (bus) bus->SetController(index, state);
+}
 
-    DLLEXPORT uint8_t Bus_GetController(NESBus* bus, uint8_t index) {
-        if (bus) return bus->GetController(index);
-        return 0;
-    }
+DLLEXPORT uint8_t Bus_GetController(NESBus* bus, uint8_t index) {
+    if (bus) return bus->GetController(index);
+    return 0;
+}
 
-    DLLEXPORT void Bus_SetSampleFrequency(NESBus* bus, uint32_t sampleRate) {
-        if (bus) bus->SetSampleFrequency(sampleRate);
-    }
+DLLEXPORT void Bus_SetSampleFrequency(NESBus* bus, uint32_t sampleRate) {
+    if (bus) bus->SetSampleFrequency(sampleRate);
+}
 
-    DLLEXPORT double Bus_GetAudioSample(NESBus* bus) {
-        if (bus) return bus->GetAudioSample();
-        return 0.0;
-    }
+DLLEXPORT double Bus_GetAudioSample(NESBus* bus) {
+    if (bus) return bus->GetAudioSample();
+    return 0.0;
+}
 
-    DLLEXPORT int Bus_GetAudioBufferLevel(NESBus* bus) {
-        if (bus) return bus->GetAudioBufferLevel();
-        return 0;
-    }
+DLLEXPORT int Bus_GetAudioBufferLevel(NESBus* bus) {
+    if (bus) return bus->GetAudioBufferLevel();
+    return 0;
+}
 
-    DLLEXPORT bool Bus_PopAudioSample(NESBus* bus, double* sample) {
-        if (bus && sample) return bus->GetAudioSample(*sample);
-        return false;
-    }
+DLLEXPORT bool Bus_PopAudioSample(NESBus* bus, double* sample) {
+    if (bus && sample) return bus->GetAudioSample(*sample);
+    return false;
+}
 
-    DLLEXPORT uint64_t Bus_GetSystemClockCount(NESBus* bus) {
-        if (bus) return bus->GetSystemClockCount();
-        return 0;
-    }
+DLLEXPORT uint64_t Bus_GetSystemClockCount(NESBus* bus) {
+    if (bus) return bus->GetSystemClockCount();
+    return 0;
+}
 
-    DLLEXPORT bool Bus_IsAudioSampleReady(NESBus* bus) {
-        if (bus) return bus->IsAudioSampleReady();
-        return false;
-    }
+DLLEXPORT bool Bus_IsAudioSampleReady(NESBus* bus) {
+    if (bus) return bus->IsAudioSampleReady();
+    return false;
+}
 
-    DLLEXPORT void Bus_SetDiagnosticCallback(NESBus* bus, DiagnosticCallback callback) {
-        if (bus) bus->SetDiagnosticCallback(callback);
-    }
+DLLEXPORT void Bus_SetDiagnosticCallback(NESBus* bus, DiagnosticCallback callback) {
+    if (bus) bus->SetDiagnosticCallback(callback);
+}
 
-    DLLEXPORT void UpdateCPUApi(NESBus* bus, CpuApiCallbacks api) {
-        if (bus) bus->SetCPUApi(api);
-    }
-    DLLEXPORT void UpdateAPUApi(NESBus* bus, ApuApiCallbacks api) {
-        if (bus) bus->SetAPUApi(api);
-    }
-
+DLLEXPORT void UpdateCPUApi(NESBus* bus, CpuApiCallbacks api) {
+    if (bus) bus->SetCPUApi(api);
 }

@@ -24,12 +24,18 @@
     <ClInclude Include="BusInterfaces.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="APU2A03.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PPU2C02.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="NESBus.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="APU2A03.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

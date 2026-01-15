@@ -9,8 +9,10 @@
 #define DLLEXPORT
 #endif
 
+
 // Forward declarations - we'll use pointers to avoid linking issues
 class Cartridge;
+class CartridgeInterface;
 class PPU2C02;
 class CPU6502;
 class APU2A03;
@@ -32,27 +34,25 @@ struct CpuApiCallbacks {
     ApiCpuTriggerIrq TriggerIrq;
 };
 // APU .Net API
-typedef void(__stdcall* ApiApuClock)();
-typedef void(__stdcall* ApiApuReset)();
-typedef uint8_t(__stdcall* ApiApuCpuRead)(uint16_t);
-typedef void(__stdcall* ApiApuCpuWrite)(uint16_t, uint8_t);
-typedef double(__stdcall* ApiApuGetOutputSample)();
-struct ApuApiCallbacks {
-    ApiApuClock Clock;
-    ApiApuReset Reset;
-    ApiApuCpuRead CpuRead;
-    ApiApuCpuWrite CpuWrite;
-    ApiApuGetOutputSample GetSoundSample;
-};
+//typedef void(__stdcall* ApiApuClock)();
+//typedef void(__stdcall* ApiApuReset)();
+//typedef uint8_t(__stdcall* ApiApuCpuRead)(uint16_t);
+//typedef void(__stdcall* ApiApuCpuWrite)(uint16_t, uint8_t);
+//typedef double(__stdcall* ApiApuGetOutputSample)();
+//struct ApuApiCallbacks {
+//    ApiApuClock Clock;
+//    ApiApuReset Reset;
+//    ApiApuCpuRead CpuRead;
+//    ApiApuCpuWrite CpuWrite;
+//    ApiApuGetOutputSample GetSoundSample;
+//};
 #pragma endregion
 
 class NESBus {
 private: // Temporary API CPU and APU .Net callbacks
     CpuApiCallbacks CPUApi = { nullptr,nullptr,nullptr,nullptr };
-    ApuApiCallbacks APUApi = { nullptr,nullptr,nullptr,nullptr,nullptr };
 public:
     void SetCPUApi(CpuApiCallbacks api) { CPUApi = api; };
-    void SetAPUApi(ApuApiCallbacks api) { APUApi = api; };
 public:
     NESBus();
     ~NESBus();
@@ -98,10 +98,10 @@ private:
     static constexpr uint32_t AUDIO_RINGBUFFER_SIZE = 8191;  // Power of 2 minus 1
 
     // Components (pointers to avoid circular dependencies)
-    Cartridge* _cart;
+    CartridgeInterface* _cart;
     PPU2C02* _ppu;
     //CPU6502* _cpu;
-    //APU2A03* _apu;
+    APU2A03* _apu;
 
     // Memory
     uint8_t _cpuRam[CPU_RAM_SIZE];
@@ -142,30 +142,3 @@ private:
     bool ProcessAudio();
     void Log(const char* msg);
 };
-
-// Exported BUS functions
-DLLEXPORT NESBus* CreateNESBus();
-DLLEXPORT void DestroyNESBus(NESBus* bus);
-DLLEXPORT void Bus_Reset(NESBus* bus);
-DLLEXPORT bool Bus_Clock(NESBus* bus);
-
-DLLEXPORT void Bus_ConnectCartridge(NESBus* bus, Cartridge* cart);
-DLLEXPORT void Bus_ConnectPPU(NESBus* bus, PPU2C02* ppu);
-DLLEXPORT void Bus_ConnectCPU(NESBus* bus, CPU6502* cpu);
-DLLEXPORT void Bus_ConnectAPU(NESBus* bus, APU2A03* apu);
-
-DLLEXPORT uint8_t Bus_CpuRead(NESBus* bus, uint16_t addr, bool isReadOnly);
-DLLEXPORT void Bus_CpuWrite(NESBus* bus, uint16_t addr, uint8_t data);
-
-DLLEXPORT void Bus_SetController(NESBus* bus, uint8_t index, uint8_t state);
-DLLEXPORT uint8_t Bus_GetController(NESBus* bus, uint8_t index);
-
-DLLEXPORT void Bus_SetSampleFrequency(NESBus* bus, uint32_t sampleRate);
-DLLEXPORT double Bus_GetAudioSample(NESBus* bus);
-DLLEXPORT int Bus_GetAudioBufferLevel(NESBus* bus);
-DLLEXPORT bool Bus_PopAudioSample(NESBus* bus, double* sample);
-
-DLLEXPORT uint64_t Bus_GetSystemClockCount(NESBus* bus);
-DLLEXPORT bool Bus_IsAudioSampleReady(NESBus* bus);
-
-DLLEXPORT void Bus_SetDiagnosticCallback(NESBus* bus, DiagnosticCallback callback);

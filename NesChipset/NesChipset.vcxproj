@@ -19,11 +19,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="APU2A03.h" />
     <ClInclude Include="BusInterfaces.h" />
     <ClInclude Include="NESBus.h" />
     <ClInclude Include="PPU2C02.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="APU2A03.cpp" />
     <ClCompile Include="NESBus.cpp" />
     <ClCompile Include="PPU2C02.cpp" />
   </ItemGroup>
