@@ -137,7 +137,7 @@ Namespace NintendoEntertainmentSystem
         Private _cpuApi As CPUApi
 
 #End Region
-        Public ReadOnly CPU As New CPU6502()
+        Public ReadOnly CPU As New NativeCPU6502()
         Public PPU As NativePPU2C02 'New NetPPU2C02() ' NativePPU2C02
         Public ReadOnly APU As New NativeAPU2A03()
 
@@ -157,7 +157,7 @@ Namespace NintendoEntertainmentSystem
             UpdateCPUApi(_busHandle, _cpuApi)
 
             ' Connect CPU to this bus
-            CPU.ConnectBus(Me)
+            CPU.ConnectBus(_busHandle)
 
             ' Initialize FMOD audio (AFTER bus is configured)
             _audio = New FMODAudioNative()

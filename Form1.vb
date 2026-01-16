@@ -187,6 +187,7 @@ Public Class Form1
 
 #Region "Emulation Information"
     Private emNES As New NativeNESBus 'NESBus
+    Private resetRequest As Boolean = False
 #End Region
 
     Public Shared running As Boolean = False
@@ -243,6 +244,10 @@ Public Class Form1
 
     Private Sub Form1_MouseWheel(sender As Object, e As MouseEventArgs) Handles Me.MouseWheel
         InputSystem.HandleMouseWheel(e.Delta)
+    End Sub
+
+    Private Sub ResetToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ResetToolStripMenuItem.Click
+        resetRequest = True
     End Sub
 
     Private Sub OpenToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles OpenToolStripMenuItem.Click
@@ -407,6 +412,10 @@ Public Class Form1
                 ' Console.WriteLine("Spinning....") ' it does eventually get here after a little bit...
                 Threading.Thread.SpinWait(10)       ' in release mode that is..
             End While
+            If resetRequest Then
+                resetRequest = False
+                emNES.Reset()
+            End If
         End While
 
         ' Clean up
@@ -505,4 +514,5 @@ Public Class Form1
 
         tmpCart = New NativeCartridge(dlgOpenFile.FileName)
     End Sub
+
 End Class

@@ -7,7 +7,7 @@ void CPU6502::InitializeInstructionTable() {
     }
 
     //' $00-$0F
-    _instructions[0x00] = { "BRK", &CPU6502::BRK, &CPU6502::IMM, AddrMode::IMM, 7 };
+    _instructions[0x00] = { "BRK", &CPU6502::BRK, &CPU6502::IMM, AddrMode::IMM, 7 }; // IMM IMP
     _instructions[0x01] = { "ORA", &CPU6502::ORA, &CPU6502::IZX, AddrMode::IZX, 6 };
 
     _instructions[0x03] = { "SLO", &CPU6502::SLO, &CPU6502::IZX, AddrMode::IZX, 8 };
@@ -181,9 +181,9 @@ void CPU6502::InitializeInstructionTable() {
     _instructions[0x99] = { "STA", &CPU6502::STA, &CPU6502::ABY, AddrMode::ABY, 5 };
     _instructions[0x9A] = { "TXS", &CPU6502::TXS, &CPU6502::IMP, AddrMode::IMP, 2 };
     _instructions[0x9B] = { "TAS", &CPU6502::TAS, &CPU6502::ABY, AddrMode::ABY, 5 };
-    _instructions[0x9C] = { "SHY", &CPU6502::SHY, &CPU6502::ABX, AddrMode::ABX, 5 };
+    _instructions[0x9C] = { "SHY", &CPU6502::SHY, &CPU6502::ABX, AddrMode::ABX, 5 }; // 0x9C also knowen as SYA 
     _instructions[0x9D] = { "STA", &CPU6502::STA, &CPU6502::ABX, AddrMode::ABX, 5 };
-    _instructions[0x9E] = { "SHX", &CPU6502::SHX, &CPU6502::ABY, AddrMode::ABY, 5 };
+    _instructions[0x9E] = { "SHX", &CPU6502::SHX, &CPU6502::ABY, AddrMode::ABY, 5 }; // 0x9E also knowen as SXA
     _instructions[0x9F] = { "SHA", &CPU6502::SHA, &CPU6502::ABY, AddrMode::ABY, 5 };
 
     //' $A0-$AF
@@ -198,7 +198,7 @@ void CPU6502::InitializeInstructionTable() {
     _instructions[0xA8] = { "TAY", &CPU6502::TAY, &CPU6502::IMP, AddrMode::IMP, 2 };
     _instructions[0xA9] = { "LDA", &CPU6502::LDA, &CPU6502::IMM, AddrMode::IMM, 2 };
     _instructions[0xAA] = { "TAX", &CPU6502::TAX, &CPU6502::IMP, AddrMode::IMP, 2 };
-    _instructions[0xAB] = { "ARR", &CPU6502::ARR, &CPU6502::IMM, AddrMode::IMM, 2 };
+    _instructions[0xAB] = { "ATX", &CPU6502::ATX, &CPU6502::IMM, AddrMode::IMM, 2 }; // "ARR", &CPU6502::ARR, &CPU6502::IMM, AddrMode::IMM, 2
     _instructions[0xAC] = { "LDY", &CPU6502::LDY, &CPU6502::ABS, AddrMode::ABS, 4 };
     _instructions[0xAD] = { "LDA", &CPU6502::LDA, &CPU6502::ABS, AddrMode::ABS, 4 };
     _instructions[0xAE] = { "LDX", &CPU6502::LDX, &CPU6502::ABS, AddrMode::ABS, 4 };

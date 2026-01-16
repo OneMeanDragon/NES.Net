@@ -30,6 +30,7 @@ Partial Class Form1
         Me.StopToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.FpsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.dlgOpenFile = New System.Windows.Forms.OpenFileDialog()
+        Me.ResetToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         CType(Me.picScreen, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.MenuStrip1.SuspendLayout()
         Me.SuspendLayout()
@@ -71,7 +72,7 @@ Partial Class Form1
         '
         'EmulationToolStripMenuItem
         '
-        Me.EmulationToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.StopToolStripMenuItem})
+        Me.EmulationToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.StopToolStripMenuItem, Me.ResetToolStripMenuItem})
         Me.EmulationToolStripMenuItem.Name = "EmulationToolStripMenuItem"
         Me.EmulationToolStripMenuItem.Size = New System.Drawing.Size(73, 20)
         Me.EmulationToolStripMenuItem.Text = "Emulation"
@@ -79,7 +80,7 @@ Partial Class Form1
         'StopToolStripMenuItem
         '
         Me.StopToolStripMenuItem.Name = "StopToolStripMenuItem"
-        Me.StopToolStripMenuItem.Size = New System.Drawing.Size(98, 22)
+        Me.StopToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
         Me.StopToolStripMenuItem.Text = "Stop"
         '
         'FpsToolStripMenuItem
@@ -91,6 +92,12 @@ Partial Class Form1
         'dlgOpenFile
         '
         Me.dlgOpenFile.FileName = "dlgOpenFile"
+        '
+        'ResetToolStripMenuItem
+        '
+        Me.ResetToolStripMenuItem.Name = "ResetToolStripMenuItem"
+        Me.ResetToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.ResetToolStripMenuItem.Text = "Reset"
         '
         'Form1
         '
@@ -118,4 +125,5 @@ Partial Class Form1
     Friend WithEvents EmulationToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents StopToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents FpsToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents ResetToolStripMenuItem As ToolStripMenuItem
 End Class

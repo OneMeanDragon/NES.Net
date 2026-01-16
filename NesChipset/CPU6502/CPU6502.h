@@ -4,7 +4,7 @@
 #include <functional>
 
 #ifdef _WIN32
-#define DLLEXPORT __declspec(dllexport)
+#define DLLEXPORT extern "C" __declspec(dllexport)
 #else
 #define DLLEXPORT
 #endif
@@ -141,7 +141,7 @@ private:
     uint8_t KIL(); uint8_t LAX(); uint8_t SAX(); uint8_t DCP(); uint8_t ISB();
     uint8_t SLO(); uint8_t RLA(); uint8_t SRE(); uint8_t RRA(); uint8_t ANC();
     uint8_t ALR(); uint8_t ARR(); uint8_t AXS(); uint8_t XAA(); uint8_t LAS();
-    uint8_t SHA(); uint8_t SHX(); uint8_t SHY(); uint8_t TAS();
+    uint8_t SHA(); uint8_t SHX(); uint8_t SHY(); uint8_t TAS(); uint8_t ATX();
 };
 
 // 6502 exports
