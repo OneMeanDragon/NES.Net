@@ -1,16 +1,18 @@
 # NES.Net
 - Required Packages from NuGet
-  - NAUDIO
   - System.Memory
+- FMOD Sdk
+  - This is in the vendor folder of the NesChipset C++ project
 - NesCartridge (currently you must compile this, still not optimal..)
+- NesChipset (Required compile, requires NesCartridge is compiled, also requires the FMOD sdk)
 
 ## Status
-- Working (still slow)
-  - (NESTEST) will link at some point if i remember.
+- Working (still slow*ish until its not..)
+  - (NESTEST) (you will find it here https://www.nesdev.org/wiki/Emulator_tests)
   - (Arkanoid)
   - Some others as well however still loads of bugs
 - Knowen Crashes
-  - Stop the emulator before closing the window (thread issue)
+  - Stop the emulator before closing the window (thread issue, may have been corrected)
 
 ## Controls
 - "p"
@@ -22,4 +24,4 @@
   - Select, Start, A, B
     
 ## Notes
-my testing has been mostly with Arkanoid (which almost works...).
+my testing has been mostly with Arkanoid.
