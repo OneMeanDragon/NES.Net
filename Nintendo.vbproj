@@ -48,7 +48,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>x64</PlatformTarget>
     <DebugType>none</DebugType>
-    <DefineDebug>true</DefineDebug>
+    <DefineDebug>false</DefineDebug>
     <DefineTrace>false</DefineTrace>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -206,12 +206,16 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Cartridge\MapperFactory\Mappers\MapperBase\" />
-    <Folder Include="NotUsed\LoopyRegister\" />
-    <Folder Include="NotUsed\ObjectAttributeEntry\" />
-    <Folder Include="NotUsed\PpuControlRegister\" />
-    <Folder Include="NotUsed\PpuMaskRegister\" />
-    <Folder Include="NotUsed\PpuStatusRegister\" />
+    <Folder Include="NotUsed\Cartridge\MapperFactory\Mappers\MapperBase\" />
+    <Folder Include="NotUsed\Chipset\2A03\" />
+    <Folder Include="NotUsed\Chipset\2C02\" />
+    <Folder Include="NotUsed\Chipset\6502\LoopyRegister\" />
+    <Folder Include="NotUsed\Chipset\6502\ObjectAttributeEntry\" />
+    <Folder Include="NotUsed\Chipset\6502\PpuControlRegister\" />
+    <Folder Include="NotUsed\Chipset\6502\PpuMaskRegister\" />
+    <Folder Include="NotUsed\Chipset\6502\PpuStatusRegister\" />
+    <Folder Include="NotUsed\Chipset\Bus\" />
+    <Folder Include="NotUsed\NAudio\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Chips\nestest_diagnose.txt" />

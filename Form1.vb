@@ -405,7 +405,7 @@ Public Class Form1
             While _frameWatch.Elapsed.TotalMilliseconds < 16.639
                 ' Spin wait for accuracy
                 ' Console.WriteLine("Spinning....") ' it does eventually get here after a little bit...
-                Threading.Thread.SpinWait(10)
+                Threading.Thread.SpinWait(10)       ' in release mode that is..
             End While
         End While
 
