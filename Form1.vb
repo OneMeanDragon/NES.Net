@@ -404,8 +404,7 @@ Public Class Form1
             emNES.PPU.FrameComplete = False
             While _frameWatch.Elapsed.TotalMilliseconds < 16.639
                 ' Spin wait for accuracy
-                Console.WriteLine("Spinning....")
-
+                ' Console.WriteLine("Spinning....") ' it does eventually get here after a little bit...
                 Threading.Thread.SpinWait(10)
             End While
         End While
