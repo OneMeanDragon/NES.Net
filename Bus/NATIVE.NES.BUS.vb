@@ -1,6 +1,4 @@
 ﻿Imports System.Runtime.InteropServices
-Imports Nintendo.Core.Audio
-Imports Nintendo.Nintendo.NintendoEntertainmentSystem
 Imports Nintendo.NintendoEntertainmentSystem.NativeCartridge
 
 Namespace NintendoEntertainmentSystem
@@ -11,20 +9,12 @@ Namespace NintendoEntertainmentSystem
     Public Class NativeNESBus
         Implements IDisposable
 
-        Private ReadOnly _audioSystem As New CallbackAudioSystem()
-        Public ReadOnly Property AudioSystem As CallbackAudioSystem
+        Private _audio As FMODAudioNative
+        Public ReadOnly Property AudioSystem As FMODAudioNative
             Get
-                Return _audioSystem
+                Return _audio
             End Get
         End Property
-        Private Function GetAudioSample(index As Long, time As Double) As Double
-            Dim sample As Double
-            If Me.PopAudioSample(sample) Then
-                Return sample
-            Else
-                Return 0.0  ' Buffer underrun
-            End If
-        End Function
 
         ' Delegates
         Public Delegate Sub DiagnosticCallback(msg As String)
@@ -169,16 +159,15 @@ Namespace NintendoEntertainmentSystem
             ' Connect CPU to this bus
             CPU.ConnectBus(Me)
 
-
-            SetSampleFrequency(AUDIO_SAMPLE_RATE)
-
-            If Not _audioSystem.Initialize(44100, 1, 16, 512, AddressOf GetAudioSample) Then
-                Debug.WriteLine("[Bus] Warning: Audio system failed to initialize")
+            ' Initialize FMOD audio (AFTER bus is configured)
+            _audio = New FMODAudioNative()
+            If Not _audio.Initialize(_busHandle, AUDIO_SAMPLE_RATE, 512) Then
+                Throw New Exception("Failed to initialize FMOD audio")
             End If
-            'For i = 0 To 2047
-            '    _audioBuffer(i) = 0.0
-            'Next
-            '_audioBufferWrite = 2048
+
+            ' Start audio playback
+            '_audio.Start()
+
         End Sub
 
         Public Sub Reset()

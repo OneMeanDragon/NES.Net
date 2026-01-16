@@ -7,10 +7,7 @@ Imports System.Runtime.InteropServices
 Imports System.Security.Cryptography
 Imports System.Threading
 Imports System.Windows.Forms.VisualStyles.VisualStyleElement
-Imports NAudio.FileFormats
-'Audio Importing
-Imports NAudio.Wave
-Imports Nintendo.Core.Audio
+Imports Microsoft.VisualBasic.Devices
 Imports Nintendo.Core.Input
 
 Imports Nintendo.FOREVERLOOP_HELPERS
@@ -338,8 +335,8 @@ Public Class Form1
     End Sub
 
     '-----
-    Private m_timepoint1 As DateTime = DateTime.Now
-    Private m_timepoint2 As DateTime
+    'Private m_timepoint1 As DateTime = DateTime.Now
+    'Private m_timepoint2 As DateTime
     '-----
 
     Private VideoThread As Thread
@@ -358,154 +355,86 @@ Public Class Form1
         'End While
         'Exit Sub
         '-----
-        Dim frameCount As Integer = 0
-        Dim lastDiagnosticTime = DateTime.Now
-        Dim fpsFrameCount As Integer = 0
-        Dim lastFpsTime = DateTime.Now
-        Dim currentFPS As Double = 0
-
-        ' Frame timing
-        Const TARGET_FPS As Double = 60.0988
-        Const FRAME_TIME_MS As Double = 1000.0 / TARGET_FPS
-        Dim nextFrameTime As DateTime = DateTime.Now
-
-        Dim totalEmulationTime As Double = 0
-        Dim totalRenderTime As Double = 0
-        Dim totalDisplayTime As Double = 0
-        Dim perfSamples As Integer = 0
-
-        emNES.AudioSystem.Play()
-        emNES.AudioSystem.Volume = 0.5F
-
-        Dim clocksPerFrame As Long = 0
-        ' PROFILE: Emulation time
-        Dim emuStart = DateTime.Now
+        Dim frameCount As UInteger = 0
+        Dim clocksPerFrame As ULong = 0
+        Dim lastTime As DateTime = DateTime.Now
+        Dim _frameWatch As New Stopwatch()
+        emNES.AudioSystem.Start()
         While running
-            Dim frameStart = DateTime.Now
+            _frameWatch.Restart()
 
             InputSystem.BeginFrame()
-
             ProcessHotKeys()
             UpdateNESController()
 
             emNES.PPU.FrameComplete = False
-            Do
+            While Not emNES.PPU.FrameComplete
                 emNES.Clock()
                 clocksPerFrame += 1
                 If running = False Then
                     emNES.Reset()
                     Exit While
                 End If
-            Loop While Not emNES.PPU.FrameComplete
+            End While
+
+            ' Update FMOD (IMPORTANT!)
+            emNES.AudioSystem.Update()
+
             ' Should be ~29780 clocks per frame (NTSC)
-            'If (frameCount Mod 60) = 0 Then
-            '    Debug.WriteLine($"Clocks per frame: {clocksPerFrame / 60}")
-            '    clocksPerFrame = 0
-            'End If
+            If (frameCount Mod 60) = 0 Then
+                Debug.WriteLine($"Clocks per frame: {clocksPerFrame / 60}")
+            End If
+            clocksPerFrame = 0
 
-            Dim emuTime = (DateTime.Now - emuStart).TotalMilliseconds
+            ' Check FPS every second
+            If (DateTime.Now - lastTime).TotalSeconds >= 1.0 Then
+                Console.WriteLine($"FPS: {frameCount}")
+                frameCount = 0
+                lastTime = DateTime.Now
+            End If
 
-            emNES.PPU.FrameComplete = False
-
-            frameCount += 1
-            fpsFrameCount += 1
-
-            ' PROFILE: Render time
-            Dim renderStart = DateTime.Now
             renderer.RenderFrame(emNES.PPU, frameCount)
-            Dim renderTime = (DateTime.Now - renderStart).TotalMilliseconds
-
-            ' PROFILE: Display update time
-            Dim displayStart = DateTime.Now
             UpdateDisplay()
-            Dim displayTime = (DateTime.Now - displayStart).TotalMilliseconds
 
-            ' Accumulate times
-            totalEmulationTime += emuTime
-            totalRenderTime += renderTime
-            totalDisplayTime += displayTime
-            perfSamples += 1
+            ' Diagnoses
+            CheckAudioHealth()
 
-            ' Calculate FPS
-            If fpsFrameCount >= 30 Then
-                Dim now = DateTime.Now
-                Dim elapsed = (now - lastFpsTime).TotalSeconds
-                currentFPS = fpsFrameCount / elapsed
-                fpsFrameCount = 0
-                lastFpsTime = now
-            End If
+            'frame_ticker and reset the cycler
+            frameCount += 1
+            emNES.PPU.FrameComplete = False
+            While _frameWatch.Elapsed.TotalMilliseconds < 16.639
+                ' Spin wait for accuracy
+                Console.WriteLine("Spinning....")
 
-            ' ONLY apply frame limiting if we're running FASTER than target
-            'If currentFPS > TARGET_FPS Then
-            '    nextFrameTime = nextFrameTime.AddMilliseconds(FRAME_TIME_MS)
-            '    Dim now = DateTime.Now
-            '
-            '    If nextFrameTime > now Then
-            '        Dim sleepTime = CInt((nextFrameTime - now).TotalMilliseconds)
-            '        If sleepTime > 0 AndAlso sleepTime < 100 Then
-            '            Threading.Thread.Sleep(sleepTime)
-            '        End If
-            '    Else
-            '        If (now - nextFrameTime).TotalMilliseconds > 100 Then
-            '            nextFrameTime = now
-            '        End If
-            '    End If
-            'Else
-            '    ' Running slow - don't limit, just reset timing
-            '    nextFrameTime = DateTime.Now
-            'End If
-
-            ' Diagnostics
-            If (DateTime.Now - lastDiagnosticTime).TotalSeconds >= 1.0 Then
-                lastDiagnosticTime = DateTime.Now
-
-                Dim avgEmu = totalEmulationTime / perfSamples
-                Dim avgRender = totalRenderTime / perfSamples
-                Dim avgDisplay = totalDisplayTime / perfSamples
-                Dim avgTotal = avgEmu + avgRender + avgDisplay
-
-                MenuStrip1.Items.Item(2).Text = $"[Perf] FPS: {currentFPS:F1}"
-
-
-                LogDebug($"[Perf] FPS: {currentFPS:F1}")
-                LogDebug($"  Emulation: {avgEmu:F2}ms ({avgEmu / avgTotal * 100:F0}%)")
-                LogDebug($"  Render:    {avgRender:F2}ms ({avgRender / avgTotal * 100:F0}%)")
-                LogDebug($"  Display:   {avgDisplay:F2}ms ({avgDisplay / avgTotal * 100:F0}%)")
-                LogDebug($"  TOTAL:     {avgTotal:F2}ms")
-                LogDebug($"  Audio Buffer: {emNES.AudioBufferLevel}")
-
-                ' Reset averages
-                totalEmulationTime = 0
-                totalRenderTime = 0
-                totalDisplayTime = 0
-                perfSamples = 0
-            End If
+                Threading.Thread.SpinWait(10)
+            End While
         End While
 
-        emNES.AudioSystem.Stop()
         ' Clean up
         renderer.Clear(GraphicsObjects.PixelColors.DarkGrey)
         UpdateDisplay()
     End Sub
 
     Private _audioSampleCheckCounter As Integer = 0
-    Private Sub CheckAPUSamples()
+    Private Sub CheckAudioHealth()
         _audioSampleCheckCounter += 1
 
         ' Check every 60 frames (once per second at 60fps)
         If (_audioSampleCheckCounter Mod 60) = 0 Then
-            ' Get a sample directly from APU
-            Dim testSample = emNES.APU.GetOutputSample()
+            Dim bufferLevel = emNES.AudioBufferLevel
+            Dim latency = emNES.AudioSystem.LatencyMs
 
-            ' Check if it's valid
-            If Double.IsNaN(testSample) Then
-                Debug.WriteLine("[Audio] APU returning NaN!")
-            ElseIf Double.IsInfinity(testSample) Then
-                Debug.WriteLine("[Audio] APU returning Infinity!")
-            ElseIf Math.Abs(testSample) > 1.0 Then
-                Debug.WriteLine($"[Audio] APU sample out of range: {testSample}")
+            Console.WriteLine($"=== Audio Diagnostics ===")
+            Console.WriteLine($"Buffer Level: {bufferLevel} samples")
+            Console.WriteLine($"FMOD Latency: {latency}ms")
+            Console.WriteLine($"Is Playing: {emNES.AudioSystem.IsPlaying}")
+
+            If bufferLevel < 500 Then
+                Console.WriteLine("WARNING: Buffer underrun! Emulation too slow")
+            ElseIf bufferLevel > 7000 Then
+                Console.WriteLine("WARNING: Buffer overflow! Emulation too fast")
             Else
-                Debug.WriteLine($"[Audio] APU sample OK: {testSample:F4}, Buffer level: {emNES.AudioBufferLevel}")
+                Console.WriteLine("Buffer health: OK")
             End If
         End If
     End Sub

@@ -21,11 +21,13 @@
   <ItemGroup>
     <ClInclude Include="APU2A03.h" />
     <ClInclude Include="BusInterfaces.h" />
+    <ClInclude Include="FMODAudio\FMODAudioSystem.h" />
     <ClInclude Include="NESBus.h" />
     <ClInclude Include="PPU2C02.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="APU2A03.cpp" />
+    <ClCompile Include="FMODAudio\FMODAudioSystem.cpp" />
     <ClCompile Include="NESBus.cpp" />
     <ClCompile Include="PPU2C02.cpp" />
   </ItemGroup>
@@ -84,12 +86,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)\bin\Debug\</OutDir>
     <IntDir>$(SolutionDir)\bin\Debug\intermediates\$(ProjectName)\</IntDir>
-    <LibraryPath>$(SolutionDir)\bin\Debug\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(IncludePath);$(SolutionDir)\NesCartridge</IncludePath>
+    <LibraryPath>$(SolutionDir)\bin\Debug\;$(SolutionDir)\$(ProjectName)\vendor\FMOD\lib\$(Platform);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(IncludePath);$(SolutionDir)\NesCartridge;$(SolutionDir)\$(ProjectName)\vendor\FMOD\inc</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LibraryPath>$(SolutionDir)\bin\Release\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);;$(SolutionDir)\NesCartridge</IncludePath>
+    <LibraryPath>$(SolutionDir)\bin\Release\;$(SolutionDir)\$(ProjectName)\vendor\FMOD\lib\$(Platform);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)\NesCartridge;$(SolutionDir)\$(ProjectName)\vendor\FMOD\inc;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)\bin\Release\</OutDir>
     <IntDir>$(SolutionDir)\bin\Release\intermediates\$(ProjectName)\</IntDir>
   </PropertyGroup>

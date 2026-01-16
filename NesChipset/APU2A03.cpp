@@ -269,13 +269,15 @@ void APU2A03::CpuWrite(uint16_t addr, uint8_t data) {
         break;
 
         // Noise
-    case 0x400C:
-        noise_env.volume = (data & 0x0F);
+    case 0x400C: // NOISE_VOL
+        noise_env.volume  = (data & 0x0F);
         noise_env.disable = (data & 0x10) != 0;
-        noise_halt = (data & 0x20) != 0;
+        noise_halt        = (data & 0x20) != 0;
         break;
 
-    case 0x400E:
+    case 0x400E: // NOISE_LO
+        // noise_mode = (value & (1 << 7));
+        // set_noise_period_from_table = value & 0x0F; ...
         switch (data & 0x0F) {
         case 0x0: noise_seq.reload = 0; break;
         case 0x1: noise_seq.reload = 4; break;
@@ -296,7 +298,8 @@ void APU2A03::CpuWrite(uint16_t addr, uint8_t data) {
         }
         break;
 
-    case 0x400F:
+    case 0x400F: // NOISE_HI
+        // noise.length_counter.set_from_table = (value >> 3);
         pulse1_env.start = true;
         pulse2_env.start = true;
         noise_env.start = true;
@@ -304,41 +307,38 @@ void APU2A03::CpuWrite(uint16_t addr, uint8_t data) {
         break;
 
         // DMC registers
-    case 0x4010:
+    case 0x4010: // DMC_FREQ
         // Control: bit7 = IRQ enable, bit6 = loop, bits3-0 = rate index
-        dmc_irq_enable = (data & 0x80) != 0;
-        dmc_loop = (data & 0x40) != 0;
-        dmc_rate_index = data & 0x0F;
-        dmc_period = DMC_PERIODS[dmc_rate_index];
+        dmc_irq_enable = (data >> 7) != 0;
+        dmc_loop       = (data >> 6) != 0;
+        dmc_rate_index = (data & 0x0F);
+        dmc_period     = DMC_PERIODS[dmc_rate_index];
         // reset timer to new period
         dmc_timer = dmc_period;
         break;
 
-    case 0x4011:
-        // DAC / output level (7 bits)
+    case 0x4011: // DMC_RAW
         dmc_output_level = data & 0x7F;
         break;
 
-    case 0x4012:
-        // Sample address: 0xC000 + data*64
-        dmc_sample_address = 0xC000 + (static_cast<uint32_t>(data) * 64);
+    case 0x4012: // DMC_START
+        dmc_sample_address = 0xC000 | (static_cast<uint32_t>(data) << 6);
         break;
 
-    case 0x4013:
-        // Sample length in bytes: data*16 + 1
-        dmc_sample_length = (static_cast<uint32_t>(data) * 16) + 1;
+    case 0x4013: // DMC_LEN
+        dmc_sample_length = (static_cast<uint32_t>(data) << 4) | 1;
         break;
 
         // Status
-    case 0x4015:
-        pulse1_enable = (data & 0x01) != 0;
-        pulse2_enable = (data & 0x02) != 0;
-        noise_enable = (data & 0x04) != 0;
+    case 0x4015: // APU_CONTROL
+        pulse1_enable   = (data & 0x01) != 0;
+        pulse2_enable   = (data & 0x02) != 0;
+        noise_enable    = (data & 0x04) != 0;
         // triangle is bit 2
         triangle_enable = (data & 0x08) != 0;
         // dmc is bit 4
         {
-            bool new_dmc_enable = (data & 0x10) != 0;
+            bool new_dmc_enable = (data & 0x10);
             if (!dmc_enable && new_dmc_enable) {
                 // Starting DMC: initialize pointers if needed
                 dmc_current_address = dmc_sample_address;
