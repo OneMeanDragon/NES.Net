@@ -1,11 +1,14 @@
 #pragma once
 /*
     This Interface should take in the option to not need the LIB linkage
-	and instead use dynamic linking to call into the Cartridge DLL/SO.
+	and instead use dynamic linking to call into the Cartridge DLL / SO.
+
+    Only use this if your going to link against the NesCartridge.Lib file
 */
+
 #pragma comment(lib, "NesCartridge.lib")
 
-#include <core/Interfaces/MirrorModeRequired.h>
+#include "MirrorModeRequired.h"
 
 #ifdef _WIN32
 #define DLLIMPORT extern "C" __declspec(dllimport)
@@ -31,9 +34,12 @@ DLLIMPORT bool CartCpuWrite(Cartridge* cart, uint16_t addr, uint8_t data);
 DLLIMPORT bool CartPpuRead(Cartridge* cart, uint16_t addr, uint8_t* data);
 DLLIMPORT bool CartPpuWrite(Cartridge* cart, uint16_t addr, uint8_t data);
 DLLIMPORT MirrorMode CartridgeGetMirrorMode(Cartridge* cart);
+DLLIMPORT void ResetCartridge(Cartridge* cart);
+// Mapper only
 DLLIMPORT MapperBase* CartridgeMapper(Cartridge* cart);
 DLLIMPORT void MapperScanlineCounter(MapperBase* mapper);
-DLLIMPORT void ResetCartridge(Cartridge* cart);
+DLLIMPORT bool MapperIsIrqActive(MapperBase* mapper);
+DLLIMPORT void MapperClearIrq(MapperBase* mapper);
 
 // Wrapper class that PPU uses to talk to Cartridge
 class CartridgeInterface {

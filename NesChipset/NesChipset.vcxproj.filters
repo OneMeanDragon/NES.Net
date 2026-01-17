@@ -18,9 +18,6 @@
     <ClInclude Include="PPU2C02.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BusInterfaces.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="APU2A03.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -31,6 +28,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CPU6502\CPU6502.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Diagnostics\DiagnosticHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CartridgeApi\CartridgeInterfaceAPI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CartridgeApi\MapperInterfaceAPI.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CartridgeApi\SharedObjectHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -66,6 +75,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CPU6502\CPU6502.Exports.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Diagnostics\DiagnosticHelpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CartridgeApi\CartridgeInterfaceAPI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CartridgeApi\MapperInterfaceAPI.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CartridgeApi\SharedObjectHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

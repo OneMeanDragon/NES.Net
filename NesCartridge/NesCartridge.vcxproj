@@ -165,8 +165,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="core\Cartridge.h" />
+    <ClInclude Include="core\Diagnostics\DiagnosticHelpers.h" />
     <ClInclude Include="core\INESHeader.h" />
-    <ClInclude Include="core\Interfaces\CartridgeInterface.h" />
+    <ClInclude Include="core\Interfaces\CartridgeApi.h" />
+    <ClInclude Include="core\Interfaces\CartridgeInterfaceLibrary.h" />
     <ClInclude Include="core\Interfaces\MirrorModeRequired.h" />
     <ClInclude Include="core\mappers\Mapper000.h" />
     <ClInclude Include="core\mappers\Mapper001.h" />
@@ -179,6 +181,7 @@
     <ClInclude Include="core\mappers\MapperFactory.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="core\Diagnostics\DiagnosticHelpers.cpp" />
     <ClCompile Include="private\Cartridge.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

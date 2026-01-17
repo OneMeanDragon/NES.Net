@@ -9,15 +9,40 @@ Namespace NintendoEntertainmentSystem
     Public Class NativeNESBus
         Implements IDisposable
 
+#Region "NativeNESBus Delegate Definitions"
+        ''' <summary>
+        ''' Sets the callback within the dll to point at the provided delegate
+        ''' </summary>
+        ''' <param name="bus"></param>
+        ''' <param name="callback"></param>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Sub BusSetDiagnosticLogCallback(bus As IntPtr, callback As DLLPath.DiagnosticLogDelegate)
+        End Sub
+
+        ''' <summary>
+        ''' Enables the logging within the dll
+        ''' </summary>
+        ''' <param name="bus"></param>
+        ''' <param name="enable"></param>
+        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Sub BusEnableDiagnosticLogger(bus As IntPtr, enable As Boolean)
+        End Sub
+
+        ''' <summary>
+        ''' The Logging delegate our dll will be firing its diagnostics messages to. 
+        ''' </summary>
+        ''' <param name="message"></param>
+        Private Sub BusDiagnosticLogger(ByVal message As String)
+            Console.WriteLine("Bus: " & message)
+        End Sub
+#End Region
+
         Private _audio As FMODAudioNative
         Public ReadOnly Property AudioSystem As FMODAudioNative
             Get
                 Return _audio
             End Get
         End Property
-
-        ' Delegates
-        Public Delegate Sub DiagnosticCallback(msg As String)
 
         ' DLL imports
         <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
@@ -92,28 +117,24 @@ Namespace NintendoEntertainmentSystem
         Private Shared Function Bus_IsAudioSampleReady(bus As IntPtr) As Boolean
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub Bus_SetDiagnosticCallback(bus As IntPtr, callback As DiagnosticCallback)
-        End Sub
-
         ' Instance fields
         Private _busHandle As IntPtr
-        Private _diagnosticCallback As DiagnosticCallback
+        Private _diagnosticCallback As DLLPath.DiagnosticLogDelegate
         Private _disposed As Boolean = False
 
 #Region "Temporary Delegates for the CPU and the APU"
-        <UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        Public Delegate Sub ClockCPUDelegate()
-        <UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        Public Delegate Sub ResetCPUDelegate()
-        <UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        Public Delegate Sub TriggerNMIDelegate()
-        <UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        Public Delegate Sub TriggerIRQDelegate()
+        '<UnmanagedFunctionPointer(CallingConvention.StdCall)>
+        'Public Delegate Sub ClockCPUDelegate()
+        '<UnmanagedFunctionPointer(CallingConvention.StdCall)>
+        'Public Delegate Sub ResetCPUDelegate()
+        '<UnmanagedFunctionPointer(CallingConvention.StdCall)>
+        'Public Delegate Sub TriggerNMIDelegate()
+        '<UnmanagedFunctionPointer(CallingConvention.StdCall)>
+        'Public Delegate Sub TriggerIRQDelegate()
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub UpdateCPUApi(bushandle As IntPtr, api As CPUApi)
-        End Sub
+        '<DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        'Private Shared Sub UpdateCPUApi(bushandle As IntPtr, api As CPUApi)
+        'End Sub
 
         Public Sub CpuClock()
             CPU?.Clock()
@@ -128,33 +149,26 @@ Namespace NintendoEntertainmentSystem
             CPU?.IRQ()
         End Sub
 
-        Private Structure CPUApi
-            Dim ClockCPU As ClockCPUDelegate
-            Dim ResetCPU As ResetCPUDelegate
-            Dim TriggerNMI As TriggerNMIDelegate
-            Dim TriggerIRQ As TriggerIRQDelegate
-        End Structure
-        Private _cpuApi As CPUApi
-
 #End Region
         Public ReadOnly CPU As New NativeCPU6502()
-        Public PPU As NativePPU2C02 'New NetPPU2C02() ' NativePPU2C02
+        Public ReadOnly PPU As New NativePPU2C02()
         Public ReadOnly APU As New NativeAPU2A03()
 
         Private Const AUDIO_SAMPLE_RATE As UInt32 = 44100
 
         Public Sub New()
-            _cpuApi.ClockCPU = New ClockCPUDelegate(AddressOf CpuClock)
-            _cpuApi.ResetCPU = New ResetCPUDelegate(AddressOf CpuReset)
-            _cpuApi.TriggerNMI = New TriggerNMIDelegate(AddressOf NmiTrigger)
-            _cpuApi.TriggerIRQ = New TriggerIRQDelegate(AddressOf IrqTrigger)
+            _diagnosticCallback = New DLLPath.DiagnosticLogDelegate(AddressOf BusDiagnosticLogger)
 
             _busHandle = CreateNESBus()
             If _busHandle = IntPtr.Zero Then
                 Throw New Exception("Failed to create native NES Bus")
             End If
+            BusEnableDiagnosticLogger(_busHandle, True)
+            BusSetDiagnosticLogCallback(_busHandle, _diagnosticCallback)
 
-            UpdateCPUApi(_busHandle, _cpuApi)
+            ConnectCPU(CPU.NativeHandle)
+            ConnectPPU(PPU.NativeHandle)
+            ConnectAPU(APU.NativeHandle)
 
             ' Connect CPU to this bus
             CPU.ConnectBus(_busHandle)
@@ -179,12 +193,6 @@ Namespace NintendoEntertainmentSystem
         End Function
 
         Public Sub ConnectCartridge(cartHandle As IntPtr)
-            If Not (PPU Is Nothing) Then
-                PPU.Dispose()
-            End If
-            PPU = New NativePPU2C02(cartHandle)
-            ConnectPPU(PPU.NativeHandle)
-            ConnectAPU(APU.NativeHandle)
             Bus_ConnectCartridge(_busHandle, cartHandle)
         End Sub
 
@@ -248,11 +256,6 @@ Namespace NintendoEntertainmentSystem
                 Return Bus_IsAudioSampleReady(_busHandle)
             End Get
         End Property
-
-        Public Sub SetDiagnosticCallback(callback As Action(Of String))
-            _diagnosticCallback = Sub(msg As String) callback(msg)
-            Bus_SetDiagnosticCallback(_busHandle, _diagnosticCallback)
-        End Sub
 
         ' IDisposable implementation
         Protected Overridable Sub Dispose(disposing As Boolean)

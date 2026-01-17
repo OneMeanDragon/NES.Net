@@ -1,14 +1,12 @@
 #include "PPU2C02.h"
 #include <algorithm>
-#include <core/Interfaces/CartridgeInterface.h>
 
-PPU2C02::PPU2C02(Cartridge* cart)
+#include "CartridgeApi/MapperInterfaceAPI.h"
+#include "CartridgeApi/CartridgeInterfaceAPI.h"
+
+PPU2C02::PPU2C02() 
     : _cart(nullptr), _pixelCallback(nullptr), _diagnosticCallback(nullptr)
 {
-    if (cart) {
-        _cart = new CartridgeInterface(cart);
-    }
-
     std::memset(_nametable0, 0, sizeof(_nametable0));
     std::memset(_nametable1, 0, sizeof(_nametable1));
     std::memset(_paletteRam, 0, sizeof(_paletteRam));
@@ -229,7 +227,7 @@ uint8_t PPU2C02::PpuRead(uint16_t addr, bool rdOnly) {
     uint8_t data = 0;
     addr &= 0x3FFF;
 
-    if (_cart->PpuRead(addr, data)) {
+    if (_cart->PpuRead(addr, &data)) {
         // Cartridge handled the read
     }
     else if (addr <= 0x1FFF) {
@@ -610,6 +608,7 @@ void PPU2C02::Clock() {
     uint8_t fgPixel = 0, fgPalette = 0, fgPriority = 0;
 
     if (_mask.renderBackground) {
+
         if (_mask.renderBackgroundLeft || _cycle >= 9) {
             uint16_t mux = 0x8000 >> _fineX;
             bgPixel = (((_bgShifterPatternHi & mux) != 0 ? 1 : 0) << 1) | ((_bgShifterPatternLo & mux) != 0 ? 1 : 0);
@@ -618,6 +617,7 @@ void PPU2C02::Clock() {
     }
 
     if (_mask.renderSprites) {
+
         if (_mask.renderSpritesLeft || _cycle >= 9) {
             _spriteZeroBeingRendered = false;
 
@@ -680,10 +680,8 @@ void PPU2C02::Clock() {
     // Scanline counter for mappers (like MMC3)
     if (_mask.renderBackground || _mask.renderSprites) {
         if (_cycle == 260 && _scanline < 240) {
-            MapperBase* mapper = _cart->GetMapper();
-            if (mapper) {
-                MapperScanlineCounter(mapper);
-            }
+            MapperInterfaceAPI mapper = _cart->GetMapper();
+            mapper.ScanlineCounter();
         }
     }
 
@@ -775,9 +773,20 @@ void PPU2C02::GetNameTable(uint8_t index, uint8_t* buffer) {
     }
 }
 
+void PPU2C02::SetCartridge(CartridgeInterfaceAPI* cart) {
+    if (cart) {
+        Log("Info: Valid CartridgeInterfaceAPI.");
+        _cart = cart;
+    }
+    else {
+        Log("Error: Invalid CartridgeInterfaceAPI.");
+    }
+}
+
+
 // Exported PPU functions
-DLLEXPORT PPU2C02* CreatePPU(Cartridge* cart) {
-    return new PPU2C02(cart);
+DLLEXPORT PPU2C02* CreatePPU() {
+    return new PPU2C02();
 }
 
 DLLEXPORT void DestroyPPU(PPU2C02* ppu) {
@@ -823,7 +832,7 @@ DLLEXPORT void PPU_SetPixelCallback(PPU2C02* ppu, PixelCallback callback) {
     if (ppu) ppu->SetPixelCallback(callback);
 }
 
-DLLEXPORT void PPU_SetDiagnosticCallback(PPU2C02* ppu, DiagnosticCallback callback) {
+DLLEXPORT void PPU_SetDiagnosticCallback(PPU2C02* ppu, DiagnosticLogCallback callback) {
     if (ppu) ppu->SetDiagnosticCallback(callback);
 }
 

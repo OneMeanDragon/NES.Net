@@ -415,6 +415,8 @@ Public Class Form1
             If resetRequest Then
                 resetRequest = False
                 emNES.Reset()
+                emNES.AudioSystem.Stop()
+                emNES.AudioSystem.Start()
             End If
         End While
 

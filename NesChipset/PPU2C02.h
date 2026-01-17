@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <cstring>
 
+// Diagnostics
+#include "Diagnostics/DiagnosticHelpers.h"
+
 #ifdef _WIN32
 #define DLLEXPORT extern "C" __declspec(dllexport)
 #else
@@ -10,13 +13,10 @@
 #endif
 
 // Forward declaration
-class Cartridge;
-class MapperBase;
-class CartridgeInterface;
+class CartridgeInterfaceAPI;
 
 // Callback types
 typedef void (*PixelCallback)(int x, int y, uint8_t r, uint8_t g, uint8_t b);
-typedef void (*DiagnosticCallback)(const char* msg);
 
 #pragma pack(push, 1)
 struct Pixel {
@@ -130,8 +130,10 @@ union LoopyRegister {
 
 class PPU2C02 {
 public:
-    PPU2C02(Cartridge* cart);
+    PPU2C02();
     ~PPU2C02();
+
+    void SetCartridge(CartridgeInterfaceAPI* cart);
 
     // Core functions
     void Reset();
@@ -157,7 +159,7 @@ public:
 
     // Callbacks
     void SetPixelCallback(PixelCallback callback) { _pixelCallback = callback; }
-    void SetDiagnosticCallback(DiagnosticCallback callback) { _diagnosticCallback = callback; }
+    void SetDiagnosticCallback(DiagnosticLogCallback callback) { _diagnosticCallback = callback; }
 
     // Debug helpers
     void GetPatternTable(uint8_t table, uint8_t palette, uint8_t* buffer);
@@ -211,11 +213,11 @@ private:
     bool _spriteZeroBeingRendered;
 
     // Cartridge reference
-    CartridgeInterface* _cart;
+    CartridgeInterfaceAPI* _cart;
 
     // Callbacks
     PixelCallback _pixelCallback;
-    DiagnosticCallback _diagnosticCallback;
+    DiagnosticLogCallback _diagnosticCallback;
 
     // Helper functions
     void InitializeSystemPalette();

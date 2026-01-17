@@ -1,6 +1,7 @@
 #include "APU2A03.h"
 #include <algorithm>
-#include <core/Interfaces/CartridgeInterface.h>
+
+#include "CartridgeApi/CartridgeInterfaceAPI.h"
 
     // DMC period table for NTSC (in CPU cycles)
 static const uint16_t DMC_PERIODS[16] = {
@@ -169,7 +170,7 @@ APU2A03::~APU2A03() {
 }
 
     // Accept a CartridgeInterface pointer (non-owning). Caller manages lifetime.
-void APU2A03::SetCartridge(CartridgeInterface* cart) {
+void APU2A03::SetCartridge(CartridgeInterfaceAPI* cart) {
     _cart = cart;
 }
 
@@ -538,7 +539,7 @@ void APU2A03::Clock() {
                         // Use Cartridge read import if cartridge pointer is set
                         if (_cart != nullptr) {
                             // CartCpuRead returns true on success and writes byte into fetched
-                            if (!_cart->CpuRead(static_cast<uint16_t>(dmc_current_address & 0xFFFF), fetched)) {
+                            if (!_cart->CpuRead(static_cast<uint16_t>(dmc_current_address & 0xFFFF), &fetched)) {
                                 // read failed, use 0x00
                                 fetched = 0x00;
                             }
@@ -586,7 +587,7 @@ void APU2A03::Clock() {
                 if (dmc_bits_remaining == 0 && dmc_bytes_remaining > 0 && dmc_sample_buffer_empty) {
                     uint8_t fetched = 0x00;
                     if (_cart != nullptr) {
-                        if (!_cart->CpuRead(static_cast<uint16_t>(dmc_current_address & 0xFFFF), fetched)) {
+                        if (!_cart->CpuRead(static_cast<uint16_t>(dmc_current_address & 0xFFFF), &fetched)) {
                             fetched = 0x00;
                         }
                     }

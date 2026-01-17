@@ -48,15 +48,24 @@
     <ClInclude Include="core\mappers\MapperFactory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\Interfaces\CartridgeInterface.h">
+    <ClInclude Include="core\Interfaces\CartridgeInterfaceLibrary.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="core\Interfaces\MirrorModeRequired.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="core\Diagnostics\DiagnosticHelpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="core\Interfaces\CartridgeApi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="private\Cartridge.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="core\Diagnostics\DiagnosticHelpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

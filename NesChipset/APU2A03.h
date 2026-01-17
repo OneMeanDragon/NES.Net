@@ -10,9 +10,7 @@
 #endif
 
 // Forward declare Cartridge (defined in BusInterfaces.h / cartridge DLL)
-//class Cartridge;
-//class MapperBase;
-class CartridgeInterface;
+class CartridgeInterfaceAPI;
 
 
     // Oscillator for pulse wave generation
@@ -99,7 +97,7 @@ public:
     inline double GetSampleRate() const { return sample_rate; }
 
     // Provide CartridgeInterface pointer so DMC can fetch sample bytes (non-owning)
-    void SetCartridge(CartridgeInterface* cart);
+    void SetCartridge(CartridgeInterfaceAPI* cart);
 
     // Visual feedback (for debugging)
     uint16_t pulse1_visual = 0;
@@ -130,7 +128,7 @@ private:
     double sample_rate = 44100.0;
 
     // CartridgeInterface pointer for DMC memory fetches (non-owning, set by bus)
-    CartridgeInterface* _cart = nullptr;
+    CartridgeInterfaceAPI* _cart = nullptr;
 
     // Pulse 1
     bool pulse1_enable = false;
@@ -193,18 +191,3 @@ private:
     uint16_t dmc_timer = 0;                  // countdown timer
 
 };
-
-
-// Exported APU functions
-//DLLEXPORT APU2A03* CreateAPU();
-//DLLEXPORT void DestroyAPU(APU2A03* apu);
-//
-//DLLEXPORT void APU_CpuWrite(APU2A03* apu, uint16_t addr, uint8_t data);
-//DLLEXPORT uint8_t APU_CpuRead(APU2A03* apu, uint16_t addr);
-//DLLEXPORT void APU_Clock(APU2A03* apu);
-//DLLEXPORT void APU_Reset(APU2A03* apu);
-//DLLEXPORT double APU_GetOutputSample(APU2A03* apu);
-//
-//// Convenience aliases
-//DLLEXPORT void ClockAPU(APU2A03* apu);
-//DLLEXPORT void ResetAPU(APU2A03* apu);

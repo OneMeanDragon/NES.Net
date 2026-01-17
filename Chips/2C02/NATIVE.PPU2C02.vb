@@ -15,7 +15,7 @@ Namespace NintendoEntertainmentSystem
 
         ' DLL imports
         <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function CreatePPU(cart As IntPtr) As IntPtr
+        Private Shared Function CreatePPU() As IntPtr
         End Function
 
         <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
@@ -166,12 +166,19 @@ Namespace NintendoEntertainmentSystem
             End Property
         End Class
 
+        Public Sub Log(msg As String)
+            Console.WriteLine("PPU: " & msg)
+        End Sub
 
-        Public Sub New(cartridge As IntPtr)
-            _ppuHandle = CreatePPU(cartridge)
+        Public Sub New()
+            _ppuHandle = CreatePPU()
+
             If _ppuHandle = IntPtr.Zero Then
                 Throw New Exception("Failed to create native PPU")
             End If
+
+            SetDiagnosticCallback(AddressOf Log)
+
 
             _screen = New GraphicsObjects.Sprite(256, 240)
             _oamWrapper = New OAMWrapper(_ppuHandle)

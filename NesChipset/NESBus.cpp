@@ -2,10 +2,28 @@
 
 #include <algorithm>
 #include <cmath>
-#include <core/Interfaces/CartridgeInterface.h>
 
+#include "CartridgeApi/MapperInterfaceAPI.h"
+#include "CartridgeApi/CartridgeInterfaceAPI.h"
+
+#include "CPU6502/CPU6502.h"
 #include "APU2A03.h"
-#include "BusInterfaces.h"
+#include "PPU2C02.h"
+
+#pragma region "Diagnostics"
+void NESBus::SetDiagnosticLogCallback(DiagnosticLogCallback callback)
+{
+    _diagnosticCallback = &DummyLogger;
+    if (callback) {
+        _diagnosticCallback = callback;
+    }
+}
+void NESBus::Log(const char* msg) const {
+    if (_diagnosticCallback && _loggingEnabled) {
+        _diagnosticCallback(msg);
+    }
+}
+#pragma endregion
 
 NESBus::NESBus()
     : _cart(nullptr), _ppu(nullptr), _apu(nullptr),//_cpu(nullptr),
@@ -26,19 +44,15 @@ NESBus::~NESBus() {
     if (_cart) delete _cart;
 }
 
-void NESBus::Log(const char* msg) {
-    if (_diagnosticCallback) {
-        _diagnosticCallback(msg);
-    }
-}
-
 void NESBus::ConnectCartridge(Cartridge* cart) {
     if (!_apu) {
         Log("Warning: Connecting Cartridge before APU. APU must be connected first.");
         return;
 	}
+
     if (_cart) delete _cart;
-    _cart = new CartridgeInterface(cart);
+    _cart = new CartridgeInterfaceAPI(cart);
+    if (_cart) _ppu->SetCartridge(_cart);
     if (_cart) _apu->SetCartridge(_cart);
 }
 
@@ -47,7 +61,7 @@ void NESBus::ConnectPPU(PPU2C02* ppu) {
 }
 
 void NESBus::ConnectCPU(CPU6502* cpu) {
-    //_cpu = cpu;
+    _cpu = cpu;
 }
 
 void NESBus::ConnectAPU(APU2A03* apu) {
@@ -79,18 +93,14 @@ void NESBus::Reset() {
     }
 
     // Reset components
-    //if (_cpu) {
-    //    ResetCPU(_cpu);
-    //}
-    if (CPUApi.Reset) {
-        CPUApi.Reset();
+    if (_cpu) {
+        _cpu->Reset();
     }
-
     if (_ppu) {
-        PPU_Reset(_ppu);
+        _ppu->Reset();
     }
     if (_apu) {
-        ResetAPU(_apu);
+        _apu->Reset();
     }
 
     // Clear RAM
@@ -129,7 +139,7 @@ uint8_t NESBus::CpuRead(uint16_t addr, bool isReadOnly) {
     uint8_t data = 0;
 
     // Try cartridge first
-    if (_cart && _cart->CpuRead(addr, data)) {
+    if (_cart && _cart->CpuRead(addr, &data)) {
         return data;
     }
 
@@ -141,7 +151,8 @@ uint8_t NESBus::CpuRead(uint16_t addr, bool isReadOnly) {
     // PPU Registers ($2000-$3FFF, mirrored every 8 bytes)
     if (addr >= 0x2000 && addr <= 0x3FFF) {
         if (_ppu) {
-            return PPU_CpuRead(_ppu, addr & PPU_REG_MIRROR_MASK, isReadOnly);
+            //return PPU_CpuRead(_ppu, addr & PPU_REG_MIRROR_MASK, isReadOnly);
+            return _ppu->CpuRead(addr & PPU_REG_MIRROR_MASK, isReadOnly);
         }
         return 0;
     }
@@ -149,7 +160,8 @@ uint8_t NESBus::CpuRead(uint16_t addr, bool isReadOnly) {
     // APU Status ($4015)
     if (addr == 0x4015) {
         if (_apu) {
-            return APU_CpuRead(_apu, addr);
+            //return APU_CpuRead(_apu, addr);
+            return _apu->CpuRead(addr);
         }
         return 0;
     }
@@ -181,7 +193,8 @@ void NESBus::CpuWrite(uint16_t addr, uint8_t data) {
     // PPU Registers ($2000-$3FFF, mirrored every 8 bytes)
     if (addr >= 0x2000 && addr <= 0x3FFF) {
         if (_ppu) {
-            PPU_CpuWrite(_ppu, addr & PPU_REG_MIRROR_MASK, data);
+            //PPU_CpuWrite(_ppu, addr & PPU_REG_MIRROR_MASK, data);
+            _ppu->CpuWrite(addr & PPU_REG_MIRROR_MASK, data);
         }
         return;
     }
@@ -189,7 +202,8 @@ void NESBus::CpuWrite(uint16_t addr, uint8_t data) {
     // APU and I/O registers ($4000-$4013)
     if (addr >= 0x4000 && addr <= 0x4013) {
         if (_apu) {
-            APU_CpuWrite(_apu, addr, data);
+            //APU_CpuWrite(_apu, addr, data);
+            _apu->CpuWrite(addr, data);
         }
         return;
     }
@@ -206,7 +220,8 @@ void NESBus::CpuWrite(uint16_t addr, uint8_t data) {
     // APU registers ($4015, $4017)
     if (addr == 0x4015 || addr == 0x4017) {
         if (_apu) {
-            APU_CpuWrite(_apu, addr, data);
+            //APU_CpuWrite(_apu, addr, data);
+            _apu->CpuWrite(addr, data);
         }
         return;
     }
@@ -237,7 +252,10 @@ void NESBus::ProcessDMA() {
     else {
         // Odd cycle: Write to OAM
         if (_ppu) {
-            PPU_SetOAMByte(_ppu, _dmaAddr, _dmaData);
+            //PPU_SetOAMByte(_ppu, _dmaAddr, _dmaData);
+            uint8_t index = _dmaAddr / 4;
+            if (index >= 64) return;
+            _ppu->OAM[index].SetByteAt(_dmaAddr, _dmaData);
         }
 
         // Increment address
@@ -259,7 +277,8 @@ bool NESBus::ProcessAudio() {
 
         // Get sample from APU
         if (_apu) {
-            _audioSample = APU_GetOutputSample(_apu);
+            //_audioSample = APU_GetOutputSample(_apu);
+            _audioSample = _apu->GetOutputSample();
         }
         else {
             _audioSample = 0.0;
@@ -318,64 +337,58 @@ bool NESBus::GetAudioSample(double& sample) {
 }
 
 bool NESBus::Clock() {
-    // Clock PPU
-    if (_ppu) {
-        PPU_Clock(_ppu);
-    }
-
-    // Clock APU
-    if (_apu) {
-        ClockAPU(_apu);
-    }
-
     // CPU runs at 1/3 PPU speed
     if ((_systemClockCounter % 3) == 0) {
         if (_dmaTransfer) {
             ProcessDMA();
         }
         else {
-            //if (_cpu) {
-            //    ClockCPU(_cpu);
-            //}
-            if (CPUApi.Clock) {
-                CPUApi.Clock();
+            if (_cpu) {
+                _cpu->Clock();
             }
+            //else { InvalidPointer(_diagnosticCallback, __LINE__, __FILE__, "_cpu"); }
         }
     }
+
+    if (_ppu) {
+        _ppu->Clock();
+    }
+    else { InvalidPointer(_diagnosticCallback, __LINE__, __FILE__, "_ppu"); }
+
+    if (_apu) {
+        _apu->Clock();
+    }
+    //else { InvalidPointer(_diagnosticCallback, __LINE__, __FILE__, "_apu"); }
 
     // Process audio timing
     _audioSampleReady = ProcessAudio();
 
-    // Handle NMI from PPU
-    if (_ppu && PPU_GetNmiRequested(_ppu)) {
-        PPU_ClearNmiRequested(_ppu);
-        //if (_cpu) {
-        //    TriggerNMI(_cpu);
-        //}
-        if (CPUApi.TriggerNmi) {
-            CPUApi.TriggerNmi();
+    if (_ppu && _ppu->GetNmiRequested()) {
+        _ppu->ClearNmiRequested();
+        if (_cpu) {
+            _cpu->NMI();
         }
     }
 
     // Handle IRQ from cartridge mapper
     if (_cart) {
-        MapperBase* mapper = _cart->GetMapper();
-        if (mapper && MapperIsIrqActive(mapper)) {
-            MapperClearIrq(mapper);
-            //if (_cpu) {
-            //    TriggerIRQ(_cpu);
-            //}
-            if (CPUApi.TriggerIrq) {
-                CPUApi.TriggerIrq();
+        MapperInterfaceAPI mapper = _cart->GetMapper();
+        if (mapper.IsIrqActive()) {
+            mapper.ClearIrq();
+            if (_cpu) {
+                _cpu->IRQ();
             }
         }
     }
+    else { InvalidPointer(_diagnosticCallback, __LINE__, __FILE__, "_cart"); }
 
     // Increment system clock
     _systemClockCounter++;
 
     return _audioSampleReady;
 }
+
+
 
 // Exported Bus functions
 DLLEXPORT NESBus* CreateNESBus() {
@@ -458,10 +471,16 @@ DLLEXPORT bool Bus_IsAudioSampleReady(NESBus* bus) {
     return false;
 }
 
-DLLEXPORT void Bus_SetDiagnosticCallback(NESBus* bus, DiagnosticCallback callback) {
-    if (bus) bus->SetDiagnosticCallback(callback);
+DLLEXPORT void BusEnableDiagnosticLogger(NESBus* bus, bool enable) {
+    if (bus) bus->EnableLogging(enable);
 }
 
-DLLEXPORT void UpdateCPUApi(NESBus* bus, CpuApiCallbacks api) {
-    if (bus) bus->SetCPUApi(api);
+DLLEXPORT void BusSetDiagnosticLogCallback(NESBus* bus, DiagnosticLogCallback callback) {
+    if (bus && callback) {
+        bus->SetDiagnosticLogCallback(callback);
+        bus->Log("Info: Diagnostic Log Callback attached successfully.");
+    }
+    else if (bus == nullptr) {
+        if (callback) callback("Error: Cartridge instance is nullptr.");
+    }
 }

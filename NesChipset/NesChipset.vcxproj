@@ -20,14 +20,20 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="APU2A03.h" />
-    <ClInclude Include="BusInterfaces.h" />
+    <ClInclude Include="CartridgeApi\CartridgeInterfaceAPI.h" />
+    <ClInclude Include="CartridgeApi\MapperInterfaceAPI.h" />
+    <ClInclude Include="CartridgeApi\SharedObjectHelper.h" />
     <ClInclude Include="CPU6502\CPU6502.h" />
+    <ClInclude Include="Diagnostics\DiagnosticHelpers.h" />
     <ClInclude Include="FMODAudio\FMODAudioSystem.h" />
     <ClInclude Include="NESBus.h" />
     <ClInclude Include="PPU2C02.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="APU2A03.cpp" />
+    <ClCompile Include="CartridgeApi\CartridgeInterfaceAPI.cpp" />
+    <ClCompile Include="CartridgeApi\MapperInterfaceAPI.cpp" />
+    <ClCompile Include="CartridgeApi\SharedObjectHelper.cpp" />
     <ClCompile Include="CPU6502\CPU6502.AddressingModes.cpp" />
     <ClCompile Include="CPU6502\CPU6502.Core.cpp" />
     <ClCompile Include="CPU6502\CPU6502.Exports.cpp" />
@@ -35,6 +41,7 @@
     <ClCompile Include="CPU6502\CPU6502.Instructions.Illegal.cpp" />
     <ClCompile Include="CPU6502\CPU6502.Instructions.Official.cpp" />
     <ClCompile Include="CPU6502\CPU6502.Interrupts.cpp" />
+    <ClCompile Include="Diagnostics\DiagnosticHelpers.cpp" />
     <ClCompile Include="FMODAudio\FMODAudioSystem.cpp" />
     <ClCompile Include="NESBus.cpp" />
     <ClCompile Include="PPU2C02.cpp" />

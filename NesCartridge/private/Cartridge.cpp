@@ -372,10 +372,12 @@ DLLEXPORT Cartridge* CreateCartridgeDiag(DiagnosticLogCallback callback) {
 }
 
 DLLEXPORT void DestroyCartridge(Cartridge* cart) {
-    DiagnosticLogCallback _log = cart->_diagnosticCallback;
-    bool islogged = cart->LoggingEnabled();
-	delete cart;
-    if (islogged) _log("Destroyed Native Car");
+    if (cart) {
+        DiagnosticLogCallback _log = cart->_diagnosticCallback;
+        bool islogged = cart->LoggingEnabled();
+        delete cart;
+        if (islogged) _log("Destroyed Native Car");
+    }
 }
 
 DLLEXPORT bool LoadCartridge(Cartridge* cart, const char* path) {
@@ -462,3 +464,33 @@ DLLEXPORT void ResetCartridge(Cartridge* cart) {
 }
 
 #pragma endregion
+
+/* API Section for the NesChipset.dll */
+#include "../core/Interfaces/CartridgeApi.h"
+DLLEXPORT void GetCartridgeAPI(LPCARTRIDGEAPI api_cartridge) {
+    // CARTRIDGE API
+    api_cartridge->CreateCartridge = CreateCartridge;
+    api_cartridge->CreateCartridgeDiag = CreateCartridgeDiag;
+    api_cartridge->CartridgeSetDiagnosticLogCallback = CartridgeSetDiagnosticLogCallback;
+    api_cartridge->DestroyCartridge = DestroyCartridge;
+    api_cartridge->LoadCartridge = LoadCartridge;
+    api_cartridge->CartridgeEnableLogging = CartridgeEnableLogging;
+    api_cartridge->CartridgeGetMirrorMode = CartridgeGetMirrorMode;
+    api_cartridge->CartridgeIsLoaded = CartridgeIsLoaded;
+    api_cartridge->CartridgeClock = CartridgeClock;
+    api_cartridge->CartCpuRead = CartCpuRead;
+    api_cartridge->CartCpuWrite = CartCpuWrite;
+    api_cartridge->CartPpuRead = CartPpuRead;
+    api_cartridge->CartPpuWrite = CartPpuWrite;
+    api_cartridge->ResetCartridge = ResetCartridge;
+    api_cartridge->CartridgeMapper = CartridgeMapper;
+}
+
+DLLEXPORT void GetMapperAPI(LPMAPPERAPI api_mapper) {
+    // MAPPER API
+    api_mapper->MapperIsIrqActive = MapperIsIrqActive;
+    api_mapper->MapperClearIrq = MapperClearIrq;
+    api_mapper->MapperReset = MapperReset;
+    api_mapper->MapperGetMirrorMode = MapperGetMirrorMode;
+    api_mapper->MapperScanlineCounter = MapperScanlineCounter;
+}

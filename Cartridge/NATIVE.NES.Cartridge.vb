@@ -12,6 +12,9 @@ Namespace NintendoEntertainmentSystem
     Public Module DLLPath
         Public Const NesCartridge As String = "NesCartridge.dll"
         Public Const NesPPU As String = "NesChipset.dll"
+        'Diagnostics
+        <UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet:=CharSet.Ansi)>
+        Public Delegate Sub DiagnosticLogDelegate(ByVal message As String)
     End Module
 
     Public Enum [MirrorMode] As Byte
@@ -80,11 +83,8 @@ Namespace NintendoEntertainmentSystem
 #Region "DLL Imports"
 
 #Region "Cartridge Delegate Definitions"
-        <UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        Public Delegate Sub DiagnosticLogDelegate(ByVal message As String)
-
         <DllImport(DLLPath.NesCartridge, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub CartridgeSetDiagnosticLogCallback(cart As IntPtr, callback As DiagnosticLogDelegate)
+        Private Shared Sub CartridgeSetDiagnosticLogCallback(cart As IntPtr, callback As DLLPath.DiagnosticLogDelegate)
         End Sub
 #End Region
 
@@ -92,7 +92,7 @@ Namespace NintendoEntertainmentSystem
         Private Shared Function CreateCartridge() As IntPtr
         End Function
         <DllImport(DLLPath.NesCartridge, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function CreateCartridgeDiag(callback As DiagnosticLogDelegate) As IntPtr
+        Private Shared Function CreateCartridgeDiag(callback As DLLPath.DiagnosticLogDelegate) As IntPtr
         End Function
 
         <DllImport(DLLPath.NesCartridge, CallingConvention:=CallingConvention.Cdecl)>
@@ -139,7 +139,7 @@ Namespace NintendoEntertainmentSystem
 
         Private _disposedValue As Boolean = False ' To detect redundant calls
 
-        Private _diagCallback As DiagnosticLogDelegate
+        Private _diagCallback As DLLPath.DiagnosticLogDelegate
         Private disposedValue As Boolean
 
         Private _mapper As NativeMapperBase
@@ -151,7 +151,7 @@ Namespace NintendoEntertainmentSystem
         End Property
 
         Public Sub New(ByVal filePath As String)
-            _diagCallback = New DiagnosticLogDelegate(AddressOf DiagnosticLogger)
+            _diagCallback = New DLLPath.DiagnosticLogDelegate(AddressOf DiagnosticLogger)
 
 #If DIAGNOSE_CREATE_CARTRIDGE_CLASS Then
             _nativePtr = CreateCartridgeDiag(_diagCallback)

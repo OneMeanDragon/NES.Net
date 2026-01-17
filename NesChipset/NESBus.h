@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <cstring>
 
+// Diagnostics
+#include "Diagnostics/DiagnosticHelpers.h"
+
 #ifdef _WIN32
 #define DLLEXPORT extern "C" __declspec(dllexport)
 #else
@@ -12,47 +15,15 @@
 
 // Forward declarations - we'll use pointers to avoid linking issues
 class Cartridge;
-class CartridgeInterface;
+class CartridgeInterfaceAPI;
 class PPU2C02;
 class CPU6502;
 class APU2A03;
 
 // Callback types
-typedef void (*DiagnosticCallback)(const char* msg);
 typedef double (*AudioSampleCallback)(int64_t sampleIndex, double time);
 
-#pragma region "CPU API CALLBACKS"
-// CPU .Net API
-typedef void(__stdcall* ApiCpuClock)();
-typedef void(__stdcall* ApiCpuReset)();
-typedef void(__stdcall* ApiCpuTriggerNmi)();
-typedef void(__stdcall* ApiCpuTriggerIrq)();
-struct CpuApiCallbacks {
-    ApiCpuClock Clock;
-    ApiCpuReset Reset;
-    ApiCpuTriggerNmi TriggerNmi;
-    ApiCpuTriggerIrq TriggerIrq;
-};
-// APU .Net API
-//typedef void(__stdcall* ApiApuClock)();
-//typedef void(__stdcall* ApiApuReset)();
-//typedef uint8_t(__stdcall* ApiApuCpuRead)(uint16_t);
-//typedef void(__stdcall* ApiApuCpuWrite)(uint16_t, uint8_t);
-//typedef double(__stdcall* ApiApuGetOutputSample)();
-//struct ApuApiCallbacks {
-//    ApiApuClock Clock;
-//    ApiApuReset Reset;
-//    ApiApuCpuRead CpuRead;
-//    ApiApuCpuWrite CpuWrite;
-//    ApiApuGetOutputSample GetSoundSample;
-//};
-#pragma endregion
-
 class NESBus {
-private: // Temporary API CPU and APU .Net callbacks
-    CpuApiCallbacks CPUApi = { nullptr,nullptr,nullptr,nullptr };
-public:
-    void SetCPUApi(CpuApiCallbacks api) { CPUApi = api; };
 public:
     NESBus();
     ~NESBus();
@@ -85,9 +56,6 @@ public:
     uint64_t GetSystemClockCount() const { return _systemClockCounter; }
     bool IsAudioSampleReady() const { return _audioSampleReady; }
 
-    // Callbacks
-    void SetDiagnosticCallback(DiagnosticCallback callback) { _diagnosticCallback = callback; }
-
 private:
     // Constants
     static constexpr int CPU_RAM_SIZE = 2048;
@@ -98,9 +66,9 @@ private:
     static constexpr uint32_t AUDIO_RINGBUFFER_SIZE = 8191;  // Power of 2 minus 1
 
     // Components (pointers to avoid circular dependencies)
-    CartridgeInterface* _cart;
+    CartridgeInterfaceAPI* _cart;
     PPU2C02* _ppu;
-    //CPU6502* _cpu;
+    CPU6502* _cpu;
     APU2A03* _apu;
 
     // Memory
@@ -134,11 +102,17 @@ private:
     // System state
     uint64_t _systemClockCounter;
 
-    // Callbacks
-    DiagnosticCallback _diagnosticCallback;
-
     // Helper functions
     void ProcessDMA();
     bool ProcessAudio();
-    void Log(const char* msg);
+
+private:
+    bool _loggingEnabled = false;
+    static void __stdcall DummyLogger(const char* message) {}
+    DiagnosticLogCallback _diagnosticCallback = &DummyLogger;
+    bool LoggingEnabled() const { return _loggingEnabled; }
+public:
+    void EnableLogging(bool enable) { _loggingEnabled = enable; };
+    void SetDiagnosticLogCallback(DiagnosticLogCallback callback);
+    void Log(const char* msg) const;
 };
