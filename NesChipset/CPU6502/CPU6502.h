@@ -4,9 +4,9 @@
 #include <functional>
 
 #ifdef _WIN32
-#define DLLEXPORT extern "C" __declspec(dllexport)
+    #define DLLEXPORT extern "C" __declspec(dllexport)
 #else
-#define DLLEXPORT
+    #define DLLEXPORT
 #endif
 
 // Forward declaration

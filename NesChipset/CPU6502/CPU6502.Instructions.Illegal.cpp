@@ -215,9 +215,6 @@ uint8_t CPU6502::SHA() {
 uint8_t CPU6502::SHX() {
     // SHX stores X & (high_byte + 1)
     // NOTE: On page boundary crossing, the address itself may be corrupted
-    //uint8_t targetHighByte = (_addrAbs >> 8) & 0xFF;
-    //uint8_t result = X & (targetHighByte + 1);
-    //Write(_addrAbs, result);
     uint16_t base = _addrAbs - Y; // Recover original operand high byte
     uint16_t hi = (base >> 8);
     uint8_t res = X & (hi + 1);
@@ -235,9 +232,6 @@ uint8_t CPU6502::SHX() {
 uint8_t CPU6502::SHY() {
     // SHY stores Y & (high_byte + 1)
     // NOTE: On page boundary crossing, the address itself may be corrupted
-    //uint8_t targetHighByte = (_addrAbs >> 8) & 0xFF;
-    //uint8_t result = Y & (targetHighByte + 1);
-    //Write(_addrAbs, result);
     uint16_t base = _addrAbs - X; // Recover original operand high byte
     uint16_t hi = (base >> 8);
     uint8_t res = Y & (hi + 1);
@@ -261,17 +255,23 @@ uint8_t CPU6502::TAS() {
     return 0;
 }
 
-//uint8_t CPU6502::ATX() {
-//    uint8_t data = Read(_addrAbs);
-//    A = (A | 0xEE) & data;
-//    X = A;
-//    SetFlag(N, (A & 0x80) != 0);
-//    SetFlag(Z, A == 0);
-//    return 0;
-//}
 uint8_t CPU6502::ATX() {
+    //uint8_t data = Read(_addrAbs);
+    //A = data;
+    //X = A;
+    //SetFlag(N, (A & 0x80) != 0);
+    //SetFlag(Z, A == 0);
+    //return 0;
+    // 
+    // ATX (0xAB) - Also known as LXA/OAL
+    // This is HIGHLY unstable across different chip revisions
+    // For maximum compatibility, we use the most common stable behavior:
+    // A = X = (A | CONST) & immediate
+    // Where CONST is typically $EE, $FF, or $00 depending on chip
+    // Using $FF (most common) for better test ROM compatibility
     uint8_t data = Read(_addrAbs);
-    A = data;
+    uint8_t magic = 0xFF; // Magic constant - varies by chip revision
+    A = (A | magic) & data;
     X = A;
     SetFlag(N, (A & 0x80) != 0);
     SetFlag(Z, A == 0);

@@ -330,29 +330,29 @@ void APU2A03::CpuWrite(uint16_t addr, uint8_t data) {
         dmc_sample_length = (static_cast<uint32_t>(data) << 4) | 1;
         break;
 
-        // Status
+        // Status register $4015 write handling
     case 0x4015: // APU_CONTROL
-        pulse1_enable   = (data & 0x01) != 0;
-        pulse2_enable   = (data & 0x02) != 0;
-        noise_enable    = (data & 0x04) != 0;
-        // triangle is bit 2
-        triangle_enable = (data & 0x08) != 0;
-        // dmc is bit 4
-        {
-            bool new_dmc_enable = (data & 0x10);
-            if (!dmc_enable && new_dmc_enable) {
-                // Starting DMC: initialize pointers if needed
+        pulse1_enable = (data & 0x01) != 0;
+        pulse2_enable = (data & 0x02) != 0;
+        triangle_enable = (data & 0x04) != 0;
+        noise_enable = (data & 0x08) != 0;
+
+        // CRITICAL: Disabling a channel immediately clears its length counter
+        if (!pulse1_enable) pulse1_lc.counter = 0;
+        if (!pulse2_enable) pulse2_lc.counter = 0;
+        if (!triangle_enable) triangle_lc.counter = 0;
+        if (!noise_enable) noise_lc.counter = 0;
+
+        { // DMC is bit 4
+            bool new_dmc_enable = (data & 0x10) != 0;
+            if (!dmc_enable && new_dmc_enable && dmc_bytes_remaining == 0) {
+                // Starting DMC: initialize pointers if bytes remaining is 0
                 dmc_current_address = dmc_sample_address;
                 dmc_bytes_remaining = dmc_sample_length;
-                dmc_sample_buffer_empty = true;
-                dmc_bits_remaining = 0;
             }
             dmc_enable = new_dmc_enable;
             if (!dmc_enable) {
-                // If disabled, clear sample buffer and bytes remaining
                 dmc_bytes_remaining = 0;
-                dmc_sample_buffer_empty = true;
-                dmc_bits_remaining = 0;
             }
         }
         break;
@@ -363,15 +363,32 @@ uint8_t APU2A03::CpuRead(uint16_t addr) {
     uint8_t data = 0;
 
     if (addr == 0x4015) {
-        // Read status of length counters
-        // Uncomment if needed:
-        // data |= (pulse1_lc.counter > 0) ? 0x01 : 0x00;
-        // data |= (pulse2_lc.counter > 0) ? 0x02 : 0x00;
-        // data |= (noise_lc.counter > 0) ? 0x04 : 0x00;
-        // triangle
-        // data |= (triangle_lc.counter > 0) ? 0x08 : 0x00;
-        // DMC active
-        // data |= (dmc_bytes_remaining > 0) ? 0x10 : 0x00;
+        // Read status of length counters and DMC
+        // Bit 0: Pulse 1 length counter > 0
+        // Bit 1: Pulse 2 length counter > 0  
+        // Bit 2: Triangle length counter > 0
+        // Bit 3: Noise length counter > 0
+        // Bit 4: DMC bytes remaining > 0
+        // Bit 5: unused (open bus)
+        // Bit 6: Frame interrupt flag
+        // Bit 7: DMC interrupt flag
+
+        data |= (pulse1_lc.counter > 0) ? 0x01 : 0x00;
+        data |= (pulse2_lc.counter > 0) ? 0x02 : 0x00;
+        data |= (triangle_lc.counter > 0) ? 0x04 : 0x00;
+        data |= (noise_lc.counter > 0) ? 0x08 : 0x00;
+        data |= (dmc_bytes_remaining > 0) ? 0x10 : 0x00;
+
+        // Bit 5 is open bus (not implemented here - would need external bus state)
+
+        // Bit 6: Frame interrupt flag (not fully implemented yet)
+        // data |= frame_interrupt_flag ? 0x40 : 0x00;
+
+        // Bit 7: DMC interrupt flag (not fully implemented yet)
+        // data |= dmc_interrupt_flag ? 0x80 : 0x00;
+
+        // Reading $4015 clears the frame interrupt flag
+        // frame_interrupt_flag = false;
     }
 
     return data;

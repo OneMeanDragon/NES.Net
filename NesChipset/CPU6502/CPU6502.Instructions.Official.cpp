@@ -67,7 +67,7 @@ uint8_t CPU6502::ASL() {
     Fetch();
 #if DUMMY_WRITES
     if (_instructions[_opcode].modeType != AddrMode::IMP) {
-        Write(_addrAbs, _fetched);
+        Write(_addrAbs, _fetched); // Dummy write of original value
     }
 #endif
     _temp = static_cast<uint16_t>(_fetched) << 1;
@@ -88,7 +88,7 @@ uint8_t CPU6502::LSR() {
     Fetch();
 #if DUMMY_WRITES
     if (_instructions[_opcode].modeType != AddrMode::IMP) {
-        Write(_addrAbs, _fetched);
+        Write(_addrAbs, _fetched); // Dummy write of original value
     }
 #endif
     SetFlag(C, (_fetched & 1) != 0);
@@ -108,7 +108,7 @@ uint8_t CPU6502::ROL() {
     Fetch();
 #if DUMMY_WRITES
     if (_instructions[_opcode].modeType != AddrMode::IMP) {
-        Write(_addrAbs, _fetched);
+        Write(_addrAbs, _fetched); // Dummy write of original value
     }
 #endif
     _temp = (static_cast<uint16_t>(_fetched) << 1) | GetFlag(C);
@@ -129,7 +129,7 @@ uint8_t CPU6502::ROR() {
     Fetch();
 #if DUMMY_WRITES
     if (_instructions[_opcode].modeType != AddrMode::IMP) {
-        Write(_addrAbs, _fetched);
+        Write(_addrAbs, _fetched); // Dummy write of original value
     }
 #endif
     _temp = (static_cast<uint16_t>(GetFlag(C)) << 7) | (_fetched >> 1);
@@ -149,7 +149,7 @@ uint8_t CPU6502::ROR() {
 uint8_t CPU6502::INC() {
     Fetch();
 #if DUMMY_WRITES
-    Write(_addrAbs, _fetched);
+    Write(_addrAbs, _fetched); // Dummy write of original value
 #endif
     _temp = static_cast<uint16_t>((_fetched + 1) & 0xFF);
     Write(_addrAbs, _temp & 0xFF);
@@ -161,7 +161,7 @@ uint8_t CPU6502::INC() {
 uint8_t CPU6502::DEC() {
     Fetch();
 #if DUMMY_WRITES
-    Write(_addrAbs, _fetched);
+    Write(_addrAbs, _fetched); // Dummy write of original value
 #endif
     _temp = static_cast<uint16_t>((_fetched - 1) & 0xFF);
     Write(_addrAbs, _temp & 0xFF);
@@ -252,24 +252,24 @@ uint8_t CPU6502::LDY() {
 }
 
 uint8_t CPU6502::STA() {
-#if DUMMY_READS
-    // CYCLE-ACCURATE: Indexed store instructions ALWAYS perform a dummy read
-    // at the incorrectly calculated address (before carry propagation) on cycle 4,
-    // regardless of whether a page boundary was crossed.
-    // This is critical for passing test ROMs like instr_test-v5
-    AddrMode mode = _instructions[_opcode].modeType;
-    if (mode == AddrMode::ABX || mode == AddrMode::ABY) {
-        // For absolute indexed: dummy read at (base_high : (base_low + index) & 0xFF)
-        uint8_t index = (mode == AddrMode::ABX) ? X : Y;
-        uint16_t dummyAddr = (_addrAbs_Base & 0xFF00) | ((_addrAbs_Base + index) & 0x00FF);
-        Read(dummyAddr);
-    }
-    else if (mode == AddrMode::IZY) {
-        // For indirect indexed: dummy read at (pointer_high : (pointer_low + Y) & 0xFF)
-        uint16_t dummyAddr = (_addrAbs_Base & 0xFF00) | ((_addrAbs_Base + Y) & 0x00FF);
-        Read(dummyAddr);
-    }
-#endif
+//#if DUMMY_READS
+//    // CYCLE-ACCURATE: Indexed store instructions ALWAYS perform a dummy read
+//    // at the incorrectly calculated address (before carry propagation) on cycle 4,
+//    // regardless of whether a page boundary was crossed.
+//    // This is critical for passing test ROMs like instr_test-v5
+//    AddrMode mode = _instructions[_opcode].modeType;
+//    if (mode == AddrMode::ABX || mode == AddrMode::ABY) {
+//        // For absolute indexed: dummy read at (base_high : (base_low + index) & 0xFF)
+//        uint8_t index = (mode == AddrMode::ABX) ? X : Y;
+//        uint16_t dummyAddr = (_addrAbs_Base & 0xFF00) | ((_addrAbs_Base + index) & 0x00FF);
+//        Read(dummyAddr);
+//    }
+//    else if (mode == AddrMode::IZY) {
+//        // For indirect indexed: dummy read at (pointer_high : (pointer_low + Y) & 0xFF)
+//        uint16_t dummyAddr = (_addrAbs_Base & 0xFF00) | ((_addrAbs_Base + Y) & 0x00FF);
+//        Read(dummyAddr);
+//    }
+//#endif
     Write(_addrAbs, A);
     return 0;
 }
@@ -411,19 +411,10 @@ uint8_t CPU6502::RTI() {
     return 0;
 }
 
-//uint8_t CPU6502::BRK() {
-//    PC++;
-//    SetFlag(I, true);
-//    PushWord(PC);
-//    SetFlag(B, true);
-//    Push(Status);
-//    SetFlag(B, false);
-//    PC = (static_cast<uint16_t>(Read(0xFFFF)) << 8) | Read(0xFFFE);
-//    return 0;
-//}
 uint8_t CPU6502::BRK() {
-    // all_instrs.nes fixed //PC++; (we were calling for an extra increment IMM already does this for us)
-
+    // all_instrs.nes fixed
+    // BRK pushes PC+2, then jumps to IRQ/BRK vector
+    // PC has already been incremented by IMM addressing mode
     PushWord(PC);
 
     // Push status with B and U flags set

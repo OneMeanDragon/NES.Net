@@ -62,41 +62,65 @@ uint8_t CPU6502::ABS() {
 }
 
 // all_instrs.nes fixed
+// ABX: Absolute indexed with X
+// The 6502 ALWAYS performs a dummy read during address calculation
+// regardless of whether a page boundary is crossed
 uint8_t CPU6502::ABX() {
     ABS();
     uint16_t baseAddr = _addrAbs;
     _addrAbs = (_addrAbs + X) & 0xFFFF;
 
-    // Page boundary crossed - perform dummy read
-    if ((_addrAbs & 0xFF00) != (baseAddr & 0xFF00)) {
+    // Check if page boundary was crossed
+    bool pageCrossed = (_addrAbs & 0xFF00) != (baseAddr & 0xFF00);
+
 #if DUMMY_READS
-        // Dummy read at incorrectly calculated address
-        uint16_t dummyAddr = (baseAddr & 0xFF00) | (_addrAbs & 0x00FF);
-        Read(dummyAddr);
+    // CRITICAL: The dummy read ALWAYS occurs at the incorrectly calculated address
+    // The 6502 adds the index to the LOW BYTE only, then reads from that address
+    // Dummy address = (baseHigh << 8) | ((baseLow + X) & 0xFF)
+    uint8_t baseLow = baseAddr & 0xFF;
+    uint8_t baseHigh = (baseAddr >> 8) & 0xFF;
+    uint16_t dummyAddr = (static_cast<uint16_t>(baseHigh) << 8) | ((baseLow + X) & 0xFF);
+    Read(dummyAddr);
 #endif
-        if (_opcode == 0x9C/*SHY*/ || _opcode == 0x9D/*STA*/) return 0;
-        return 1; // Signal extra cycle needed
+
+    // Special handling for store instructions (STA, SHY)
+    // These don't get an extra cycle even when crossing pages
+    if (_opcode == 0x9C/*SHY*/ || _opcode == 0x9D/*STA*/) {
+        return 0;
     }
-    return 0;
+
+    // Read instructions only get extra cycle if page was crossed
+    return pageCrossed ? 1 : 0;
 }
 
 // all_instrs.nes fixed
+// ABY: Absolute indexed with Y
+// Same behavior as ABX
 uint8_t CPU6502::ABY() {
     ABS();
     uint16_t baseAddr = _addrAbs;
     _addrAbs = (_addrAbs + Y) & 0xFFFF;
 
-    // Page boundary crossed - perform dummy read
-    if ((_addrAbs & 0xFF00) != (baseAddr & 0xFF00)) {
+    // Check if page boundary was crossed
+    bool pageCrossed = (_addrAbs & 0xFF00) != (baseAddr & 0xFF00);
+
 #if DUMMY_READS
-        // Dummy read at incorrectly calculated address
-        uint16_t dummyAddr = (baseAddr & 0xFF00) | (_addrAbs & 0x00FF);
-        Read(dummyAddr);
+    // CRITICAL: The dummy read ALWAYS occurs at the incorrectly calculated address
+    // The 6502 adds the index to the LOW BYTE only, then reads from that address
+    // Dummy address = (baseHigh << 8) | ((baseLow + Y) & 0xFF)
+    uint8_t baseLow = baseAddr & 0xFF;
+    uint8_t baseHigh = (baseAddr >> 8) & 0xFF;
+    uint16_t dummyAddr = (static_cast<uint16_t>(baseHigh) << 8) | ((baseLow + Y) & 0xFF);
+    Read(dummyAddr);
 #endif
-        if (_opcode == 0x9E/*SHX*/ || _opcode == 0x99/*STA*/) return 0;
-        return 1; // Signal extra cycle needed
+
+    // Special handling for store instructions (STA, SHX)
+    if (_opcode == 0x9E/*SHX*/ || _opcode == 0x99/*STA*/) {
+        return 0;
     }
-    return 0;
+
+    // Read instructions only get extra cycle if page was crossed
+    return pageCrossed ? 1 : 0;
 }
 
 uint8_t CPU6502::IND() {
@@ -125,6 +149,8 @@ uint8_t CPU6502::IZX() {
     return 0;
 }
 
+// IZY: Indirect indexed with Y
+// Same dummy read behavior as ABX/ABY
 uint8_t CPU6502::IZY() {
     uint8_t t = Read(PC++);
     uint8_t lo = Read(t & 0xFF);
@@ -133,14 +159,19 @@ uint8_t CPU6502::IZY() {
     _addrAbs_Base = (static_cast<uint16_t>(hi) << 8) | lo;
     _addrAbs = (_addrAbs_Base + Y) & 0xFFFF;
 
-    // Page boundary crossed - perform dummy read
-    if ((_addrAbs & 0xFF00) != (_addrAbs_Base & 0xFF00)) {
+    // Check if page boundary was crossed
+    bool pageCrossed = (_addrAbs & 0xFF00) != (_addrAbs_Base & 0xFF00);
+
 #if DUMMY_READS
-        // Dummy read at incorrectly calculated address
-        uint16_t dummyAddr = (_addrAbs_Base & 0xFF00) | (_addrAbs & 0x00FF);
-        Read(dummyAddr);
+    // CRITICAL: The dummy read ALWAYS occurs at the incorrectly calculated address
+    // The 6502 adds Y to the LOW BYTE of the pointer only, then reads from that address
+    // Dummy address = (pointerHigh << 8) | ((pointerLow + Y) & 0xFF)
+    uint8_t ptrLow = _addrAbs_Base & 0xFF;
+    uint8_t ptrHigh = (_addrAbs_Base >> 8) & 0xFF;
+    uint16_t dummyAddr = (static_cast<uint16_t>(ptrHigh) << 8) | ((ptrLow + Y) & 0xFF);
+    Read(dummyAddr);
 #endif
-        return 1; // Signal extra cycle needed
-    }
-    return 0;
+
+    // Read instructions only get extra cycle if page was crossed
+    return pageCrossed ? 1 : 0;
 }
