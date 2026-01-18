@@ -136,7 +136,7 @@ public:
     void SetCartridge(CartridgeInterfaceAPI* cart);
 
     // Core functions
-    void Reset();
+    void Reset(bool coldstart);
     void Clock();
 
     // CPU interface

@@ -49,13 +49,17 @@ NESBus::~NESBus() {
 
 void NESBus::ConnectCartridge(Cartridge* cart) {
     if (!_apu) {
-        Log("Warning: Connecting Cartridge before APU has been connected to the bus.");
+        Log("Error: Connecting Cartridge before APU has been connected to the bus.");
         return;
 	}
     if (!_cpu) {
-        Log("Warning: Connecting Cartridge before CPU has been connected to the bus.");
+        Log("Error: Connecting Cartridge before CPU has been connected to the bus.");
         return;
-    } else { _cpu->PowerOff(); }
+    }
+    if (!_ppu) {
+        Log("Error: Connecting Cartridge before PPU has been connected to the bus.");
+        return;
+    }
 
     if (_cart) delete _cart;
     _cart = new CartridgeInterfaceAPI(cart);
@@ -116,14 +120,18 @@ uint8_t NESBus::GetController(uint8_t index) const {
     return 0;
 }
 
-void NESBus::Reset() { // _cpuRam does not clear on reset
+void NESBus::Reset(bool poweron) { // _cpuRam does not clear on reset
     // Reset cartridge
-    if (_cart) _cart->Reset();
+    if (_cart) _cart->Reset(); // todo: check warm resets of cartridges
 
     // Reset components
-    if (_ppu) _ppu->Reset();    
-    if (_apu) _apu->Reset();
-    if (_cpu) _cpu->Reset();
+    if (_ppu) _ppu->Reset(poweron);    
+    if (_apu) _apu->Reset(poweron);
+    if (_cpu) _cpu->Reset(poweron);
+
+    if (poweron) {
+        std::memset(_cpuRam, 0, sizeof(_cpuRam));
+    }
 
     // Reset DMA
     _dmaPage = _dmaAddr = _dmaData = 0;
@@ -454,8 +462,8 @@ DLLEXPORT void DestroyNESBus(NESBus* bus) {
     delete bus;
 }
 
-DLLEXPORT void Bus_Reset(NESBus* bus) {
-    if (bus) bus->Reset();
+DLLEXPORT void Bus_Reset(NESBus* bus, bool poweron) {
+    if (bus) bus->Reset(poweron);
 }
 
 DLLEXPORT bool Bus_Clock(NESBus* bus) {

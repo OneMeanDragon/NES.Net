@@ -328,7 +328,7 @@ Public Class Form1
         Dim clocksPerFrame As ULong = 0
         Dim lastTime As DateTime = DateTime.Now
         Dim _frameWatch As New Stopwatch()
-        emNES.Reset() ' We just inserted the cart above (first reset flips the power)
+        emNES.Reset(True) ' We just inserted the cart above (first reset flips the power)
         emNES.AudioSystem.Start()
         While running
             _frameWatch.Restart()
@@ -378,7 +378,7 @@ Public Class Form1
             End While
             If resetRequest Then
                 resetRequest = False
-                emNES.Reset()
+                emNES.Reset(False)
             End If
         End While
 

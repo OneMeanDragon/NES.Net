@@ -13,18 +13,12 @@
 class NESBus;
 
 class CPU6502 {
-private:
-    bool _poweron = false;
-public:
-    void PowerOff() { _poweron = false; }
-    bool Powered() const { return _poweron; }
 public:
     CPU6502();
     ~CPU6502();
 
     // Lifecycle
-    void Power();
-    void Reset();
+    void Reset(bool coldstart);
     void Clock();
 
     // Interrupts
@@ -154,7 +148,7 @@ private:
 DLLEXPORT CPU6502* CreateCPU();
 DLLEXPORT void DestroyCPU(CPU6502* cpu);
 
-DLLEXPORT void CPU_Reset(CPU6502* cpu);
+DLLEXPORT void CPU_Reset(CPU6502* cpu, bool coldstart);
 DLLEXPORT void CPU_Clock(CPU6502* cpu);
 DLLEXPORT void CPU_IRQ(CPU6502* cpu);
 DLLEXPORT void CPU_NMI(CPU6502* cpu);
@@ -172,6 +166,6 @@ DLLEXPORT uint64_t CPU_GetClockCount(CPU6502* cpu);
 
 // Aliases for Bus compatibility
 DLLEXPORT void ClockCPU(CPU6502* cpu);
-DLLEXPORT void ResetCPU(CPU6502* cpu);
+DLLEXPORT void ResetCPU(CPU6502* cpu, bool coldstart);
 DLLEXPORT void TriggerNMI(CPU6502* cpu);
 DLLEXPORT void TriggerIRQ(CPU6502* cpu);

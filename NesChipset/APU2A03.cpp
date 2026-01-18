@@ -704,8 +704,8 @@ void APU2A03::InitialState() {
 
 }
 
-void APU2A03::Reset() {
-    if (!Powered()) { // cartridge was just inserted so the power wasent on yet..
+void APU2A03::Reset(bool coldstart) {
+    if (coldstart) { // cartridge was just inserted so the power wasent on yet..
         InitialState();
         return;
     }
@@ -765,8 +765,8 @@ DLLEXPORT void APU_Clock(APU2A03* apu) {
     if (apu) apu->Clock();
 }
 
-DLLEXPORT void APU_Reset(APU2A03* apu) {
-    if (apu) apu->Reset();
+DLLEXPORT void APU_Reset(APU2A03* apu, bool coldstart) {
+    if (apu) apu->Reset(coldstart);
 }
 
 DLLEXPORT double APU_GetOutputSample(APU2A03* apu) {
@@ -784,6 +784,6 @@ DLLEXPORT void ClockAPU(APU2A03* apu) {
     if (apu) apu->Clock();
 }
 
-DLLEXPORT void ResetAPU(APU2A03* apu) {
-    if (apu) apu->Reset();
+DLLEXPORT void ResetAPU(APU2A03* apu, bool coldstart) {
+    if (apu) apu->Reset(coldstart);
 }

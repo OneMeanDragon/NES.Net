@@ -32,7 +32,7 @@ public:
     ~NESBus();
 
     // Lifecycle
-    void Reset();
+    void Reset(bool poweron);
     bool Clock();  // Returns true when audio sample ready
 
     // Component connections

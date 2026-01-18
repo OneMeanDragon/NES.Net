@@ -73,41 +73,26 @@ uint8_t CPU6502::Fetch() {
     return _fetched;
 }
 
-void CPU6502::Power() {
-    _poweron = true;
-
-    PC = (static_cast<uint16_t>(Read(0xFFFD)) << 8) | Read(0xFFFC); // (hi << 8) | lo
-
-    A = 0;
-    X = 0;
-    Y = 0;
-    SP = 0xFD;
-    Status = U | I; // 0x34
-
-    _addrRel = 0;
-    _addrAbs = 0;
-    _fetched = 0;
-
-    _cycles = 8;
-}
-
 // Reset
-void CPU6502::Reset() {
-    if (!_poweron) { // we havent turned on the power yet, cold start the cpu
-        Power();
-        return;
-    }
-
-    PC = (static_cast<uint16_t>(Read(0xFFFD)) << 8) | Read(0xFFFC); // (hi << 8) | lo
-
-    if (SP >= 3) {
-        SP -= 3;
+void CPU6502::Reset(bool coldstart) {
+    if (!coldstart) { // we havent turned on the power yet, cold start the cpu
+        PC = (static_cast<uint16_t>(Read(0xFFFD)) << 8) | Read(0xFFFC); // (hi << 8) | lo
+        A = 0;
+        X = 0;
+        Y = 0;
+        SP = 0xFD;
+        Status = U | I; // 0x34
     }
     else {
-        SP = 0xFF - (3 - SP - 1);  // Wrap around
+        PC = (static_cast<uint16_t>(Read(0xFFFD)) << 8) | Read(0xFFFC); // (hi << 8) | lo
+        if (SP >= 3) {
+            SP -= 3;
+        }
+        else {
+            SP = 0xFF - (3 - SP - 1);  // Wrap around
+        }
+        Status = (Status & ~I) | I; // 0x34
     }
-    Status = (Status & ~I) | I; // 0x34
-
     _addrRel = 0;
     _addrAbs = 0;
     _fetched = 0;

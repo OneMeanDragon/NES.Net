@@ -14,7 +14,7 @@ PPU2C02::PPU2C02()
     std::memset(_patternTable1, 0, sizeof(_patternTable1));
 
     InitializeSystemPalette();
-    Reset();
+    Reset(true);
 }
 
 PPU2C02::~PPU2C02() {
@@ -95,10 +95,13 @@ void PPU2C02::InitializeSystemPalette() {
     _systemPalette[0x3F] = Pixel(0, 0, 0);
 }
 
-void PPU2C02::Reset() {
-    for (int i = 0; i < 64; i++) {
-        OAM[i].Fill(0xFF);
-    }
+void PPU2C02::Reset(bool coldstart) {
+    if (coldstart) { // we just inserted a cartridge
+        // Power-on behavior
+        for (int i = 0; i < 64; i++) OAM[i].Fill(0xFF);
+        // Palette either random or all zeros
+        for (int i = 0; i < 32; i++) _paletteRam[i] = 0x00;
+    } // warm reset preserves the above    
 
     _oamAddress = 0;
     _control.reg = 0;
@@ -814,8 +817,8 @@ DLLEXPORT void DestroyPPU(PPU2C02* ppu) {
     delete ppu;
 }
 
-DLLEXPORT void PPU_Reset(PPU2C02* ppu) {
-    if (ppu) ppu->Reset();
+DLLEXPORT void PPU_Reset(PPU2C02* ppu, bool coldstart) {
+    if (ppu) ppu->Reset(coldstart);
 }
 
 DLLEXPORT void PPU_Clock(PPU2C02* ppu) {

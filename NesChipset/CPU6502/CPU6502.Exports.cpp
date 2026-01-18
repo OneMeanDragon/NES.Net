@@ -14,9 +14,9 @@ DLLEXPORT void DestroyCPU(CPU6502* cpu) {
 }
 
 // Core functions
-DLLEXPORT void CPU_Reset(CPU6502* cpu) {
+DLLEXPORT void CPU_Reset(CPU6502* cpu, bool coldstart) {
     if (cpu) {
-        cpu->Reset();
+        cpu->Reset(coldstart);
     }
 }
 
@@ -109,8 +109,8 @@ DLLEXPORT void ClockCPU(CPU6502* cpu) {
     CPU_Clock(cpu);
 }
 
-DLLEXPORT void ResetCPU(CPU6502* cpu) {
-    CPU_Reset(cpu);
+DLLEXPORT void ResetCPU(CPU6502* cpu, bool coldstart) {
+    CPU_Reset(cpu, coldstart);
 }
 
 DLLEXPORT void TriggerNMI(CPU6502* cpu) {

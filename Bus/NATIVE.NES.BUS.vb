@@ -54,7 +54,7 @@ Namespace NintendoEntertainmentSystem
         End Sub
 
         <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub Bus_Reset(bus As IntPtr)
+        Private Shared Sub Bus_Reset(bus As IntPtr, coldstart As Boolean)
         End Sub
 
         <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
@@ -171,12 +171,12 @@ Namespace NintendoEntertainmentSystem
         End Sub
 
         ''' <summary>
-        ''' Initial Reset is PowerON state, any reset after this is a normal reset.
-        ''' PowerON State is reset when a cartridge is inserted into the bus.
-        ''' Hitting Reset on the bus will reset all the chips internally.
+        ''' coldstart true means turn the power on.
+        ''' coldstart false means warm reset.
+        ''' Hitting Reset on the bus will reset all the chips internally and passes along the coldstart bool.
         ''' </summary>
-        Public Sub Reset()
-            Bus_Reset(_busHandle)
+        Public Sub Reset(coldstart As Boolean)
+            Bus_Reset(_busHandle, coldstart)
         End Sub
 
         Public Function Clock() As Boolean
