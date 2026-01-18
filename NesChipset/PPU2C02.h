@@ -240,4 +240,10 @@ private:
 
     // Logging
     void Log(const char* msg);
+
+private: // non owning
+    class NESBus* _bus = nullptr;
+public:
+    void ConnectBus(class NESBus* bus) { _bus = bus; }
+
 };

@@ -11,7 +11,7 @@ Namespace NintendoEntertainmentSystem
 
     Public Module DLLPath
         Public Const NesCartridge As String = "NesCartridge.dll"
-        Public Const NesPPU As String = "NesChipset.dll"
+        Public Const NesChipset As String = "NesChipset.dll"
         'Diagnostics
         <UnmanagedFunctionPointer(CallingConvention.StdCall, CharSet:=CharSet.Ansi)>
         Public Delegate Sub DiagnosticLogDelegate(ByVal message As String)
@@ -39,9 +39,6 @@ Namespace NintendoEntertainmentSystem
         Private Shared Sub MapperClearIrq(mapper As IntPtr)
         End Sub
         <DllImport(DLLPath.NesCartridge, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub MapperReset(mapper As IntPtr)
-        End Sub
-        <DllImport(DLLPath.NesCartridge, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function MapperGetMirrorMode(mapper As IntPtr) As MirrorMode
         End Function
 
@@ -63,11 +60,6 @@ Namespace NintendoEntertainmentSystem
 
         Public Sub ScanlineCounter()
             ' dosent do anything anyways
-        End Sub
-
-        Public Sub Reset()
-            Dim _mapperPtr As IntPtr = CartridgeMapper(_nativePtr)
-            MapperReset(_mapperPtr)
         End Sub
 
         Public Function GetMirrorMode() As MirrorMode
@@ -174,10 +166,7 @@ Namespace NintendoEntertainmentSystem
             If Not LoadCartridge(_nativePtr, filePath) Then
                 Throw New Exception("Failed to load ROM")
             End If
-
             _mapper = New NativeMapperBase(_nativePtr)
-
-
         End Sub
 
         Public Sub Dispose() Implements IDisposable.Dispose
@@ -225,10 +214,6 @@ Namespace NintendoEntertainmentSystem
             Return CartPpuWrite(_nativePtr, addr, data)
         End Function
 
-        Public Sub Reset()
-            _mapper?.Reset()
-        End Sub
-
         Public ReadOnly Property MirrorMode As MirrorMode
             Get
                 Return CartridgeGetMirrorMode(_nativePtr)
@@ -267,17 +252,3 @@ Namespace NintendoEntertainmentSystem
 
 
 End Namespace
-
-'things to do not in the cart
-'DLLEXPORT void RenderScanline(Cartridge* cart, int scanline, uint32_t* outputBuffer)
-'DLLEXPORT void RenderFrame(Cartridge* cart, PPU* ppu, uint32_t* frameBuffer);
-'consider a direct return on reads.
-'DLLEXPORT uint8_t CartPpuReadDirect(Cartridge* cart, uint16_t addr) {
-'    uint8_t data = 0;
-'    cart->PpuRead(addr, data);
-'    Return data;  // Return In register, no pointer deref
-'}
-'High-level operations that do lots of work per call
-'DLLEXPORT void ClockCartridge(Cartridge* cart, int cycles);
-'DLLEXPORT void RenderPatternTable(Cartridge* cart, int table, uint32_t* output);
-'DLLEXPORT void ExecuteCpuCycle(Cartridge* cart, CPU* cpu);  // If you move CPU To C++

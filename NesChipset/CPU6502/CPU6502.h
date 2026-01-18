@@ -13,11 +13,17 @@
 class NESBus;
 
 class CPU6502 {
+private:
+    bool _poweron = false;
+public:
+    void PowerOff() { _poweron = false; }
+    bool Powered() const { return _poweron; }
 public:
     CPU6502();
     ~CPU6502();
 
     // Lifecycle
+    void Power();
     void Reset();
     void Clock();
 

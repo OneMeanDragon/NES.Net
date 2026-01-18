@@ -15,7 +15,7 @@ Namespace NintendoEntertainmentSystem
         ''' </summary>
         ''' <param name="bus"></param>
         ''' <param name="callback"></param>
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub BusSetDiagnosticLogCallback(bus As IntPtr, callback As DLLPath.DiagnosticLogDelegate)
         End Sub
 
@@ -24,7 +24,7 @@ Namespace NintendoEntertainmentSystem
         ''' </summary>
         ''' <param name="bus"></param>
         ''' <param name="enable"></param>
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub BusEnableDiagnosticLogger(bus As IntPtr, enable As Boolean)
         End Sub
 
@@ -45,75 +45,79 @@ Namespace NintendoEntertainmentSystem
         End Property
 
         ' DLL imports
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CreateNESBus() As IntPtr
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub DestroyNESBus(bus As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub Bus_Reset(bus As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function Bus_Clock(bus As IntPtr) As Boolean
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub Bus_ConnectCartridge(bus As IntPtr, cart As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub Bus_ConnectPPU(bus As IntPtr, ppu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub Bus_ConnectCPU(bus As IntPtr, cpu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub Bus_ConnectAPU(bus As IntPtr, apu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Sub Bus_ConnectAudio(bus As IntPtr, audio As IntPtr)
+        End Sub
+
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function Bus_CpuRead(bus As IntPtr, addr As UShort, isReadOnly As Boolean) As Byte
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub Bus_CpuWrite(bus As IntPtr, addr As UShort, data As Byte)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub Bus_SetController(bus As IntPtr, index As Byte, state As Byte)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function Bus_GetController(bus As IntPtr, index As Byte) As Byte
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub Bus_SetSampleFrequency(bus As IntPtr, sampleRate As UInteger)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function Bus_GetAudioSample(bus As IntPtr) As Double
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function Bus_GetAudioBufferLevel(bus As IntPtr) As Integer
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function Bus_PopAudioSample(bus As IntPtr, ByRef sample As Double) As Boolean
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function Bus_GetSystemClockCount(bus As IntPtr) As ULong
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function Bus_IsAudioSampleReady(bus As IntPtr) As Boolean
         End Function
 
@@ -123,24 +127,9 @@ Namespace NintendoEntertainmentSystem
         Private _disposed As Boolean = False
 
 #Region "Temporary Delegates for the CPU and the APU"
-        '<UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        'Public Delegate Sub ClockCPUDelegate()
-        '<UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        'Public Delegate Sub ResetCPUDelegate()
-        '<UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        'Public Delegate Sub TriggerNMIDelegate()
-        '<UnmanagedFunctionPointer(CallingConvention.StdCall)>
-        'Public Delegate Sub TriggerIRQDelegate()
-
-        '<DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
-        'Private Shared Sub UpdateCPUApi(bushandle As IntPtr, api As CPUApi)
-        'End Sub
 
         Public Sub CpuClock()
             CPU?.Clock()
-        End Sub
-        Public Sub CpuReset()
-            CPU?.Reset()
         End Sub
         Public Sub NmiTrigger()
             CPU?.NMI()
@@ -150,11 +139,10 @@ Namespace NintendoEntertainmentSystem
         End Sub
 
 #End Region
+
         Public ReadOnly CPU As New NativeCPU6502()
         Public ReadOnly PPU As New NativePPU2C02()
         Public ReadOnly APU As New NativeAPU2A03()
-
-        Private Const AUDIO_SAMPLE_RATE As UInt32 = 44100
 
         Public Sub New()
             _diagnosticCallback = New DLLPath.DiagnosticLogDelegate(AddressOf BusDiagnosticLogger)
@@ -175,15 +163,18 @@ Namespace NintendoEntertainmentSystem
 
             ' Initialize FMOD audio (AFTER bus is configured)
             _audio = New FMODAudioNative()
-            If Not _audio.Initialize(_busHandle, AUDIO_SAMPLE_RATE, 512) Then
-                Throw New Exception("Failed to initialize FMOD audio")
-            End If
+            ConnectAudio(_audio.NativeHandle)
 
             ' Start audio playback
             '_audio.Start()
 
         End Sub
 
+        ''' <summary>
+        ''' Initial Reset is PowerON state, any reset after this is a normal reset.
+        ''' PowerON State is reset when a cartridge is inserted into the bus.
+        ''' Hitting Reset on the bus will reset all the chips internally.
+        ''' </summary>
         Public Sub Reset()
             Bus_Reset(_busHandle)
         End Sub
@@ -206,6 +197,10 @@ Namespace NintendoEntertainmentSystem
 
         Public Sub ConnectAPU(apuHandle As IntPtr)
             Bus_ConnectAPU(_busHandle, apuHandle)
+        End Sub
+
+        Public Sub ConnectAudio(audio As IntPtr)
+            Bus_ConnectAudio(_busHandle, audio)
         End Sub
 
         Public Function CpuRead(addr As UShort, Optional isReadOnly As Boolean = False) As Byte

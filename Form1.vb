@@ -115,6 +115,7 @@ Public Class Form1
     End Sub
 
     Private Sub ProcessHotKeys()
+
         ' ESC to stop emulation
         If InputSystem.IsKeyHeld(Keys.Escape) Then
             running = False
@@ -247,7 +248,7 @@ Public Class Form1
     End Sub
 
     Private Sub ResetToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles ResetToolStripMenuItem.Click
-        resetRequest = True
+        If running Then resetRequest = True
     End Sub
 
     Private Sub OpenToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles OpenToolStripMenuItem.Click
@@ -255,9 +256,6 @@ Public Class Form1
             Exit Sub
         End If
 
-        'Close old nes file
-
-        '
         WriteConfig = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(strRegistryPath)
         ReadConfig = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(strRegistryPath)
 
@@ -291,40 +289,6 @@ Public Class Form1
 
         ' Connect our cartridge
         emNES.ConnectCartridge(Cart.NativeHandle)
-
-
-
-
-        ' Reset the system
-        emNES.Reset()
-
-        ''----------- debug shit
-        '' Test the full read path
-        'Debug.WriteLine("=== FULL PATH TEST ===")
-        '
-        '' Test 1: Read $FFFC via Bus
-        'Dim testByte As Byte = emNES.CpuRead(&HFFFCUS)
-        'Debug.WriteLine(String.Format("Bus.cpuRead($FFFC) = ${0:X2}", testByte))
-        '
-        '' Test 2: Read $FFFC via Cart directly
-        'Dim cartByte As Byte = 0
-        'Dim cartHandled As Boolean = Cart.CpuRead(&HFFFCUS, cartByte)
-        'Debug.WriteLine(String.Format("Cart.cpuRead($FFFC) = handled:{0}, data:${1:X2}", cartHandled, cartByte))
-        '
-        '' Test 3: Read $8000
-        'testByte = emNES.CpuRead(&H8000US)
-        'Debug.WriteLine(String.Format("Bus.cpuRead($8000) = ${0:X2}", testByte))
-        '
-        'Debug.WriteLine("=== END FULL PATH TEST ===")
-        'Debug.WriteLine("")
-
-        ' just a ref not actual data
-        ' 78 D8 A9 10 8D 00 20 A9 00 8D 01 20 8D 05 20 8D
-        ' 78A9118D02804C00809AAD022010FBAD
-        ' Last 16 bytes of PRG (contains vectors):
-        ' ... (some bytes) ... 00 C0 82 80 F0 FF
-        ' FFFFFFFFFFFFFFFFFF86C0008000C000
-
 
         ' DON'T call diagnostics here - nothing has run yet!
         ' Instead, set a flag to call it after some frames
@@ -364,6 +328,7 @@ Public Class Form1
         Dim clocksPerFrame As ULong = 0
         Dim lastTime As DateTime = DateTime.Now
         Dim _frameWatch As New Stopwatch()
+        emNES.Reset() ' We just inserted the cart above (first reset flips the power)
         emNES.AudioSystem.Start()
         While running
             _frameWatch.Restart()
@@ -375,9 +340,10 @@ Public Class Form1
             emNES.PPU.FrameComplete = False
             While Not emNES.PPU.FrameComplete
                 emNES.Clock()
+                'emNES.AudioSystem.GenerateAudioFrame()
                 clocksPerFrame += 1
                 If running = False Then
-                    emNES.Reset()
+                    'emNES.Reset()
                     Exit While
                 End If
             End While
@@ -402,71 +368,35 @@ Public Class Form1
             UpdateDisplay()
 
             ' Diagnoses
-            CheckAudioHealth()
+            'CheckAudioHealth()
 
             'frame_ticker and reset the cycler
             frameCount += 1
             emNES.PPU.FrameComplete = False
-            While _frameWatch.Elapsed.TotalMilliseconds < 16.639
-                ' Spin wait for accuracy
-                ' Console.WriteLine("Spinning....") ' it does eventually get here after a little bit...
-                Threading.Thread.SpinWait(10)       ' in release mode that is..
+            While _frameWatch.Elapsed.TotalMilliseconds < 16.666 ' 60 FPS
+                Thread.Sleep(1) ' Be more gentle than SpinWait
             End While
             If resetRequest Then
                 resetRequest = False
                 emNES.Reset()
-                emNES.AudioSystem.Stop()
-                emNES.AudioSystem.Start()
             End If
         End While
 
         ' Clean up
         renderer.Clear(GraphicsObjects.PixelColors.DarkGrey)
         UpdateDisplay()
+        Thread.Sleep(100)
     End Sub
-
-    Private _audioSampleCheckCounter As Integer = 0
-    Private Sub CheckAudioHealth()
-        _audioSampleCheckCounter += 1
-
-        ' Check every 60 frames (once per second at 60fps)
-        If (_audioSampleCheckCounter Mod 60) = 0 Then
-            Dim bufferLevel = emNES.AudioBufferLevel
-            Dim latency = emNES.AudioSystem.LatencyMs
-
-            Console.WriteLine($"=== Audio Diagnostics ===")
-            Console.WriteLine($"Buffer Level: {bufferLevel} samples")
-            Console.WriteLine($"FMOD Latency: {latency}ms")
-            Console.WriteLine($"Is Playing: {emNES.AudioSystem.IsPlaying}")
-
-            If bufferLevel < 500 Then
-                Console.WriteLine("WARNING: Buffer underrun! Emulation too slow")
-            ElseIf bufferLevel > 7000 Then
-                Console.WriteLine("WARNING: Buffer overflow! Emulation too fast")
-            Else
-                Console.WriteLine("Buffer health: OK")
-            End If
-        End If
-    End Sub
-    'Private Sub showAudioDiagnosticsToolStripMenuItem_Click(sender As Object, e As EventArgs)
-    '    Dim bufferLevel = emNES.AudioBufferLevel
-    '    Dim stats = emNES.AudioSystem.Statistics
-    '
-    '    Dim msg = $"Audio Diagnostics:" & vbCrLf &
-    '          $"Buffer Level: {bufferLevel} samples" & vbCrLf &
-    '          $"Samples Generated: {stats.TotalSamplesProcessed:N0}" & vbCrLf &
-    '          $"Playback State: {emNES.AudioSystem.PlaybackState}" & vbCrLf &
-    '          $"Volume: {emNES.AudioSystem.Volume:P0}"
-    '
-    '    MessageBox.Show(msg, "Audio Diagnostics", MessageBoxButtons.OK, MessageBoxIcon.Information)
-    'End Sub
 
     Private Sub SaveCurrentFrame(filepath As String)
         renderer?.SaveFrame(filepath)
     End Sub
 
     Private Sub StopToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles StopToolStripMenuItem.Click
-        running = False
+        If running Then
+            running = False
+            VideoThread?.Join()
+        End If
     End Sub
 
     ' Diagnostic helpers - add inside the Form1 class

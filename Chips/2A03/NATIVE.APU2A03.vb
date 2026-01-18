@@ -9,31 +9,27 @@ Namespace NintendoEntertainmentSystem
         Implements IDisposable
 
         ' DLL imports
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CreateAPU() As IntPtr
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub DestroyAPU(apu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub APU_CpuWrite(apu As IntPtr, addr As UShort, data As Byte)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function APU_CpuRead(apu As IntPtr, addr As UShort) As Byte
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub APU_Clock(apu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub APU_Reset(apu As IntPtr)
-        End Sub
-
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function APU_GetOutputSample(apu As IntPtr) As Double
         End Function
 
@@ -70,10 +66,6 @@ Namespace NintendoEntertainmentSystem
 
         Public Sub Clock()
             APU_Clock(_apuHandle)
-        End Sub
-
-        Public Sub Reset()
-            APU_Reset(_apuHandle)
         End Sub
 
         Public Function GetOutputSample() As Double

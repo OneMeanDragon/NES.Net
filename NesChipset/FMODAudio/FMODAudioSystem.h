@@ -6,9 +6,9 @@
 #include <fmod_errors.h>
 
 #ifdef _WIN32
-#define DLLEXPORT extern "C" __declspec(dllexport)
+    #define DLLEXPORT extern "C" __declspec(dllexport)
 #else
-#define DLLEXPORT
+    #define DLLEXPORT
 #endif
 
 // Forward declaration
@@ -20,7 +20,7 @@ public:
     ~FMODAudioSystem();
 
     // Initialize FMOD with NES audio specs
-    bool Initialize(NESBus* bus, int sampleRate = 44100, int bufferSize = 512);
+    bool Initialize(int sampleRate = 44100, int bufferSize = 512);
 
     // Start/Stop playback
     void Start();
@@ -46,7 +46,6 @@ public:
         int latencyMs;
     };
     AudioStats GetStats() const;
-
 private:
     // FMOD callback - called when FMOD needs audio samples
     static FMOD_RESULT F_CALL PCMReadCallback(FMOD_SOUND* sound, void* data, unsigned int datalen);
@@ -58,9 +57,6 @@ private:
     FMOD::System* _system;
     FMOD::Sound* _sound;
     FMOD::Channel* _channel;
-
-    // Bus reference (non-owning)
-    NESBus* _bus;
 
     // Configuration
     int _sampleRate;
@@ -76,13 +72,20 @@ private:
 
     // Helper
     void LogFMODError(FMOD_RESULT result, const char* function);
+
+private: // non owning
+    class NESBus* _bus = nullptr;
+    class APU2A03* _apu = nullptr;
+public:
+    void ConnectBus(class NESBus* bus) { _bus = bus; }
+    void ConnectAPU(class APU2A03* apu) { _apu = apu; }
 };
 
 // Exports for Fmod Audio System
-DLLEXPORT FMODAudioSystem* CreateFMODAudio();
-DLLEXPORT void DestroyFMODAudio(FMODAudioSystem* audio);
+DLLEXPORT FMODAudioSystem* FMODAudio_Create();
+DLLEXPORT void FMODAudio_Destroy(FMODAudioSystem* audio);
 
-DLLEXPORT bool FMODAudio_Initialize(FMODAudioSystem* audio, NESBus* bus, int sampleRate, int bufferSize);
+DLLEXPORT bool FMODAudio_Initialize(FMODAudioSystem* audio, int sampleRate, int bufferSize);
 DLLEXPORT void FMODAudio_Start(FMODAudioSystem* audio);
 DLLEXPORT void FMODAudio_Stop(FMODAudioSystem* audio);
 DLLEXPORT void FMODAudio_Pause(FMODAudioSystem* audio, bool pause);

@@ -201,6 +201,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="NotUsed\abandonedaitests\" />
     <Folder Include="NotUsed\Cartridge\MapperFactory\Mappers\MapperBase\" />
     <Folder Include="NotUsed\Chipset\2A03\" />
     <Folder Include="NotUsed\Chipset\2C02\" />

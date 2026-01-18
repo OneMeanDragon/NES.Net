@@ -72,6 +72,11 @@ void PPU2C02::InitializeSystemPalette() {
     _systemPalette[0x2E] = Pixel(0, 0, 0);
     _systemPalette[0x2F] = Pixel(0, 0, 0);
 
+    // 0x30-0x3F MIRROR 0x20-0x2F (not separate colors!)
+    //for (int i = 0; i < 16; i++) {
+    //    _systemPalette[0x30 + i] = _systemPalette[0x20 + i];
+    //}
+
     _systemPalette[0x30] = Pixel(236, 238, 236);
     _systemPalette[0x31] = Pixel(168, 204, 236);
     _systemPalette[0x32] = Pixel(188, 188, 236);
@@ -98,7 +103,7 @@ void PPU2C02::Reset() {
     _oamAddress = 0;
     _control.reg = 0;
     _mask.reg = 0;
-    _status.reg = 0;
+    _status.reg = 0xA0; // 0
     _vramAddr.reg = 0;
     _tramAddr.reg = 0;
     _fineX = 0;
@@ -269,6 +274,7 @@ uint8_t PPU2C02::PpuRead(uint16_t addr, bool rdOnly) {
         }
     }
     else {
+        //===================================
         // Palette RAM
         addr &= 0x1F;
         if (addr == 0x10) addr = 0x00;
@@ -276,6 +282,14 @@ uint8_t PPU2C02::PpuRead(uint16_t addr, bool rdOnly) {
         if (addr == 0x18) addr = 0x08;
         if (addr == 0x1C) addr = 0x0C;
         data = _paletteRam[addr] & (_mask.grayscale ? 0x30 : 0x3F);
+        //===================================
+        //addr &= 0x1F;
+        // Handle background color mirror
+        //if ((addr & 0x13) == 0x10) addr &= 0x0F;
+        // READ: Apply grayscale mask
+        //data = _paletteRam[addr];
+        //if (_mask.grayscale) data &= 0x30;
+        //else data &= 0x3F;
     }
 
     return data;
@@ -331,6 +345,7 @@ void PPU2C02::PpuWrite(uint16_t addr, uint8_t data) {
         }
     }
     else {
+        //==============================
         // Palette RAM
         addr &= 0x1F;
         if (addr == 0x10) addr = 0x00;
@@ -338,6 +353,12 @@ void PPU2C02::PpuWrite(uint16_t addr, uint8_t data) {
         if (addr == 0x18) addr = 0x08;
         if (addr == 0x1C) addr = 0x0C;
         _paletteRam[addr] = data;
+        //===============================
+        //addr &= 0x1F;
+        //// Handle background color mirror
+        //if ((addr & 0x13) == 0x10) addr &= 0x0F;
+        //// WRITE: Store full 6-bit value
+        //_paletteRam[addr] = data & 0x3F;
     }
 }
 

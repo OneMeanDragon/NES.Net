@@ -9,6 +9,7 @@
 #include "CPU6502/CPU6502.h"
 #include "APU2A03.h"
 #include "PPU2C02.h"
+#include "FMODAudio/FMODAudioSystem.h"
 
 #pragma region "Diagnostics"
 void NESBus::SetDiagnosticLogCallback(DiagnosticLogCallback callback)
@@ -26,7 +27,7 @@ void NESBus::Log(const char* msg) const {
 #pragma endregion
 
 NESBus::NESBus()
-    : _cart(nullptr), _ppu(nullptr), _apu(nullptr),//_cpu(nullptr),
+    : _cart(nullptr), _ppu(nullptr), _apu(nullptr),_cpu(nullptr), _audio(nullptr),
     _dmaPage(0), _dmaAddr(0), _dmaData(0), _dmaDummy(true), _dmaTransfer(false),
     _audioSampleReady(false), _audioSample(0.0), _audioTime(0.0),
     _audioBufferWrite(0), _audioBufferRead(0), _lastValidSample(0.0),
@@ -35,7 +36,9 @@ NESBus::NESBus()
     std::memset(_cpuRam, 0, sizeof(_cpuRam));
     std::memset(_controllerState, 0, sizeof(_controllerState));
     std::memset(_controllerLatch, 0, sizeof(_controllerLatch));
-    std::memset(_audioBuffer, 0, sizeof(_audioBuffer));
+    _nesAudioBuffer.resize(AUDIO_BUFFER_CAPACITY, 0.0f);
+    _audioBufferRead = 0;
+    _audioBufferWrite = 0;
 
     SetSampleFrequency(AUDIO_SAMPLE_RATE);
 }
@@ -46,9 +49,13 @@ NESBus::~NESBus() {
 
 void NESBus::ConnectCartridge(Cartridge* cart) {
     if (!_apu) {
-        Log("Warning: Connecting Cartridge before APU. APU must be connected first.");
+        Log("Warning: Connecting Cartridge before APU has been connected to the bus.");
         return;
 	}
+    if (!_cpu) {
+        Log("Warning: Connecting Cartridge before CPU has been connected to the bus.");
+        return;
+    } else { _cpu->PowerOff(); }
 
     if (_cart) delete _cart;
     _cart = new CartridgeInterfaceAPI(cart);
@@ -58,14 +65,37 @@ void NESBus::ConnectCartridge(Cartridge* cart) {
 
 void NESBus::ConnectPPU(PPU2C02* ppu) {
     _ppu = ppu;
+    if (_ppu) {
+        _ppu->ConnectBus(this);
+    }
 }
 
 void NESBus::ConnectCPU(CPU6502* cpu) {
     _cpu = cpu;
+    if (_cpu) {
+        _cpu->ConnectBus(this);
+    }
 }
 
 void NESBus::ConnectAPU(APU2A03* apu) {
     _apu = apu;
+    if (_apu) {
+        _apu->ConnectBus(this);
+    }
+}
+
+void NESBus::ConnectAudio(FMODAudioSystem* fmod) {
+    if (fmod && _apu) {
+        _audio = fmod;
+        _audio->ConnectAPU(_apu);
+        _audio->ConnectBus(this);
+        _audio->Initialize(44100, 512);
+    }
+    else {
+        _audio = nullptr;
+        if (_diagnosticCallback)
+            InvalidPointer(_diagnosticCallback, __LINE__, __FILE__, "ConnectAudio(fmod) either you forgot to connect the apu first or your fmod pointer is bad.");
+    }
 }
 
 void NESBus::SetSampleFrequency(uint32_t sampleRate) {
@@ -86,44 +116,28 @@ uint8_t NESBus::GetController(uint8_t index) const {
     return 0;
 }
 
-void NESBus::Reset() {
+void NESBus::Reset() { // _cpuRam does not clear on reset
     // Reset cartridge
-    if (_cart) {
-        _cart->Reset();
-    }
+    if (_cart) _cart->Reset();
 
     // Reset components
-    if (_cpu) {
-        _cpu->Reset();
-    }
-    if (_ppu) {
-        _ppu->Reset();
-    }
-    if (_apu) {
-        _apu->Reset();
-    }
-
-    // Clear RAM
-    std::memset(_cpuRam, 0, sizeof(_cpuRam));
+    if (_ppu) _ppu->Reset();    
+    if (_apu) _apu->Reset();
+    if (_cpu) _cpu->Reset();
 
     // Reset DMA
-    _dmaPage = 0;
-    _dmaAddr = 0;
-    _dmaData = 0;
+    _dmaPage = _dmaAddr = _dmaData = 0;
     _dmaDummy = true;
     _dmaTransfer = false;
 
     // Reset audio
+    std::fill(_nesAudioBuffer.begin(), _nesAudioBuffer.end(), 0.0f);
+    _audioBufferRead = _audioBufferWrite = 0;
+    _lastValidSample = 0.0;
+    _bufferUnderrunCount = 0;
     _audioSample = 0.0;
     _audioTime = 0.0;
     _audioSampleReady = false;
-
-    // Clear audio buffer
-    std::memset(_audioBuffer, 0, sizeof(_audioBuffer));
-    _audioBufferWrite = 0;
-    _audioBufferRead = 0;
-    _lastValidSample = 0.0;
-    _bufferUnderrunCount = 0;
 
     // Reset clock
     _systemClockCounter = 0;
@@ -295,7 +309,7 @@ bool NESBus::ProcessAudio() {
         // Add to ring buffer
         int nextWrite = (_audioBufferWrite + 1) & AUDIO_RINGBUFFER_SIZE;
         if (nextWrite != _audioBufferRead) {
-            _audioBuffer[_audioBufferWrite] = _audioSample;
+            _nesAudioBuffer[_audioBufferWrite] = _audioSample;
             _audioBufferWrite = nextWrite;
         }
 
@@ -306,34 +320,26 @@ bool NESBus::ProcessAudio() {
 }
 
 int NESBus::GetAudioBufferLevel() const {
-    int diff = _audioBufferWrite - _audioBufferRead;
-    if (diff < 0) {
-        diff += (AUDIO_RINGBUFFER_SIZE + 1);
+    std::lock_guard<std::mutex> lock(_audioMutex);
+
+    if (_audioBufferWrite >= _audioBufferRead) {
+        return static_cast<int>(_audioBufferWrite - _audioBufferRead);
     }
-    return diff;
+    else {
+        return static_cast<int>(AUDIO_BUFFER_CAPACITY - (_audioBufferRead - _audioBufferWrite));
+    }
 }
 
 bool NESBus::GetAudioSample(double& sample) {
-    int available = _audioBufferWrite - _audioBufferRead;
-    if (available < 0) {
-        available += (AUDIO_RINGBUFFER_SIZE + 1);
+    std::lock_guard<std::mutex> lock(_audioMutex);
+
+    if (_audioBufferRead == _audioBufferWrite) {
+        return false;  // Buffer empty
     }
 
-    if (available > 0) {
-        sample = _audioBuffer[_audioBufferRead];
-        _audioBufferRead = (_audioBufferRead + 1) & AUDIO_RINGBUFFER_SIZE;
-
-        // Clamp to valid range
-        sample = std::max(-1.0, std::min(1.0, sample));
-        _lastValidSample = sample;
-        return true;
-    }
-    else {
-        // Buffer underrun
-        _bufferUnderrunCount++;
-        sample = _lastValidSample;
-        return false;
-    }
+    sample = static_cast<double>(_nesAudioBuffer[_audioBufferRead]);
+    _audioBufferRead = (_audioBufferRead + 1) % AUDIO_BUFFER_CAPACITY;
+    return true;
 }
 
 bool NESBus::Clock() {
@@ -346,23 +352,21 @@ bool NESBus::Clock() {
             if (_cpu) {
                 _cpu->Clock();
             }
-            //else { InvalidPointer(_diagnosticCallback, __LINE__, __FILE__, "_cpu"); }
         }
     }
 
     if (_ppu) {
         _ppu->Clock();
     }
-    else { InvalidPointer(_diagnosticCallback, __LINE__, __FILE__, "_ppu"); }
 
     if (_apu) {
         _apu->Clock();
     }
-    //else { InvalidPointer(_diagnosticCallback, __LINE__, __FILE__, "_apu"); }
 
     // Process audio timing
     _audioSampleReady = ProcessAudio();
 
+    // Handle NMI from PPU
     if (_ppu && _ppu->GetNmiRequested()) {
         _ppu->ClearNmiRequested();
         if (_cpu) {
@@ -380,7 +384,13 @@ bool NESBus::Clock() {
             }
         }
     }
-    else { InvalidPointer(_diagnosticCallback, __LINE__, __FILE__, "_cart"); }
+
+    // Handle IRQ from APU (frame counter and DMC)
+    if (_apu && _apu->IsIRQActive()) {
+        if (_cpu) {
+            _cpu->IRQ();
+        }
+    }
 
     // Increment system clock
     _systemClockCounter++;
@@ -388,6 +398,51 @@ bool NESBus::Clock() {
     return _audioSampleReady;
 }
 
+
+
+
+
+void NESBus::GenerateAudioFrame() {
+    // Each time the APU clocks, generate audio samples
+    if (_apu) {
+        double sample = _apu->GetOutputSample();
+
+        std::lock_guard<std::mutex> lock(_audioMutex);
+
+        // Write to circular buffer
+        _nesAudioBuffer[_audioBufferWrite] = static_cast<float>(sample);
+        _audioBufferWrite = (_audioBufferWrite + 1) % AUDIO_BUFFER_CAPACITY;
+
+        // If buffer is full, move read pointer (overwrite oldest)
+        if (_audioBufferWrite == _audioBufferRead) {
+            _audioBufferRead = (_audioBufferRead + 1) % AUDIO_BUFFER_CAPACITY;
+        }
+    }
+}
+int NESBus::GetAudioSamples(float* buffer, int maxSamples) {
+    std::lock_guard<std::mutex> lock(_audioMutex);
+
+    int samplesRead = 0;
+    while (samplesRead < maxSamples && _audioBufferRead != _audioBufferWrite) {
+        buffer[samplesRead] = _nesAudioBuffer[_audioBufferRead];
+        _audioBufferRead = (_audioBufferRead + 1) % AUDIO_BUFFER_CAPACITY;
+        samplesRead++;
+    }
+
+    return samplesRead;
+}
+void NESBus::ResetAudioBuffer() {
+    std::lock_guard<std::mutex> lock(_audioMutex);
+
+    // Reset positions
+    _audioBufferRead = 0;
+    _audioBufferWrite = 0;
+
+    // Clear buffer contents
+    std::fill(_nesAudioBuffer.begin(), _nesAudioBuffer.end(), 0.0f);
+}
+
+void NESBus::Tick() { /* will do this not yet*/ }
 
 
 // Exported Bus functions
@@ -422,6 +477,10 @@ DLLEXPORT void Bus_ConnectCPU(NESBus* bus, CPU6502* cpu) {
 
 DLLEXPORT void Bus_ConnectAPU(NESBus* bus, APU2A03* apu) {
     if (bus) bus->ConnectAPU(apu);
+}
+
+DLLEXPORT void Bus_ConnectAudio(NESBus* bus, FMODAudioSystem* audio) {
+    if (bus) bus->ConnectAudio(audio);
 }
 
 DLLEXPORT uint8_t Bus_CpuRead(NESBus* bus, uint16_t addr, bool isReadOnly) {

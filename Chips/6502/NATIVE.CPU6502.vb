@@ -10,80 +10,72 @@ Namespace NintendoEntertainmentSystem
         Private _disposed As Boolean = False
 
         ' DLL imports
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CreateCPU() As IntPtr
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub DestroyCPU(cpu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub CPU_Reset(cpu As IntPtr)
-        End Sub
-
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub CPU_Clock(cpu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub CPU_IRQ(cpu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub CPU_NMI(cpu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub CPU_ConnectBus(cpu As IntPtr, bus As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CPU_IsComplete(cpu As IntPtr) As Boolean
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CPU_GetPC(cpu As IntPtr) As UShort
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CPU_GetA(cpu As IntPtr) As Byte
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CPU_GetX(cpu As IntPtr) As Byte
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CPU_GetY(cpu As IntPtr) As Byte
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CPU_GetSP(cpu As IntPtr) As Byte
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CPU_GetStatus(cpu As IntPtr) As Byte
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CPU_GetClockCount(cpu As IntPtr) As ULong
         End Function
 
         ' Alias functions for compatibility
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub ClockCPU(cpu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub ResetCPU(cpu As IntPtr)
-        End Sub
-
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub TriggerNMI(cpu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub TriggerIRQ(cpu As IntPtr)
         End Sub
 
@@ -105,10 +97,6 @@ Namespace NintendoEntertainmentSystem
 
         Public Sub ConnectBus(bus As IntPtr)
             CPU_ConnectBus(_cpuHandle, bus)
-        End Sub
-
-        Public Sub Reset()
-            CPU_Reset(_cpuHandle)
         End Sub
 
         Public Sub Clock()

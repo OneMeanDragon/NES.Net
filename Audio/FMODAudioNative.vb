@@ -9,60 +9,71 @@ Namespace NintendoEntertainmentSystem
         Implements IDisposable
 
         ' DLL imports
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function CreateFMODAudio() As IntPtr
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Function FMODAudio_Create() As IntPtr
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub DestroyFMODAudio(audio As IntPtr)
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Sub FMODAudio_Destroy(audio As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function FMODAudio_Initialize(audio As IntPtr, bus As IntPtr, sampleRate As Integer, bufferSize As Integer) As Boolean
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub FMODAudio_Start(audio As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub FMODAudio_Stop(audio As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub FMODAudio_Pause(audio As IntPtr, pause As Boolean)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub FMODAudio_Update(audio As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub FMODAudio_SetVolume(audio As IntPtr, volume As Single)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function FMODAudio_GetVolume(audio As IntPtr) As Single
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function FMODAudio_IsPlaying(audio As IntPtr) As Boolean
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function FMODAudio_GetLatency(audio As IntPtr) As Integer
         End Function
 
         ' Instance fields
         Private _audioHandle As IntPtr
+        Public ReadOnly Property NativeHandle As IntPtr
+            Get
+                Return _audioHandle
+            End Get
+        End Property
+
         Private _disposed As Boolean = False
 
         Public Sub New()
-            _audioHandle = CreateFMODAudio()
+            _audioHandle = FMODAudio_Create()
             If _audioHandle = IntPtr.Zero Then
                 Throw New Exception("Failed to create FMOD audio system")
             End If
         End Sub
+
+        'Public Function GetAudioSamples(count As Integer, buffer As Single()) As Integer
+        '    ' Call into native code to get accumulated samples
+        '    Return Bus_GetAudioSamples(_audioHandle, count, buffer)
+        'End Function
 
         ''' <summary>
         ''' Initialize FMOD with the NES Bus
@@ -142,7 +153,7 @@ Namespace NintendoEntertainmentSystem
 
                 ' Dispose unmanaged resources
                 If _audioHandle <> IntPtr.Zero Then
-                    DestroyFMODAudio(_audioHandle)
+                    FMODAudio_Destroy(_audioHandle)
                     _audioHandle = IntPtr.Zero
                 End If
 

@@ -14,67 +14,63 @@ Namespace NintendoEntertainmentSystem
         Public Delegate Sub DiagnosticCallback(msg As String)
 
         ' DLL imports
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CreatePPU() As IntPtr
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub DestroyPPU(ppu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub PPU_Reset(ppu As IntPtr)
-        End Sub
-
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_Clock(ppu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function PPU_CpuRead(ppu As IntPtr, addr As UShort, rdOnly As Boolean) As Byte
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_CpuWrite(ppu As IntPtr, addr As UShort, data As Byte)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function PPU_IsFrameComplete(ppu As IntPtr) As Boolean
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_SetFrameComplete(ppu As IntPtr, value As Boolean)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function PPU_GetNmiRequested(ppu As IntPtr) As Boolean
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_ClearNmiRequested(ppu As IntPtr)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_SetPixelCallback(ppu As IntPtr, callback As PixelCallback)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_SetDiagnosticCallback(ppu As IntPtr, callback As DiagnosticCallback)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_GetPatternTable(ppu As IntPtr, table As Byte, palette As Byte, buffer As Byte())
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function PPU_GetOAMByte(ppu As IntPtr, oamAddr As Byte) As Byte
         End Function
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_SetOAMByte(ppu As IntPtr, oamAddr As Byte, data As Byte)
         End Sub
 
-        <DllImport(DLLPath.NesPPU, CallingConvention:=CallingConvention.Cdecl)>
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub PPU_GetColorFromPalette(ppu As IntPtr, palette As Byte, pixel As Byte, ByRef r As Byte, ByRef g As Byte, ByRef b As Byte)
         End Sub
 
@@ -202,10 +198,6 @@ Namespace NintendoEntertainmentSystem
                 Return _oamWrapper
             End Get
         End Property
-
-        Public Sub Reset()
-            PPU_Reset(_ppuHandle)
-        End Sub
 
         Public Sub Clock()
             PPU_Clock(_ppuHandle)

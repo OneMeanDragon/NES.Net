@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="FMODAudio\FMODAudioSystem.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CPU6502\CPU6502.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -33,20 +30,20 @@
     <ClInclude Include="CartridgeApi\SharedObjectHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="APU2A03.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="NESBus.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PPU2C02.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FMODAudio\FMODAudioSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="APU2A03.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FMODAudio\FMODAudioSystem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CPU6502\CPU6502.AddressingModes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -80,13 +77,16 @@
     <ClCompile Include="CartridgeApi\SharedObjectHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="APU2A03.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="NESBus.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PPU2C02.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FMODAudio\FMODAudioSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="APU2A03.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

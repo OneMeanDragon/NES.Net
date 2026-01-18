@@ -35,18 +35,12 @@ void FMODAudioSystem::LogFMODError(FMOD_RESULT result, const char* function) {
     }
 }
 
-bool FMODAudioSystem::Initialize(NESBus* bus, int sampleRate, int bufferSize) {
+bool FMODAudioSystem::Initialize(int sampleRate, int bufferSize) {
     if (_initialized) {
         std::cerr << "[FMOD] Already initialized" << std::endl;
         return false;
     }
 
-    if (!bus) {
-        std::cerr << "[FMOD] Bus pointer is null" << std::endl;
-        return false;
-    }
-
-    _bus = bus;
     _sampleRate = sampleRate;
     _bufferSize = bufferSize;
 
@@ -74,7 +68,7 @@ bool FMODAudioSystem::Initialize(NESBus* bus, int sampleRate, int bufferSize) {
     }
 
     // Set DSP buffer size for low latency
-    result = _system->setDSPBufferSize(_bufferSize, 2);
+    result = _system->setDSPBufferSize(_bufferSize, 2); // 2
     if (result != FMOD_OK) {
         LogFMODError(result, "setDSPBufferSize");
         // Non-fatal, continue
@@ -267,16 +261,16 @@ FMOD_RESULT FMODAudioSystem::FillAudioBuffer(void* data, unsigned int datalen) {
 }
 
 // Exports for Fmod Audio System
-DLLEXPORT FMODAudioSystem* CreateFMODAudio() {
+DLLEXPORT FMODAudioSystem* FMODAudio_Create() {
     return new FMODAudioSystem();
 }
 
-DLLEXPORT void DestroyFMODAudio(FMODAudioSystem* audio) {
+DLLEXPORT void FMODAudio_Destroy(FMODAudioSystem* audio) {
     delete audio;
 }
 
-DLLEXPORT bool FMODAudio_Initialize(FMODAudioSystem* audio, NESBus* bus, int sampleRate, int bufferSize) {
-    if (audio) return audio->Initialize(bus, sampleRate, bufferSize);
+DLLEXPORT bool FMODAudio_Initialize(FMODAudioSystem* audio, int sampleRate, int bufferSize) {
+    if (audio) return audio->Initialize(sampleRate, bufferSize);
     return false;
 }
 

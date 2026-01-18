@@ -12,8 +12,7 @@
 // Forward declare Cartridge (defined in BusInterfaces.h / cartridge DLL)
 class CartridgeInterfaceAPI;
 
-
-    // Oscillator for pulse wave generation
+// Oscillator for pulse wave generation
 class OscPulse {
 public:
     double frequency = 0.0;
@@ -28,7 +27,7 @@ private:
     static double ApproxSin(double t);
 };
 
-    // Sequencer for timing
+// Sequencer for timing
 struct Sequencer {
     uint32_t sequence = 0;
     uint32_t new_sequence = 0;
@@ -41,7 +40,7 @@ struct Sequencer {
     uint8_t Clock(bool enable, Manipulator func);
 };
 
-    // Envelope generator
+// Envelope generator
 class Envelope {
 public:
     bool start = false;
@@ -54,14 +53,14 @@ public:
     void Clock(bool loop);
 };
 
-    // Length counter
+// Length counter
 struct LengthCounter {
     uint8_t counter = 0;
 
     uint8_t Clock(bool enable, bool halt);
 };
 
-    // Frequency sweeper
+// Frequency sweeper
 class Sweeper {
 public:
     bool enabled = false;
@@ -77,8 +76,14 @@ public:
     bool Clock(uint16_t& target, bool channel);
 };
 
-    // Main APU class
+// Main APU class
 class APU2A03 {
+private:
+    bool _poweron = false;
+public:
+    void PowerOff() { _poweron = false; }
+    bool Powered() const { return _poweron; }
+    void InitialState();
 public:
     APU2A03();
     ~APU2A03();
@@ -89,8 +94,9 @@ public:
     void Reset();
 
     double GetOutputSample();
+    bool IsIRQActive() const;
 
-    // Small inline helpers to configure/read the APU (no .cpp changes required)
+    // Small inline helpers to configure/read the APU
     inline void SetRawMode(bool raw) { use_raw_mode = raw; }
     inline bool GetRawMode() const { return use_raw_mode; }
     inline void SetSampleRate(double rate) { sample_rate = rate; }
@@ -124,7 +130,7 @@ private:
     bool use_raw_mode = false;
     double global_time = 0.0;
 
-    // Audio output/sample rate hint (not used by current .cpp but useful later)
+    // Audio output/sample rate hint
     double sample_rate = 44100.0;
 
     // CartridgeInterface pointer for DMC memory fetches (non-owning, set by bus)
@@ -154,12 +160,12 @@ private:
 
     // Triangle
     bool triangle_enable = false;
-    bool triangle_control_flag = false;          // control/halt flag (from 0x4008 bit 7)
-    uint8_t triangle_linear_reload_value = 0;    // 7-bit reload value from 0x4008
-    uint8_t triangle_linear_counter = 0;         // current linear counter
-    bool triangle_linear_reload = false;         // linear reload request (set by writes)
-    Sequencer triangle_seq;                      // use seq.reload/timer as the triangle timer
-    uint8_t triangle_index = 0;                  // 0..31 waveform index
+    bool triangle_control_flag = false;
+    uint8_t triangle_linear_reload_value = 0;
+    uint8_t triangle_linear_counter = 0;
+    bool triangle_linear_reload = false;
+    Sequencer triangle_seq;
+    uint8_t triangle_index = 0;
     LengthCounter triangle_lc;
     double triangle_sample = 0.0;
     double triangle_output = 0.0;
@@ -174,20 +180,53 @@ private:
     double noise_output = 0.0;
 
     // DMC (Delta Modulation Channel)
-    bool dmc_enable = false;                 // controlled by 0x4015 bit 4
-    bool dmc_irq_enable = false;             // 0x4010 bit 7
-    bool dmc_loop = false;                   // 0x4010 bit 6 (looping)
-    uint8_t dmc_rate_index = 0;              // 0x4010 low 4 bits
-    uint16_t dmc_period = 428;               // timer period in CPU cycles
-    uint8_t dmc_output_level = 0;            // current DAC output (0..127) from 0x4011 and delta adjustments
-    uint32_t dmc_sample_address = 0;         // start address (0xC000 + 64*X) from 0x4012
-    uint32_t dmc_sample_length = 0;          // sample length in bytes from 0x4013*16+1
-    uint32_t dmc_current_address = 0;        // current fetch address
-    uint32_t dmc_bytes_remaining = 0;        // remaining bytes in sample
-    uint8_t dmc_sample_buffer = 0;           // buffered byte ready for shifting
+    bool dmc_enable = false;
+    bool dmc_irq_enable = false;
+    bool dmc_irq_flag = false;
+    bool dmc_loop = false;
+    uint8_t dmc_rate_index = 0;
+    uint16_t dmc_period = 428;
+    uint8_t dmc_output_level = 0;
+    uint32_t dmc_sample_address = 0;
+    uint32_t dmc_sample_length = 0;
+    uint32_t dmc_current_address = 0;
+    uint32_t dmc_bytes_remaining = 0;
+    uint8_t dmc_sample_buffer = 0;
     bool dmc_sample_buffer_empty = true;
-    uint8_t dmc_shift_register = 0;          // shift register for current byte
-    uint8_t dmc_bits_remaining = 0;          // bits remaining in shift register
-    uint16_t dmc_timer = 0;                  // countdown timer
+    uint8_t dmc_shift_register = 0;
+    uint8_t dmc_bits_remaining = 0;
+    uint16_t dmc_timer = 0;
 
+    // Frame Counter
+    bool frame_counter_mode = false;              // false = 4-step, true = 5-step
+    bool frame_counter_irq_disable = false;
+    bool frame_counter_irq_flag = false;
+    uint8_t frame_counter_reset_delay = 0;
+    bool frame_counter_should_clock_immediately = false;
+
+    // Frame counter helper functions
+    void ClockFrameCounter();
+    void ClockQuarterFrame();
+    void ClockHalfFrame();
+    void ClockDMC();
+
+private: // non owning
+    class NESBus* _bus = nullptr;
+public:
+    void ConnectBus(class NESBus* bus) { _bus = bus; }
 };
+
+// Exports
+DLLEXPORT APU2A03* CreateAPU();
+DLLEXPORT void DestroyAPU(APU2A03* apu);
+
+DLLEXPORT void APU_CpuWrite(APU2A03* apu, uint16_t addr, uint8_t data);
+DLLEXPORT uint8_t APU_CpuRead(APU2A03* apu, uint16_t addr);
+DLLEXPORT void APU_Clock(APU2A03* apu);
+DLLEXPORT void APU_Reset(APU2A03* apu);
+DLLEXPORT double APU_GetOutputSample(APU2A03* apu);
+DLLEXPORT bool APU_IsIRQActive(APU2A03* apu);
+
+// Aliases
+DLLEXPORT void ClockAPU(APU2A03* apu);
+DLLEXPORT void ResetAPU(APU2A03* apu);
