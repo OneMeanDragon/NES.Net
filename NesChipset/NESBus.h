@@ -4,6 +4,7 @@
 #include <cstring>
 #include <mutex>
 #include <vector>
+#include <memory>
 
 // Diagnostics
 #include "Diagnostics/DiagnosticHelpers.h"
@@ -14,17 +15,13 @@
 #define DLLEXPORT
 #endif
 
-
-// Forward declarations - we'll use pointers to avoid linking issues
+// Forward declarations
 class Cartridge;
 class CartridgeInterfaceAPI;
 class PPU2C02;
 class CPU6502;
 class APU2A03;
 class FMODAudioSystem;
-
-// Callback types
-typedef double (*AudioSampleCallback)(int64_t sampleIndex, double time);
 
 class NESBus {
 public:
@@ -33,16 +30,15 @@ public:
 
     // Lifecycle
     void Reset(bool poweron);
-    bool Clock();  // Returns true when audio sample ready
+    bool Clock();
 
     // Component connections
     void ConnectCartridge(Cartridge* cart);
     void ConnectPPU(PPU2C02* ppu);
     void ConnectCPU(CPU6502* cpu);
     void ConnectAPU(APU2A03* apu);
-    void ConnectAudio(FMODAudioSystem* fmod);
 
-    // CPU Bus interface (called by CPU)
+    // CPU Bus interface
     uint8_t CpuRead(uint16_t addr, bool isReadOnly = false);
     void CpuWrite(uint16_t addr, uint8_t data);
 
@@ -50,32 +46,45 @@ public:
     void SetController(uint8_t index, uint8_t state);
     uint8_t GetController(uint8_t index) const;
 
-    // Audio interface
-    void SetSampleFrequency(uint32_t sampleRate);
-    double GetAudioSample() const { return _audioSample; }
-    //int GetAudioBufferLevel() const;
-    //bool GetAudioSample(double& sample);  // Pop from ring buffer
-
     // System state
     uint64_t GetSystemClockCount() const { return _systemClockCounter; }
-    bool IsAudioSampleReady() const { return _audioSampleReady; }
 
     void Tick();
+
+    // Audio system access
+    FMODAudioSystem* GetAudioSystem() const { return _audioSystem.get(); }
+
+    // Audio buffer interface for FMODAudioSystem
+    bool GetAudioSample(float& sample);
+    int GetAudioBufferLevel() const;
+    void PreFillAudioBuffer(int numSamples);
+
 private:
     // Constants
     static constexpr int CPU_RAM_SIZE = 2048;
     static constexpr uint16_t CPU_RAM_MIRROR_MASK = 0x07FF;
     static constexpr uint16_t PPU_REG_MIRROR_MASK = 0x0007;
-    static constexpr uint32_t AUDIO_SAMPLE_RATE = 44100;
-    static constexpr double NES_MASTER_CLOCK = 5369318.0;
-    static constexpr uint32_t AUDIO_RINGBUFFER_SIZE = 8191;  // Power of 2 minus 1
 
-    // Components (pointers to avoid circular dependencies)
+    static constexpr double MHZ = 1000000.0;
+    static constexpr double NTSC_MASTER_CRYSTAL_MHZ = 21.477272;
+    static constexpr double  PAL_MASTER_CRYSTAL_MHZ = 26.601712;
+
+    static constexpr double NTSC_MASTER_CLOCK_HZ = NTSC_MASTER_CRYSTAL_MHZ * MHZ;
+    static constexpr double  PAL_MASTER_CLOCK_HZ =  PAL_MASTER_CRYSTAL_MHZ * MHZ;
+
+    static constexpr double CPU_CLOCK_HZ = (NTSC_MASTER_CLOCK_HZ / 12); // NTSC master hz frequencys
+    static constexpr double PPU_CLOCK_HZ = (NTSC_MASTER_CLOCK_HZ /  4);
+    static constexpr double PAL_CPU_CLOCK_HZ = (PAL_MASTER_CLOCK_HZ / 16); // PAL master hz frequencys
+    static constexpr double PAL_PPU_CLOCK_HZ = (PAL_MASTER_CLOCK_HZ /  5);
+
+    static constexpr size_t AUDIO_BUFFER_CAPACITY = 8192;  // Larger buffer for stability
+
+    // Components
     CartridgeInterfaceAPI* _cart;
     PPU2C02* _ppu;
     CPU6502* _cpu;
     APU2A03* _apu;
-    FMODAudioSystem* _audio;
+    std::unique_ptr<FMODAudioSystem> _audioSystem;
 
     // Memory
     uint8_t _cpuRam[CPU_RAM_SIZE];
@@ -92,48 +101,60 @@ private:
     bool _dmaTransfer;
 
     // Audio timing
-    bool _audioSampleReady;
-    double _audioSample;
     double _audioTime;
     double _audioTimePerNESClock;
     double _audioTimePerSystemSample;
-
-    // Audio ring buffer
-    //double _nesAudioBuffer[8192];
-    //int _audioBufferWrite;
-    //int _audioBufferRead;
-    double _lastValidSample;
-    int64_t _bufferUnderrunCount;
+    uint32_t _sampleRate;
 
     // System state
     uint64_t _systemClockCounter;
 
+    // Audio ring buffer
+    std::vector<float> _audioBuffer;
+    size_t _audioBufferWrite;
+    size_t _audioBufferRead;
+    mutable std::mutex _audioMutex;
+
     // Helper functions
     void ProcessDMA();
-    bool ProcessAudio();
+    void ProcessAudio();
 
-private:
+    // Diagnostics
     bool _loggingEnabled = false;
     static void __stdcall DummyLogger(const char* message) {}
     DiagnosticLogCallback _diagnosticCallback = &DummyLogger;
     bool LoggingEnabled() const { return _loggingEnabled; }
+
 public:
-    void EnableLogging(bool enable) { _loggingEnabled = enable; };
+    void EnableLogging(bool enable) { _loggingEnabled = enable; }
     void SetDiagnosticLogCallback(DiagnosticLogCallback callback);
     void Log(const char* msg) const;
-
-public: // Audio methods
-    void GenerateAudioFrame();
-    int GetAudioSamples(float* buffer, int maxSamples);
-    void ResetAudioBuffer();
-    bool GetAudioSample(double& sample);
-    int GetAudioBufferLevel() const;
-private: // Audio buffer variables
-    std::vector<float> _nesAudioBuffer;
-    mutable std::mutex _audioMutex;
-    size_t _audioBufferWrite;  // Write position
-    size_t _audioBufferRead;   // Read position
-
-    // Add this constant
-    static const size_t AUDIO_BUFFER_CAPACITY = 8192;  // Or whatever size you want
 };
+
+// Exported Bus functions
+DLLEXPORT NESBus* CreateNESBus();
+DLLEXPORT void DestroyNESBus(NESBus* bus);
+DLLEXPORT void Bus_Reset(NESBus* bus, bool poweron);
+DLLEXPORT void Bus_Tick(NESBus* bus);
+DLLEXPORT bool Bus_Clock(NESBus* bus);
+
+DLLEXPORT void Bus_ConnectCartridge(NESBus* bus, Cartridge* cart);
+DLLEXPORT void Bus_ConnectPPU(NESBus* bus, PPU2C02* ppu);
+DLLEXPORT void Bus_ConnectCPU(NESBus* bus, CPU6502* cpu);
+DLLEXPORT void Bus_ConnectAPU(NESBus* bus, APU2A03* apu);
+
+DLLEXPORT uint8_t Bus_CpuRead(NESBus* bus, uint16_t addr, bool isReadOnly);
+DLLEXPORT void Bus_CpuWrite(NESBus* bus, uint16_t addr, uint8_t data);
+
+DLLEXPORT void Bus_SetController(NESBus* bus, uint8_t index, uint8_t state);
+DLLEXPORT uint8_t Bus_GetController(NESBus* bus, uint8_t index);
+
+DLLEXPORT uint64_t Bus_GetSystemClockCount(NESBus* bus);
+
+// Audio system exports
+DLLEXPORT FMODAudioSystem* Bus_GetAudioSystem(NESBus* bus);
+DLLEXPORT void Bus_PreFillAudioBuffer(NESBus* bus, int numSamples);
+
+// Diagnostics
+DLLEXPORT void BusEnableDiagnosticLogger(NESBus* bus, bool enable);
+DLLEXPORT void BusSetDiagnosticLogCallback(NESBus* bus, DiagnosticLogCallback callback);

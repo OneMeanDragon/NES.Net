@@ -13,6 +13,7 @@
 
 // Forward declaration
 class NESBus;
+class APU2A03;
 
 class FMODAudioSystem {
 public:
@@ -74,11 +75,11 @@ private:
     void LogFMODError(FMOD_RESULT result, const char* function);
 
 private: // non owning
-    class NESBus* _bus = nullptr;
-    class APU2A03* _apu = nullptr;
+    NESBus* _bus = nullptr;
+    APU2A03* _apu = nullptr;
 public:
-    void ConnectBus(class NESBus* bus) { _bus = bus; }
-    void ConnectAPU(class APU2A03* apu) { _apu = apu; }
+    void ConnectBus(NESBus* bus) { _bus = bus; }
+    void ConnectAPU(APU2A03* apu) { _apu = apu; }
 };
 
 // Exports for Fmod Audio System

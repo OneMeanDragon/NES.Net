@@ -161,7 +161,7 @@ Namespace NintendoEntertainmentSystem
 #End If
 
             'Turn on or off the Logger callback
-            CartridgeEnableLogging(_nativePtr, False)
+            CartridgeEnableLogging(_nativePtr, True)
 
             If Not LoadCartridge(_nativePtr, filePath) Then
                 Throw New Exception("Failed to load ROM")

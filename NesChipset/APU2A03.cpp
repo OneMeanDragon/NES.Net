@@ -577,6 +577,11 @@ void APU2A03::Clock() {
     // DMC (runs every CPU cycle)
     ClockDMC();
 
+    // ============ Generate Audio ============ (no do not do this here)
+    // Generate audio samples based on accumulated time
+    // GenerateSample(); // this needs to be faster.
+    // ========================================
+
     // Visual feedback
     pulse1_visual = (pulse1_enable && pulse1_env.output > 1 && !pulse1_sweep.mute) ?
         pulse1_seq.reload : 2047;
@@ -654,18 +659,16 @@ double APU2A03::GetOutputSample() {
         double pulse_mix =
             ((1.0 * pulse1_output) - 0.8) * 0.1 +
             ((1.0 * pulse2_output) - 0.8) * 0.1;
-
+        
         double triangle_mix = ((triangle_output)-0.5) * 0.15;
         double noise_mix = ((2.0 * (noise_output - 0.5))) * 0.1;
         double dmc_mix = ((static_cast<double>(dmc_output_level) / 127.0) - 0.5) * 0.15;
-
+        
         return pulse_mix + triangle_mix + noise_mix + dmc_mix;
     }
 }
 
 void APU2A03::InitialState() {
-    _poweron = true;
-
     noise_seq.sequence = 0xDBDB;
 
     // Initialize triangle state

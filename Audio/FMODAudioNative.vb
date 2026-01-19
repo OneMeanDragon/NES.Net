@@ -6,7 +6,6 @@ Namespace NintendoEntertainmentSystem
     ''' P/Invoke wrapper for native FMOD audio system
     ''' </summary>
     Public Class FMODAudioNative
-        Implements IDisposable
 
         ' DLL imports
         <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
@@ -61,13 +60,8 @@ Namespace NintendoEntertainmentSystem
             End Get
         End Property
 
-        Private _disposed As Boolean = False
-
-        Public Sub New()
-            _audioHandle = FMODAudio_Create()
-            If _audioHandle = IntPtr.Zero Then
-                Throw New Exception("Failed to create FMOD audio system")
-            End If
+        Public Sub New(audio As IntPtr)
+            _audioHandle = audio
         End Sub
 
         'Public Function GetAudioSamples(count As Integer, buffer As Single()) As Integer
@@ -143,33 +137,6 @@ Namespace NintendoEntertainmentSystem
             End Get
         End Property
 
-        ' IDisposable implementation
-        Protected Overridable Sub Dispose(disposing As Boolean)
-            If Not _disposed Then
-                If disposing Then
-                    ' Stop audio before cleanup
-                    [Stop]()
-                End If
-
-                ' Dispose unmanaged resources
-                If _audioHandle <> IntPtr.Zero Then
-                    FMODAudio_Destroy(_audioHandle)
-                    _audioHandle = IntPtr.Zero
-                End If
-
-                _disposed = True
-            End If
-        End Sub
-
-        Public Sub Dispose() Implements IDisposable.Dispose
-            Dispose(True)
-            GC.SuppressFinalize(Me)
-        End Sub
-
-        Protected Overrides Sub Finalize()
-            Dispose(False)
-            MyBase.Finalize()
-        End Sub
     End Class
 
 End Namespace

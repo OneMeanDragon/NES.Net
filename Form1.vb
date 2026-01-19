@@ -32,7 +32,6 @@ Public Class Form1
     End Sub
 #End Region
 
-
 #Region "Rendering"
     Private renderer As Core.Renderer
 
@@ -281,12 +280,6 @@ Public Class Form1
             Return
         End If
 
-        ' Because the PPU needs the Cartridge pointer
-        'If Not IsNothing(emNES.PPU) Then
-        '    emNES.PPU.Dispose() ' done at the Bus
-        'End If
-        'emNES.PPU = New NativePPU2C02(Cart.NativeHandle)
-
         ' Connect our cartridge
         emNES.ConnectCartridge(Cart.NativeHandle)
 
@@ -330,6 +323,7 @@ Public Class Form1
         Dim _frameWatch As New Stopwatch()
         emNES.Reset(True) ' We just inserted the cart above (first reset flips the power)
         emNES.AudioSystem.Start()
+
         While running
             _frameWatch.Restart()
 
@@ -337,25 +331,21 @@ Public Class Form1
             ProcessHotKeys()
             UpdateNESController()
 
-            emNES.PPU.FrameComplete = False
-            While Not emNES.PPU.FrameComplete
-                emNES.Clock()
-                'emNES.AudioSystem.GenerateAudioFrame()
-                clocksPerFrame += 1
-                If running = False Then
-                    'emNES.Reset()
-                    Exit While
-                End If
-            End While
+            emNES.Tick()
+            'emNES.PPU.FrameComplete = False
+            'While Not emNES.PPU.FrameComplete
+            '    emNES.Clock()
+            '    'emNES.AudioSystem.GenerateAudioFrame()
+            '    If running = False Then Exit While
+            'End While
 
-            ' Update FMOD (IMPORTANT!)
-            emNES.AudioSystem.Update()
+            ' Update FMOD (IMPORTANT!) moved this update inside the bus
+            ' emNES.AudioSystem.Update()
 
             ' Should be ~29780 clocks per frame (NTSC)
-            If (frameCount Mod 60) = 0 Then
-                Debug.WriteLine($"Clocks per frame: {clocksPerFrame / 60}")
-            End If
-            clocksPerFrame = 0
+            'If (frameCount Mod 60) = 0 Then
+            '    Debug.WriteLine($"Clocks per frame: {clocksPerFrame / 60}") 'clocksPerFrame i should export this value
+            'End If
 
             ' Check FPS every second
             If (DateTime.Now - lastTime).TotalSeconds >= 1.0 Then
@@ -372,14 +362,16 @@ Public Class Form1
 
             'frame_ticker and reset the cycler
             frameCount += 1
-            emNES.PPU.FrameComplete = False
-            While _frameWatch.Elapsed.TotalMilliseconds < 16.666 ' 60 FPS
-                Thread.Sleep(1) ' Be more gentle than SpinWait
+            'emNES.PPU.FrameComplete = False
+            While _frameWatch.Elapsed.TotalMilliseconds < 16.66667 ' 60 FPS
+                'Threading.Thread.Sleep(1) ' Be more gentle than SpinWait
+                Threading.Thread.SpinWait(10)
             End While
             If resetRequest Then
                 resetRequest = False
                 emNES.Reset(False)
             End If
+            If running = False Then Exit While
         End While
 
         ' Clean up

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cmath>
+#include <vector>
 
 #ifdef _WIN32
 #define DLLEXPORT extern "C" __declspec(dllexport)
@@ -78,11 +79,7 @@ public:
 
 // Main APU class
 class APU2A03 {
-private:
-    bool _poweron = false;
 public:
-    void PowerOff() { _poweron = false; }
-    bool Powered() const { return _poweron; }
     void InitialState();
 public:
     APU2A03();
@@ -93,7 +90,10 @@ public:
     void Clock();
     void Reset(bool coldstart);
 
+public:  // Audio Samples
     double GetOutputSample();
+
+public:
     bool IsIRQActive() const;
 
     // Small inline helpers to configure/read the APU

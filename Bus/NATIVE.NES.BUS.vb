@@ -38,13 +38,33 @@ Namespace NintendoEntertainmentSystem
 #End Region
 
         Private _audio As FMODAudioNative
-        Public ReadOnly Property AudioSystem As FMODAudioNative
+        Public Property AudioSystem As FMODAudioNative
             Get
                 Return _audio
             End Get
+            Set(value As FMODAudioNative)
+                _audio = value
+            End Set
         End Property
 
-        ' DLL imports
+
+        ' Bus functions
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Function Bus_CpuRead(bus As IntPtr, addr As UShort, isReadOnly As Boolean) As Byte
+        End Function
+
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Sub Bus_CpuWrite(bus As IntPtr, addr As UShort, data As Byte)
+        End Sub
+
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Sub Bus_SetController(bus As IntPtr, index As Byte, state As Byte)
+        End Sub
+
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Function Bus_GetController(bus As IntPtr, index As Byte) As Byte
+        End Function
+
         <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Function CreateNESBus() As IntPtr
         End Function
@@ -54,12 +74,12 @@ Namespace NintendoEntertainmentSystem
         End Sub
 
         <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub Bus_Reset(bus As IntPtr, coldstart As Boolean)
+        Private Shared Sub Bus_Tick(bus As IntPtr)
         End Sub
 
         <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function Bus_Clock(bus As IntPtr) As Boolean
-        End Function
+        Private Shared Sub Bus_Reset(bus As IntPtr, coldstart As Boolean)
+        End Sub
 
         <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub Bus_ConnectCartridge(bus As IntPtr, cart As IntPtr)
@@ -78,67 +98,49 @@ Namespace NintendoEntertainmentSystem
         End Sub
 
         <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub Bus_ConnectAudio(bus As IntPtr, audio As IntPtr)
+        Private Shared Function Bus_GetAudioSystem(bus As IntPtr) As IntPtr
+        End Function
+
+        ' FMODAudioSystem functions
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Function FMODAudio_Initialize(audio As IntPtr, sampleRate As Integer, bufferSize As Integer) As Boolean
+        End Function
+
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Sub FMODAudio_Start(audio As IntPtr)
         End Sub
 
         <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function Bus_CpuRead(bus As IntPtr, addr As UShort, isReadOnly As Boolean) As Byte
-        End Function
-
-        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub Bus_CpuWrite(bus As IntPtr, addr As UShort, data As Byte)
+        Private Shared Sub FMODAudio_Stop(audio As IntPtr)
         End Sub
 
         <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub Bus_SetController(bus As IntPtr, index As Byte, state As Byte)
+        Private Shared Sub FMODAudio_SetVolume(audio As IntPtr, volume As Single)
         End Sub
 
+        ' Component creation
         <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function Bus_GetController(bus As IntPtr, index As Byte) As Byte
+        Private Shared Function CreatePPU() As IntPtr
         End Function
 
         <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Sub Bus_SetSampleFrequency(bus As IntPtr, sampleRate As UInteger)
+        Private Shared Function CreateCPU() As IntPtr
+        End Function
+
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Function CreateAPU() As IntPtr
+        End Function
+
+        '==============
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Sub Bus_PreFillAudioBuffer(bus As IntPtr, numSamples As Integer)
         End Sub
-
-        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function Bus_GetAudioSample(bus As IntPtr) As Double
-        End Function
-
-        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function Bus_GetAudioBufferLevel(bus As IntPtr) As Integer
-        End Function
-
-        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function Bus_PopAudioSample(bus As IntPtr, ByRef sample As Double) As Boolean
-        End Function
-
-        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function Bus_GetSystemClockCount(bus As IntPtr) As ULong
-        End Function
-
-        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
-        Private Shared Function Bus_IsAudioSampleReady(bus As IntPtr) As Boolean
-        End Function
+        '==============
 
         ' Instance fields
         Private _busHandle As IntPtr
         Private _diagnosticCallback As DLLPath.DiagnosticLogDelegate
         Private _disposed As Boolean = False
-
-#Region "Temporary Delegates for the CPU and the APU"
-
-        Public Sub CpuClock()
-            CPU?.Clock()
-        End Sub
-        Public Sub NmiTrigger()
-            CPU?.NMI()
-        End Sub
-        Public Sub IrqTrigger()
-            CPU?.IRQ()
-        End Sub
-
-#End Region
 
         Public ReadOnly CPU As New NativeCPU6502()
         Public ReadOnly PPU As New NativePPU2C02()
@@ -158,17 +160,27 @@ Namespace NintendoEntertainmentSystem
             ConnectPPU(PPU.NativeHandle)
             ConnectAPU(APU.NativeHandle)
 
-            ' Connect CPU to this bus
-            CPU.ConnectBus(_busHandle)
+            AudioSystem = New FMODAudioNative(Bus_GetAudioSystem(_busHandle))
+            ' Initialize audio - use 2048 for very stable playback 44100
+            If FMODAudio_Initialize(AudioSystem.NativeHandle, 44100, 4096) Then
+                Console.WriteLine("Audio initialized with 2048 sample buffer")
 
-            ' Initialize FMOD audio (AFTER bus is configured)
-            _audio = New FMODAudioNative()
-            ConnectAudio(_audio.NativeHandle)
+                ' CRITICAL: Pre-fill the buffer before starting playback
+                ' This prevents initial stuttering/clicking
+                Bus_PreFillAudioBuffer(_busHandle, 2048)  ' Fill half the buffer
 
-            ' Start audio playback
-            '_audio.Start()
-
+                FMODAudio_Start(AudioSystem.NativeHandle)
+                Console.WriteLine("Audio started")
+            Else
+                Console.WriteLine("Failed to initialize audio")
+            End If
         End Sub
+        ' Also add a method to check buffer status:
+        Public Function GetAudioBufferStatus() As String
+            ' The debug output happens automatically in Tick()
+            ' Check your console output every second
+            Return "Check console for buffer status"
+        End Function
 
         ''' <summary>
         ''' coldstart true means turn the power on.
@@ -179,9 +191,13 @@ Namespace NintendoEntertainmentSystem
             Bus_Reset(_busHandle, coldstart)
         End Sub
 
-        Public Function Clock() As Boolean
-            Return Bus_Clock(_busHandle)
-        End Function
+        'Public Function Clock() As Boolean
+        '    Return Bus_Clock(_busHandle)
+        'End Function
+
+        Public Sub Tick()
+            Bus_Tick(_busHandle)
+        End Sub
 
         Public Sub ConnectCartridge(cartHandle As IntPtr)
             Bus_ConnectCartridge(_busHandle, cartHandle)
@@ -199,10 +215,6 @@ Namespace NintendoEntertainmentSystem
             Bus_ConnectAPU(_busHandle, apuHandle)
         End Sub
 
-        Public Sub ConnectAudio(audio As IntPtr)
-            Bus_ConnectAudio(_busHandle, audio)
-        End Sub
-
         Public Function CpuRead(addr As UShort, Optional isReadOnly As Boolean = False) As Byte
             Return Bus_CpuRead(_busHandle, addr, isReadOnly)
         End Function
@@ -218,38 +230,6 @@ Namespace NintendoEntertainmentSystem
             Set(value As Byte)
                 Bus_SetController(_busHandle, CByte(index), value)
             End Set
-        End Property
-
-        Public Sub SetSampleFrequency(sampleRate As UInteger)
-            Bus_SetSampleFrequency(_busHandle, sampleRate)
-        End Sub
-
-        Public ReadOnly Property AudioSample As Double
-            Get
-                Return Bus_GetAudioSample(_busHandle)
-            End Get
-        End Property
-
-        Public ReadOnly Property AudioBufferLevel As Integer
-            Get
-                Return Bus_GetAudioBufferLevel(_busHandle)
-            End Get
-        End Property
-
-        Public Function PopAudioSample(ByRef sample As Double) As Boolean
-            Return Bus_PopAudioSample(_busHandle, sample)
-        End Function
-
-        Public ReadOnly Property SystemClockCount As ULong
-            Get
-                Return Bus_GetSystemClockCount(_busHandle)
-            End Get
-        End Property
-
-        Public ReadOnly Property AudioSampleReady As Boolean
-            Get
-                Return Bus_IsAudioSampleReady(_busHandle)
-            End Get
         End Property
 
         ' IDisposable implementation
