@@ -652,6 +652,17 @@ bool APU2A03::IsIRQActive() const {
 }
 
 double APU2A03::GetOutputSample() {
+    // Test tone for measuring latency
+    if (_testToneEnabled) {
+        // 440 Hz sine wave
+        double freq = 440.0;
+        _testTonePhase += (2.0 * 3.14159265358979323846 * freq) / sample_rate;
+        if (_testTonePhase > 2.0 * 3.14159265358979323846) {
+            _testTonePhase -= 2.0 * 3.14159265358979323846;
+        }
+        return 0.5 * std::sin(_testTonePhase);
+    }
+
     if (use_raw_mode) {
         return (pulse1_sample - 0.5) * 0.5 + (pulse2_sample - 0.5) * 0.5;
     }
@@ -659,11 +670,11 @@ double APU2A03::GetOutputSample() {
         double pulse_mix =
             ((1.0 * pulse1_output) - 0.8) * 0.1 +
             ((1.0 * pulse2_output) - 0.8) * 0.1;
-        
+
         double triangle_mix = ((triangle_output)-0.5) * 0.15;
         double noise_mix = ((2.0 * (noise_output - 0.5))) * 0.1;
         double dmc_mix = ((static_cast<double>(dmc_output_level) / 127.0) - 0.5) * 0.15;
-        
+
         return pulse_mix + triangle_mix + noise_mix + dmc_mix;
     }
 }

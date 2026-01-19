@@ -58,7 +58,11 @@ public:
     bool GetAudioSample(float& sample);
     int GetAudioBufferLevel() const;
     void PreFillAudioBuffer(int numSamples);
-
+public:
+    void SetAudioBufferTarget(int samples) { _audioBufferTarget = samples; }
+    int GetAudioBufferTarget() const { return _audioBufferTarget; }
+private:
+    int _audioBufferTarget = 2205;  // 50ms - risky but lowest latency [4410;  // 100ms instead of 200ms] // was 8820
 private:
     // Constants
     static constexpr int CPU_RAM_SIZE = 2048;
@@ -70,14 +74,14 @@ private:
     static constexpr double  PAL_MASTER_CRYSTAL_MHZ = 26.601712;
 
     static constexpr double NTSC_MASTER_CLOCK_HZ = NTSC_MASTER_CRYSTAL_MHZ * MHZ;
-    static constexpr double  PAL_MASTER_CLOCK_HZ =  PAL_MASTER_CRYSTAL_MHZ * MHZ;
+    static constexpr double  PAL_MASTER_CLOCK_HZ = PAL_MASTER_CRYSTAL_MHZ * MHZ;
 
     static constexpr double CPU_CLOCK_HZ = (NTSC_MASTER_CLOCK_HZ / 12); // NTSC master hz frequencys
-    static constexpr double PPU_CLOCK_HZ = (NTSC_MASTER_CLOCK_HZ /  4);
+    static constexpr double PPU_CLOCK_HZ = (NTSC_MASTER_CLOCK_HZ / 4);
     static constexpr double PAL_CPU_CLOCK_HZ = (PAL_MASTER_CLOCK_HZ / 16); // PAL master hz frequencys
-    static constexpr double PAL_PPU_CLOCK_HZ = (PAL_MASTER_CLOCK_HZ /  5);
+    static constexpr double PAL_PPU_CLOCK_HZ = (PAL_MASTER_CLOCK_HZ / 5);
 
-    static constexpr size_t AUDIO_BUFFER_CAPACITY = 8192;  // Larger buffer for stability
+    static constexpr size_t AUDIO_BUFFER_CAPACITY = 32768;  // Larger buffer for stability
 
     // Components
     CartridgeInterfaceAPI* _cart;
@@ -105,6 +109,8 @@ private:
     double _audioTimePerNESClock;
     double _audioTimePerSystemSample;
     uint32_t _sampleRate;
+    double _nesClocksPerSample;        // How many NES clocks per audio sample
+    double _audioSampleAccumulator;    // Tracks fractional samples
 
     // System state
     uint64_t _systemClockCounter;
@@ -129,6 +135,18 @@ public:
     void EnableLogging(bool enable) { _loggingEnabled = enable; }
     void SetDiagnosticLogCallback(DiagnosticLogCallback callback);
     void Log(const char* msg) const;
+
+public:
+    void MeasureAudioLatency();
+private:
+    uint64_t _latencyTestStartClock = 0;
+    bool _latencyTestActive = false;
+public:
+    void AdjustAudioBuffer();  // Call this occasionally to tune buffer size
+private:
+    int _underrunCounter = 0;
+    int _lastBufferAdjustmentFrame = 0;
+    void DisplayAudioStatus();
 };
 
 // Exported Bus functions

@@ -65,8 +65,8 @@ bool FMODAudioSystem::Initialize(int sampleRate, int bufferSize) {
         return false;
     }
 
-    // Use 4 buffers for smoother playback
-    result = _system->setDSPBufferSize(_bufferSize, 4);
+    // Use 2 buffers for lower latency
+    result = _system->setDSPBufferSize(_bufferSize, 2);
     if (result != FMOD_OK) {
         LogFMODError(result, "setDSPBufferSize");
     }
@@ -87,7 +87,13 @@ bool FMODAudioSystem::Initialize(int sampleRate, int bufferSize) {
 
     FMOD_CREATESOUNDEXINFO exinfo = {};
     exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
-    exinfo.length = _sampleRate * sizeof(float) * 2;  // 2 seconds
+
+    // CRITICAL FIX: Make the decode buffer match the DSP buffer size
+    // This makes FMOD request smaller chunks that match what we can provide
+    // Instead of 2 seconds (88,200 samples), use 4x the buffer size
+    exinfo.decodebuffersize = _bufferSize * 4;  // 2048 samples at 512 buffer size
+    exinfo.length = _bufferSize * 4 * sizeof(float);  // Size in bytes
+
     exinfo.numchannels = 1;
     exinfo.defaultfrequency = _sampleRate;
     exinfo.format = FMOD_SOUND_FORMAT_PCMFLOAT;
@@ -111,14 +117,22 @@ bool FMODAudioSystem::Initialize(int sampleRate, int bufferSize) {
     _initialized = true;
 
     std::cout << "[FMOD] Initialized: " << _sampleRate << " Hz, "
-        << _bufferSize << " samples, ~"
-        << (_bufferSize * 1000 / _sampleRate) << " ms latency" << std::endl;
+        << _bufferSize << " samples/buffer, 2 buffers" << std::endl;
+    std::cout << "[FMOD] Decode buffer: " << exinfo.decodebuffersize
+        << " samples (~" << (exinfo.decodebuffersize * 1000 / _sampleRate)
+        << " ms)" << std::endl;
 
     return true;
 }
 
 void FMODAudioSystem::Start() {
-    if (!_initialized || _playing) {
+    if (!_initialized) {
+        std::cerr << "[FMOD] Cannot start - not initialized" << std::endl;
+        return;
+    }
+
+    if (_playing) {
+        // Already playing, just update
         return;
     }
 
@@ -130,7 +144,6 @@ void FMODAudioSystem::Start() {
 
     if (_channel) {
         _channel->setVolume(_volume);
-        // Set low level priority for more consistent playback
         _channel->setPriority(0);
     }
 
@@ -240,6 +253,7 @@ FMOD_RESULT FMODAudioSystem::FillAudioBuffer(void* data, unsigned int datalen) {
     int samplesRead = 0;
     float lastSample = 0.0f;
 
+    // Try to read all requested samples
     for (int i = 0; i < sampleCount; i++) {
         float sample;
         if (_bus->GetAudioSample(sample)) {
@@ -248,13 +262,41 @@ FMOD_RESULT FMODAudioSystem::FillAudioBuffer(void* data, unsigned int datalen) {
             samplesRead++;
         }
         else {
-            // Buffer underrun - hold last sample instead of silence
+            // Buffer underrun - hold last sample
             samples[i] = lastSample;
-            _underrunCount++;
+        }
+    }
+
+    // Count underruns (only when we got less than 50% of requested samples)
+    if (samplesRead < sampleCount / 2) {
+        _underrunCount++;
+
+        // Log severe underruns
+        static int logCounter = 0;
+        if (++logCounter % 100 == 0) {
+            std::cout << "[FMOD] Severe underrun: requested " << sampleCount
+                << ", got " << samplesRead << " (buffer may be too small)" << std::endl;
         }
     }
 
     return FMOD_OK;
+}
+
+FMODAudioSystem::AudioHealth FMODAudioSystem::GetAudioHealth() const {
+    AudioHealth health = {};
+
+    if (_bus) {
+        health.bufferLevel = _bus->GetAudioBufferLevel();
+        health.bufferPercent = (health.bufferLevel * 100.0f) / 32768.0f;
+    }
+
+    health.underruns = _underrunCount;
+    health.avgLatencyMs = GetLatency();
+
+    // Consider stable if buffer is between 25-75% full and underruns are minimal
+    health.stable = (health.bufferPercent > 25.0f && health.bufferPercent < 75.0f);
+
+    return health;
 }
 
 // Exports
@@ -304,4 +346,12 @@ DLLEXPORT bool FMODAudio_IsPlaying(FMODAudioSystem* audio) {
 DLLEXPORT int FMODAudio_GetLatency(FMODAudioSystem* audio) {
     if (audio) return audio->GetLatency();
     return 0;
+}
+
+DLLEXPORT bool FMODAudio_IsStable(FMODAudioSystem* audio) {
+    if (audio) {
+        auto health = audio->GetAudioHealth();
+        return health.stable;
+    }
+    return false;
 }

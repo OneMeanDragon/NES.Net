@@ -327,8 +327,6 @@ Public Class Form1
         Dim lastTime As DateTime = DateTime.Now
         Dim _frameWatch As New Stopwatch()
         emNES.Reset(True) ' We just inserted the cart above (first reset flips the power)
-        emNES.AudioSystem.Start()
-
         While running
             _frameWatch.Restart()
 
@@ -353,11 +351,11 @@ Public Class Form1
             'End If
 
             ' Check FPS every second
-            If (DateTime.Now - lastTime).TotalSeconds >= 1.0 Then
-                Console.WriteLine($"FPS: {frameCount}")
-                frameCount = 0
-                lastTime = DateTime.Now
-            End If
+            'If (DateTime.Now - lastTime).TotalSeconds >= 1.0 Then
+            '    Console.WriteLine($"FPS: {frameCount}")
+            '    frameCount = 0
+            '    lastTime = DateTime.Now
+            'End If
 
             renderer.RenderFrame(emNES.PPU, frameCount)
             UpdateDisplay()

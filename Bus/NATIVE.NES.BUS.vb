@@ -153,8 +153,8 @@ Namespace NintendoEntertainmentSystem
             If _busHandle = IntPtr.Zero Then
                 Throw New Exception("Failed to create native NES Bus")
             End If
-            BusEnableDiagnosticLogger(_busHandle, True)
             BusSetDiagnosticLogCallback(_busHandle, _diagnosticCallback)
+            BusEnableDiagnosticLogger(_busHandle, True)
 
             ConnectCPU(CPU.NativeHandle)
             ConnectPPU(PPU.NativeHandle)
@@ -162,15 +162,8 @@ Namespace NintendoEntertainmentSystem
 
             AudioSystem = New FMODAudioNative(Bus_GetAudioSystem(_busHandle))
             ' Initialize audio - use 2048 for very stable playback 44100
-            If FMODAudio_Initialize(AudioSystem.NativeHandle, 44100, 4096) Then
+            If FMODAudio_Initialize(AudioSystem.NativeHandle, 44100, 512) Then
                 Console.WriteLine("Audio initialized with 2048 sample buffer")
-
-                ' CRITICAL: Pre-fill the buffer before starting playback
-                ' This prevents initial stuttering/clicking
-                Bus_PreFillAudioBuffer(_busHandle, 2048)  ' Fill half the buffer
-
-                FMODAudio_Start(AudioSystem.NativeHandle)
-                Console.WriteLine("Audio started")
             Else
                 Console.WriteLine("Failed to initialize audio")
             End If

@@ -17,6 +17,15 @@ class APU2A03;
 
 class FMODAudioSystem {
 public:
+    struct AudioHealth {
+        int bufferLevel;
+        float bufferPercent;
+        int underruns;
+        float avgLatencyMs;
+        bool stable;
+    };
+    AudioHealth GetAudioHealth() const;
+public:
     FMODAudioSystem();
     ~FMODAudioSystem();
 

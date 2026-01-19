@@ -214,6 +214,13 @@ private: // non owning
     class NESBus* _bus = nullptr;
 public:
     void ConnectBus(class NESBus* bus) { _bus = bus; }
+
+public:
+    // Debug: inject a test tone for latency measurement
+    void InjectTestTone(bool enable) { _testToneEnabled = enable; }
+private:
+    bool _testToneEnabled = false;
+    double _testTonePhase = 0.0;
 };
 
 // Exports

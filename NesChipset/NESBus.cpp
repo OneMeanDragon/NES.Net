@@ -10,6 +10,94 @@
 #include "PPU2C02.h"
 #include "FMODAudio/FMODAudioSystem.h"
 
+
+
+
+void NESBus::MeasureAudioLatency() {
+    if (!_apu || !_audioSystem) {
+        Log("Cannot measure latency - APU or audio system not available");
+        return;
+    }
+
+    Log("Starting latency measurement...");
+    Log("You should hear a beep in a moment. Note the delay from NOW.");
+
+    // Clear the buffer
+    {
+        std::lock_guard<std::mutex> lock(_audioMutex);
+        _audioBufferRead = 0;
+        _audioBufferWrite = 0;
+    }
+
+    _latencyTestStartClock = _systemClockCounter;
+    _latencyTestActive = true;
+
+    // Inject test tone for 0.5 seconds
+    _apu->InjectTestTone(true);
+
+    // Run for ~0.5 seconds worth of clocks
+    uint64_t clocksFor500ms = static_cast<uint64_t>(PPU_CLOCK_HZ * 0.5);
+    uint64_t targetClock = _systemClockCounter + clocksFor500ms;
+
+    while (_systemClockCounter < targetClock) {
+        Clock();
+    }
+
+    _apu->InjectTestTone(false);
+
+    // Calculate how long it took
+    uint64_t elapsedClocks = _systemClockCounter - _latencyTestStartClock;
+    double elapsedMs = (elapsedClocks / PPU_CLOCK_HZ) * 1000.0;
+
+    int bufferLevel = GetAudioBufferLevel();
+    double bufferMs = (bufferLevel * 1000.0) / _sampleRate;
+
+    int fmodLatency = _audioSystem->GetLatency();
+    double totalEstimatedLatency = bufferMs + fmodLatency;
+
+    char msg[512];
+    snprintf(msg, sizeof(msg),
+        "Latency Test Results:\n"
+        "  Generated %.1f ms of audio\n"
+        "  Ring buffer: %d samples (%.1f ms)\n"
+        "  FMOD latency: %d ms\n"
+        "  Total estimated latency: %.1f ms\n"
+        "  Listen for the beep and compare to when you started the test",
+        elapsedMs, bufferLevel, bufferMs, fmodLatency, totalEstimatedLatency);
+    Log(msg);
+
+    _latencyTestActive = false;
+}
+void NESBus::AdjustAudioBuffer() {
+    // Only adjust every ~5 seconds (300 frames at 60fps)
+    static int framesSinceLastAdjust = 0;
+    if (++framesSinceLastAdjust < 300) return;
+    framesSinceLastAdjust = 0;
+
+    int currentLevel = GetAudioBufferLevel();
+    float fillPercent = (currentLevel * 100.0f) / AUDIO_BUFFER_CAPACITY;
+
+    // If buffer is consistently too full, we can reduce the target for lower latency
+    if (fillPercent > 75.0f && _audioBufferTarget > 2205) {
+        _audioBufferTarget -= 441;  // Reduce by 10ms
+        char msg[128];
+        snprintf(msg, sizeof(msg), "Buffer high (%.1f%%), reducing target to %d samples",
+            fillPercent, _audioBufferTarget);
+        Log(msg);
+    }
+    // If buffer is getting low, increase target for stability
+    else if (fillPercent < 25.0f && _audioBufferTarget < 8820) {
+        _audioBufferTarget += 441;  // Increase by 10ms
+        char msg[128];
+        snprintf(msg, sizeof(msg), "Buffer low (%.1f%%), increasing target to %d samples",
+            fillPercent, _audioBufferTarget);
+        Log(msg);
+    }
+}
+
+
+
+
 #pragma region "Diagnostics"
 void NESBus::SetDiagnosticLogCallback(DiagnosticLogCallback callback) {
     _diagnosticCallback = &DummyLogger;
@@ -29,7 +117,8 @@ NESBus::NESBus()
     : _cart(nullptr), _ppu(nullptr), _apu(nullptr), _cpu(nullptr),
     _dmaPage(0), _dmaAddr(0), _dmaData(0), _dmaDummy(true), _dmaTransfer(false),
     _audioTime(0.0), _systemClockCounter(0), _diagnosticCallback(nullptr),
-    _audioBufferWrite(0), _audioBufferRead(0), _sampleRate(44100)
+    _audioBufferWrite(0), _audioBufferRead(0), _sampleRate(44100),
+    _audioSampleAccumulator(0.0)  // NEW: track fractional samples
 {
     std::memset(_cpuRam, 0, sizeof(_cpuRam));
     std::memset(_controllerState, 0, sizeof(_controllerState));
@@ -38,6 +127,9 @@ NESBus::NESBus()
     _audioBuffer.resize(AUDIO_BUFFER_CAPACITY, 0.0f);
     _audioTimePerSystemSample = 1.0 / static_cast<double>(_sampleRate);
     _audioTimePerNESClock = 1.0 / PPU_CLOCK_HZ;
+
+    // Calculate how many NES clocks per audio sample
+    _nesClocksPerSample = PPU_CLOCK_HZ / static_cast<double>(_sampleRate);
 
     // Create audio system - DO THIS LAST
     _audioSystem = std::make_unique<FMODAudioSystem>();
@@ -98,6 +190,11 @@ void NESBus::ConnectAPU(APU2A03* apu) {
 }
 
 void NESBus::Reset(bool poweron) {
+    // Stop audio if it was playing
+    if (_audioSystem && _audioSystem->IsPlaying()) {
+        _audioSystem->Stop();
+    }
+
     // Reset cartridge
     if (_cart) _cart->Reset();
 
@@ -123,6 +220,7 @@ void NESBus::Reset(bool poweron) {
         _audioBufferWrite = 0;
     }
     _audioTime = 0.0;
+    _audioSampleAccumulator = 0.0;
 
     // Reset clock
     _systemClockCounter = 0;
@@ -245,20 +343,22 @@ void NESBus::ProcessDMA() {
 }
 
 void NESBus::ProcessAudio() {
-    _audioTime += _audioTimePerNESClock;
-    
-    while (_audioTime >= _audioTimePerSystemSample) {
-        _audioTime -= _audioTimePerSystemSample;
-    
+    // Accumulate fractional samples
+    _audioSampleAccumulator += 1.0;
+
+    // Generate a sample when we've accumulated enough NES clocks
+    while (_audioSampleAccumulator >= _nesClocksPerSample) {
+        _audioSampleAccumulator -= _nesClocksPerSample;
+
         // Get sample from APU
         double sample = _apu->GetOutputSample();
-    
+
         // Clamp and validate
         sample = std::max(-1.0, std::min(1.0, sample));
         if (std::isnan(sample) || std::isinf(sample)) {
             sample = 0.0;
         }
-    
+
         // Add to ring buffer (non-blocking, drop if full)
         std::lock_guard<std::mutex> lock(_audioMutex);
         size_t nextWrite = (_audioBufferWrite + 1) % AUDIO_BUFFER_CAPACITY;
@@ -267,7 +367,6 @@ void NESBus::ProcessAudio() {
             _audioBufferWrite = nextWrite;
         }
     }
-
 }
 
 bool NESBus::GetAudioSample(float& sample) {
@@ -294,41 +393,16 @@ int NESBus::GetAudioBufferLevel() const {
 }
 
 void NESBus::PreFillAudioBuffer(int numSamples) {
+    // REMOVED: Don't pre-fill with silence
+    // Instead, just start with an empty buffer and let it fill naturally
+
     std::lock_guard<std::mutex> lock(_audioMutex);
 
-    // Safety check
-    int samplesToFill = std::min(numSamples, static_cast<int>(AUDIO_BUFFER_CAPACITY) - 1);
-    if (samplesToFill <= 0) {
-        Log("PreFillAudioBuffer: invalid sample count");
-        return;
-    }
-
-    // Clear and fill buffer
+    // Reset buffer pointers
     _audioBufferWrite = 0;
     _audioBufferRead = 0;
 
-    // Fill with silence (safe)
-    for (int i = 0; i < samplesToFill; i++) {
-        _audioBuffer[i] = 0.0f;
-    }
-    _audioBufferWrite = samplesToFill;
-
-    // Calculate buffer level manually (don't call GetAudioBufferLevel())
-    int bufferLevel;
-    if (_audioBufferWrite >= _audioBufferRead) {
-        bufferLevel = static_cast<int>(_audioBufferWrite - _audioBufferRead);
-    }
-    else {
-        bufferLevel = static_cast<int>(AUDIO_BUFFER_CAPACITY - (_audioBufferRead - _audioBufferWrite));
-    }
-
-    float fillPercentage = (bufferLevel * 100.0f) / AUDIO_BUFFER_CAPACITY;
-
-    char msg[256];
-    snprintf(msg, sizeof(msg),
-        "Pre-filled audio buffer: %d samples (%.1f%% full)",
-        bufferLevel, fillPercentage);
-    Log(msg);
+    Log("Audio buffer ready - will fill during emulation");
 }
 
 bool NESBus::Clock() {
@@ -352,7 +426,7 @@ bool NESBus::Clock() {
         _apu->Clock();
     }
 
-    // Process audio every clock [testing direct apu access]
+    // Process audio every clock
     ProcessAudio();
 
     // Handle NMI from PPU
@@ -405,10 +479,39 @@ void NESBus::Tick() {
     }
     _ppu->SetFrameComplete(true);
 
-    // Update audio once per frame
+    // Start audio when ready (only runs once)
+    if (!_audioSystem->IsPlaying() && _audioSystem) {
+        int bufferLevel = GetAudioBufferLevel();
+        if (bufferLevel >= _audioBufferTarget) {
+            _audioSystem->Start();
+
+            // Optional: Log only on start
+            char msg[128];
+            snprintf(msg, sizeof(msg),
+                "Audio started with %d samples (%.1f ms)",
+                bufferLevel, (bufferLevel * 1000.0f) / _sampleRate);
+            Log(msg);
+        }
+    }
+    else { GetAudioBufferLevel(); }
+
+    // Update audio system
     if (_audioSystem) {
         _audioSystem->Update();
     }
+}
+
+void NESBus::DisplayAudioStatus() {
+    
+    int bufferLevel = GetAudioBufferLevel();
+    float bufferMs = (bufferLevel * 1000.0F) / 44100.0F;
+    float bufferPercent = (bufferLevel * 100.0F) / 32768.0F;
+    
+    // Display something Like
+    // "Audio: 4532 samples (102.7ms) [13.8%] Good"
+    printf("Audio: %d samples (%.1fms) [%.1f%%] %s\n",
+           bufferLevel, bufferMs, bufferPercent,
+           (bufferPercent > 20.0f && bufferPercent < 80.0f) ? "Good" : "Poor");
 }
 
 // Exported Bus functions
@@ -504,4 +607,8 @@ DLLEXPORT void BusSetDiagnosticLogCallback(NESBus* bus, DiagnosticLogCallback ca
     else if (bus == nullptr) {
         if (callback) callback("Error: Bus instance is nullptr.");
     }
+}
+
+DLLEXPORT void Bus_MeasureAudioLatency(NESBus* bus) {
+    if (bus) bus->MeasureAudioLatency();
 }
