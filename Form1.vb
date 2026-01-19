@@ -200,6 +200,11 @@ Public Class Form1
     Private pcStuckCount As Integer = 0
 
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        ' This doesn't disable ALL visual styles, but helps with rendering
+        Me.SetStyle(ControlStyles.AllPaintingInWmPaint Or
+                ControlStyles.UserPaint Or
+                ControlStyles.DoubleBuffer, True)
+
         ' Initialize the renderer
         InitializeInput()
         InitializeRenderer()

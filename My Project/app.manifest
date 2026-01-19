@@ -1,21 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <assemblyIdentity version="1.0.0.0" name="NES.Net.app" />
-  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+<asmv1:assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1"
+                xmlns:asmv1="urn:schemas-microsoft-com:asm.v1"
+                xmlns:asmv2="urn:schemas-microsoft-com:asm.v2"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <assemblyIdentity version="1.0.0.0" name="Nintendo"/>
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
     <security>
-      <requestedPrivileges>
+      <applicationRequestMinimum>
+        <PermissionSet Unrestricted="true" ID="Custom" SameSite="site" />
+        <defaultAssemblyRequest permissionSetReference="Custom" />
+      </applicationRequestMinimum>
+      <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
         <requestedExecutionLevel level="asInvoker" uiAccess="false" />
       </requestedPrivileges>
     </security>
   </trustInfo>
-  <dependency>
-    <dependentAssembly>
-      <assemblyIdentity type="win32"
-                        name="Microsoft.Windows.Common-Controls"
-                        version="6.0.0.0"
-                        processorArchitecture="*"
-                        publicKeyToken="6595b64144ccf1df"
-                        language="*" />
-    </dependentAssembly>
-  </dependency>
-</assembly>
+</asmv1:assembly>
