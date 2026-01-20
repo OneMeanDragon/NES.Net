@@ -4,6 +4,10 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 18.1.11312.151
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Nintendo", "Nintendo.vbproj", "{6941277C-C1F9-4EC2-9E4D-92FCB3E792C7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{413D9F93-8624-4024-9F43-A4E74E8B4228} = {413D9F93-8624-4024-9F43-A4E74E8B4228}
+		{A4A22FB5-FAFF-4732-ADF6-01FC9CEE398C} = {A4A22FB5-FAFF-4732-ADF6-01FC9CEE398C}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NesCartridge", "NesCartridge\NesCartridge.vcxproj", "{413D9F93-8624-4024-9F43-A4E74E8B4228}"
 EndProject

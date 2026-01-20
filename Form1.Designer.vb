@@ -30,22 +30,21 @@ Partial Class Form1
         Me.StopToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.ResetToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.FpsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
-        Me.dlgOpenFile = New System.Windows.Forms.OpenFileDialog()
         Me.OnToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.OffToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.dlgOpenFile = New System.Windows.Forms.OpenFileDialog()
         CType(Me.picScreen, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.MenuStrip1.SuspendLayout()
         Me.SuspendLayout()
         '
         'picScreen
         '
-        Me.picScreen.Anchor = CType((((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Bottom) _
-            Or System.Windows.Forms.AnchorStyles.Left) _
-            Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.picScreen.BackColor = System.Drawing.Color.Black
-        Me.picScreen.Location = New System.Drawing.Point(5, 30)
+        Me.picScreen.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.picScreen.Location = New System.Drawing.Point(0, 24)
+        Me.picScreen.Margin = New System.Windows.Forms.Padding(0)
         Me.picScreen.Name = "picScreen"
-        Me.picScreen.Size = New System.Drawing.Size(780, 480)
+        Me.picScreen.Size = New System.Drawing.Size(451, 220)
         Me.picScreen.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage
         Me.picScreen.TabIndex = 0
         Me.picScreen.TabStop = False
@@ -55,7 +54,7 @@ Partial Class Form1
         Me.MenuStrip1.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.EmulationToolStripMenuItem, Me.FpsToolStripMenuItem})
         Me.MenuStrip1.Location = New System.Drawing.Point(0, 0)
         Me.MenuStrip1.Name = "MenuStrip1"
-        Me.MenuStrip1.Size = New System.Drawing.Size(789, 24)
+        Me.MenuStrip1.Size = New System.Drawing.Size(451, 24)
         Me.MenuStrip1.TabIndex = 1
         Me.MenuStrip1.Text = "mnuMain"
         '
@@ -98,27 +97,28 @@ Partial Class Form1
         Me.FpsToolStripMenuItem.Size = New System.Drawing.Size(38, 20)
         Me.FpsToolStripMenuItem.Text = "FPS"
         '
-        'dlgOpenFile
-        '
-        Me.dlgOpenFile.FileName = "dlgOpenFile"
-        '
         'OnToolStripMenuItem
         '
         Me.OnToolStripMenuItem.Name = "OnToolStripMenuItem"
-        Me.OnToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.OnToolStripMenuItem.Size = New System.Drawing.Size(91, 22)
         Me.OnToolStripMenuItem.Text = "On"
         '
         'OffToolStripMenuItem
         '
         Me.OffToolStripMenuItem.Name = "OffToolStripMenuItem"
-        Me.OffToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.OffToolStripMenuItem.Size = New System.Drawing.Size(91, 22)
         Me.OffToolStripMenuItem.Text = "Off"
+        '
+        'dlgOpenFile
+        '
+        Me.dlgOpenFile.FileName = "dlgOpenFile"
         '
         'Form1
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(789, 513)
+        Me.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch
+        Me.ClientSize = New System.Drawing.Size(451, 244)
         Me.Controls.Add(Me.picScreen)
         Me.Controls.Add(Me.MenuStrip1)
         Me.KeyPreview = True

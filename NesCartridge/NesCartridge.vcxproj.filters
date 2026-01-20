@@ -48,16 +48,7 @@
     <ClInclude Include="core\mappers\MapperFactory.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\Interfaces\CartridgeInterfaceLibrary.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="core\Interfaces\MirrorModeRequired.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="core\Diagnostics\DiagnosticHelpers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="core\Interfaces\CartridgeApi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
