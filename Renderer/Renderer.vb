@@ -17,7 +17,12 @@ Namespace Core
         ' Layout constants
         Private Const GAME_WIDTH As Integer = 256
         Private Const GAME_HEIGHT As Integer = 240
-        Private Const MARGIN As Integer = 2
+        Private Const _MARGIN As Integer = 2
+        Public ReadOnly Property MARGIN As Integer
+            Get
+                Return _MARGIN
+            End Get
+        End Property
         Private Const PATTERN_SIZE As Integer = 128
         Private Const PATTERN_MARGIN As Integer = 2
         Private Const SWATCH_SIZE As Integer = 6
@@ -26,6 +31,7 @@ Namespace Core
         Public Const CANVAS_WIDTH As Integer = GAME_WIDTH + 4 + ((PATTERN_SIZE + 2) * 2)
         Public Const CANVAS_HEIGHT As Integer = GAME_HEIGHT + 4
         Public ReadOnly Property CanvasSize As Size = New Size(CANVAS_WIDTH, CANVAS_HEIGHT)
+        Private simfont As New SimpleFont()
 #End Region
 
 #Region "State"
@@ -75,6 +81,7 @@ Namespace Core
 
         Public Sub Dispose() Implements IDisposable.Dispose
             If Not _isDisposed Then
+                simfont?.Dispose()
                 _backBuffer?.Dispose()
                 _backBuffer = Nothing
                 _isDisposed = True
@@ -278,6 +285,25 @@ Namespace Core
             _needsPaletteRedraw = True
         End Sub
 #End Region
+
+        <MethodImpl(MethodImplOptions.AggressiveInlining)>
+        Public Sub DrawText(x As Integer, y As Integer, text As String, color As GraphicsObjects.Pixel,
+            Optional spacing As Integer = 1, Optional shadow As Boolean = False)
+            If String.IsNullOrEmpty(text) Then Return
+
+            Dim currentX As Integer = x
+
+            For Each c As Char In text
+                Dim charSprite As GraphicsObjects.Sprite = simfont.GetCachedCharacter(c, color, shadow)
+                If charSprite IsNot Nothing Then
+                    DrawSprite(currentX, y, charSprite)
+                    currentX += charSprite.Width + spacing
+                Else
+                    ' Fallback for unknown characters - use space width
+                    currentX += 3 + spacing
+                End If
+            Next
+        End Sub
 
     End Class
 

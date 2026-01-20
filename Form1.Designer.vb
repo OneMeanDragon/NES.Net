@@ -28,9 +28,11 @@ Partial Class Form1
         Me.OpenToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.EmulationToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.StopToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.ResetToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.FpsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         Me.dlgOpenFile = New System.Windows.Forms.OpenFileDialog()
-        Me.ResetToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.OnToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
+        Me.OffToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
         CType(Me.picScreen, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.MenuStrip1.SuspendLayout()
         Me.SuspendLayout()
@@ -80,24 +82,37 @@ Partial Class Form1
         'StopToolStripMenuItem
         '
         Me.StopToolStripMenuItem.Name = "StopToolStripMenuItem"
-        Me.StopToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.StopToolStripMenuItem.Size = New System.Drawing.Size(102, 22)
         Me.StopToolStripMenuItem.Text = "Stop"
+        '
+        'ResetToolStripMenuItem
+        '
+        Me.ResetToolStripMenuItem.Name = "ResetToolStripMenuItem"
+        Me.ResetToolStripMenuItem.Size = New System.Drawing.Size(102, 22)
+        Me.ResetToolStripMenuItem.Text = "Reset"
         '
         'FpsToolStripMenuItem
         '
+        Me.FpsToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.OnToolStripMenuItem, Me.OffToolStripMenuItem})
         Me.FpsToolStripMenuItem.Name = "FpsToolStripMenuItem"
-        Me.FpsToolStripMenuItem.Size = New System.Drawing.Size(35, 20)
-        Me.FpsToolStripMenuItem.Text = "fps"
+        Me.FpsToolStripMenuItem.Size = New System.Drawing.Size(38, 20)
+        Me.FpsToolStripMenuItem.Text = "FPS"
         '
         'dlgOpenFile
         '
         Me.dlgOpenFile.FileName = "dlgOpenFile"
         '
-        'ResetToolStripMenuItem
+        'OnToolStripMenuItem
         '
-        Me.ResetToolStripMenuItem.Name = "ResetToolStripMenuItem"
-        Me.ResetToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
-        Me.ResetToolStripMenuItem.Text = "Reset"
+        Me.OnToolStripMenuItem.Name = "OnToolStripMenuItem"
+        Me.OnToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.OnToolStripMenuItem.Text = "On"
+        '
+        'OffToolStripMenuItem
+        '
+        Me.OffToolStripMenuItem.Name = "OffToolStripMenuItem"
+        Me.OffToolStripMenuItem.Size = New System.Drawing.Size(180, 22)
+        Me.OffToolStripMenuItem.Text = "Off"
         '
         'Form1
         '
@@ -126,4 +141,6 @@ Partial Class Form1
     Friend WithEvents StopToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents FpsToolStripMenuItem As ToolStripMenuItem
     Friend WithEvents ResetToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents OnToolStripMenuItem As ToolStripMenuItem
+    Friend WithEvents OffToolStripMenuItem As ToolStripMenuItem
 End Class

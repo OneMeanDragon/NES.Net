@@ -26,6 +26,7 @@
     <ClInclude Include="CPU6502\CPU6502.h" />
     <ClInclude Include="Diagnostics\DiagnosticHelpers.h" />
     <ClInclude Include="FMODAudio\FMODAudioSystem.h" />
+    <ClInclude Include="InputSystem\InputSystem.h" />
     <ClInclude Include="NESBus.h" />
     <ClInclude Include="PPU2C02.h" />
   </ItemGroup>
@@ -43,6 +44,9 @@
     <ClCompile Include="CPU6502\CPU6502.Interrupts.cpp" />
     <ClCompile Include="Diagnostics\DiagnosticHelpers.cpp" />
     <ClCompile Include="FMODAudio\FMODAudioSystem.cpp" />
+    <ClCompile Include="InputSystem\InputSystem.cpp" />
+    <ClCompile Include="InputSystem\InputSystem.UpdateInput.Other.cpp" />
+    <ClCompile Include="InputSystem\InputSystem.UpdateInput.Windows.cpp" />
     <ClCompile Include="NESBus.cpp" />
     <ClCompile Include="PPU2C02.cpp" />
   </ItemGroup>

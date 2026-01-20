@@ -82,6 +82,10 @@ Namespace NintendoEntertainmentSystem
         End Sub
 
         <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
+        Private Shared Sub Bus_Stop(bus As IntPtr)
+        End Sub
+
+        <DllImport(DLLPath.NesChipset, CallingConvention:=CallingConvention.Cdecl)>
         Private Shared Sub Bus_ConnectCartridge(bus As IntPtr, cart As IntPtr)
         End Sub
 
@@ -182,6 +186,10 @@ Namespace NintendoEntertainmentSystem
         ''' </summary>
         Public Sub Reset(coldstart As Boolean)
             Bus_Reset(_busHandle, coldstart)
+        End Sub
+
+        Public Sub [Stop]()
+            Bus_Stop(_busHandle)
         End Sub
 
         'Public Function Clock() As Boolean

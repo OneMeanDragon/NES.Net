@@ -3,6 +3,9 @@
 #include <cmath>
 #include <iostream>
 
+// Input
+#include "InputSystem/InputSystem.h"
+
 #include "CartridgeApi/MapperInterfaceAPI.h"
 #include "CartridgeApi/CartridgeInterfaceAPI.h"
 #include "CPU6502/CPU6502.h"
@@ -472,7 +475,34 @@ uint8_t NESBus::GetController(uint8_t index) const {
     return 0;
 }
 
+void NESBus::UpdateNESController() {
+    // Reset controller state
+    uint8_t controller = 0;
+
+    // Map keyboard to NES controller
+    // WASD for D-Pad
+    if (Core::Input::InputSystem::IsKeyHeld('W')) controller |= 0x08;  // Up
+    if (Core::Input::InputSystem::IsKeyHeld('S')) controller |= 0x04;  // Down
+    if (Core::Input::InputSystem::IsKeyHeld('A')) controller |= 0x02;  // Left
+    if (Core::Input::InputSystem::IsKeyHeld('D')) controller |= 0x01;  // Right
+
+    // JKNM for buttons
+    if (Core::Input::InputSystem::IsKeyHeld('J')) controller |= 0x20;  // Select
+    if (Core::Input::InputSystem::IsKeyHeld('K')) controller |= 0x10;  // Start
+    if (Core::Input::InputSystem::IsKeyHeld('N')) controller |= 0x80;  // A
+    if (Core::Input::InputSystem::IsKeyHeld('M')) controller |= 0x40;  // B
+
+    // Update NES controller
+    SetController(0, controller);
+}
+
 void NESBus::Tick() {
+    // Update out Input State
+    Core::Input::InputSystem::UpdateInput();
+
+    // Update our Controllers
+    UpdateNESController();
+
     _ppu->SetFrameComplete(false);
     while (!_ppu->IsFrameComplete()) {
         Clock();
@@ -512,6 +542,10 @@ void NESBus::DisplayAudioStatus() {
     printf("Audio: %d samples (%.1fms) [%.1f%%] %s\n",
            bufferLevel, bufferMs, bufferPercent,
            (bufferPercent > 20.0f && bufferPercent < 80.0f) ? "Good" : "Poor");
+}
+
+void NESBus::Stop() {
+    if (_audioSystem) _audioSystem->Stop();
 }
 
 // Exported Bus functions
@@ -611,4 +645,8 @@ DLLEXPORT void BusSetDiagnosticLogCallback(NESBus* bus, DiagnosticLogCallback ca
 
 DLLEXPORT void Bus_MeasureAudioLatency(NESBus* bus) {
     if (bus) bus->MeasureAudioLatency();
+}
+
+DLLEXPORT void Bus_Stop(NESBus* bus) {
+    if (bus) bus->Stop();
 }

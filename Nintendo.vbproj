@@ -182,6 +182,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="NES.CONSTANTS.vb" />
+    <Compile Include="Renderer\Font\SimpleFont.vb" />
     <Compile Include="Renderer\Pixel\Pixel.vb" />
     <Compile Include="Renderer\Pixel\PixelExtensions.vb" />
     <Compile Include="Renderer\Renderer.vb" />

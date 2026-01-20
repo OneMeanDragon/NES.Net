@@ -62,7 +62,7 @@ public:
     void SetAudioBufferTarget(int samples) { _audioBufferTarget = samples; }
     int GetAudioBufferTarget() const { return _audioBufferTarget; }
 private:
-    int _audioBufferTarget = 2205;  // 50ms - risky but lowest latency [4410;  // 100ms instead of 200ms] // was 8820
+    int _audioBufferTarget = 2205;// 2205: 50ms - risky but lowest latency [4410: 100ms instead of 200ms] // was 8820
 private:
     // Constants
     static constexpr int CPU_RAM_SIZE = 2048;
@@ -96,6 +96,7 @@ private:
     // Controllers
     uint8_t _controllerState[2];
     uint8_t _controllerLatch[2];
+    void UpdateNESController();
 
     // DMA State
     uint8_t _dmaPage;
@@ -147,6 +148,8 @@ private:
     int _underrunCounter = 0;
     int _lastBufferAdjustmentFrame = 0;
     void DisplayAudioStatus();
+public:
+    void Stop();
 };
 
 // Exported Bus functions

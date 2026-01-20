@@ -82,37 +82,6 @@ Public Class Form1
         Debug.WriteLine("Input system initialized")
     End Sub
 
-    'Direct these at the active emulator
-    'nes.controller[0] |= GetKey(olc:Key : X).bHeld ? 0x80 : 0x00;     // A Button
-    'nes.controller[0] |= GetKey(olc:Key : Z).bHeld ? 0x40 : 0x00;     // B Button
-    'nes.controller[0] |= GetKey(olc:Key : A).bHeld ? 0x20 : 0x00;     // Select
-    'nes.controller[0] |= GetKey(olc:Key : S).bHeld ? 0x10 : 0x00;     // Start
-    'nes.controller[0] |= GetKey(olc:Key : UP).bHeld ? 0x08 : 0x00;
-    'nes.controller[0] |= GetKey(olc:Key : DOWN).bHeld ? 0x04 : 0x00;
-    'nes.controller[0] |= GetKey(olc:Key : Left).bHeld ? 0x02 : 0x00;
-    'nes.controller[0] |= GetKey(olc:Key : Right).bHeld ? 0x01 : 0x00;
-
-    Private Sub UpdateNESController()
-        ' Reset controller state
-        Dim controller As Byte = 0
-
-        ' Map keyboard to NES controller
-        ' WASD for D-Pad
-        If InputSystem.IsKeyHeld(Keys.W) Then controller = controller Or &H8  ' Up
-        If InputSystem.IsKeyHeld(Keys.S) Then controller = controller Or &H4  ' Down
-        If InputSystem.IsKeyHeld(Keys.A) Then controller = controller Or &H2  ' Left
-        If InputSystem.IsKeyHeld(Keys.D) Then controller = controller Or &H1  ' Right
-
-        ' JKNM for buttons
-        If InputSystem.IsKeyHeld(Keys.J) Then controller = controller Or &H20 ' Select
-        If InputSystem.IsKeyHeld(Keys.K) Then controller = controller Or &H10 ' Start
-        If InputSystem.IsKeyHeld(Keys.N) Then controller = controller Or &H80 ' A
-        If InputSystem.IsKeyHeld(Keys.M) Then controller = controller Or &H40 ' B
-
-        ' Update NES controller
-        emNES.Controller(0) = controller
-    End Sub
-
     Private Sub ProcessHotKeys()
 
         ' ESC to stop emulation
@@ -325,39 +294,33 @@ Public Class Form1
         Dim frameCount As UInteger = 0
         Dim clocksPerFrame As ULong = 0
         Dim lastTime As DateTime = DateTime.Now
+        Dim currentFps As String = ""
         Dim _frameWatch As New Stopwatch()
+        Dim _fpsx = renderer.MARGIN * 2
+        Dim _fpsy = renderer.MARGIN * 2
         emNES.Reset(True) ' We just inserted the cart above (first reset flips the power)
         While running
             _frameWatch.Restart()
 
             InputSystem.BeginFrame()
             ProcessHotKeys()
-            UpdateNESController()
 
             emNES.Tick()
-            'emNES.PPU.FrameComplete = False
-            'While Not emNES.PPU.FrameComplete
-            '    emNES.Clock()
-            '    'emNES.AudioSystem.GenerateAudioFrame()
-            '    If running = False Then Exit While
-            'End While
-
-            ' Update FMOD (IMPORTANT!) moved this update inside the bus
-            ' emNES.AudioSystem.Update()
 
             ' Should be ~29780 clocks per frame (NTSC)
             'If (frameCount Mod 60) = 0 Then
             '    Debug.WriteLine($"Clocks per frame: {clocksPerFrame / 60}") 'clocksPerFrame i should export this value
             'End If
 
-            ' Check FPS every second
-            'If (DateTime.Now - lastTime).TotalSeconds >= 1.0 Then
-            '    Console.WriteLine($"FPS: {frameCount}")
+            'renderer.Clear(GraphicsObjects.PixelColors.DarkGrey)
+            renderer.RenderFrame(emNES.PPU, frameCount)
+            'If (DateTime.Now - lastTime).TotalSeconds >= 5.0 Then
+            '    currentFps = $"FPS: {frameCount / 5}"
             '    frameCount = 0
             '    lastTime = DateTime.Now
             'End If
-
-            renderer.RenderFrame(emNES.PPU, frameCount)
+            ' Poor performance is why its not defaulted to on just yet
+            'If _fpscounter Then renderer.DrawText(_fpsx, _fpsy, currentFps, GraphicsObjects.PixelColors.Green)
             UpdateDisplay()
 
             ' Diagnoses
@@ -376,6 +339,7 @@ Public Class Form1
             End If
             If running = False Then Exit While
         End While
+        emNES.Stop() ' Fix for the always running Audio fetching {temporary}
 
         ' Clean up
         renderer.Clear(GraphicsObjects.PixelColors.DarkGrey)
@@ -425,21 +389,29 @@ Public Class Form1
     Private tmpCart As NativeCartridge
 
     Private Sub FpsToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles FpsToolStripMenuItem.Click
-        WriteConfig = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(strRegistryPath)
-        ReadConfig = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(strRegistryPath)
-
-        dlgOpenFile.InitialDirectory = ReadConfig.GetValue("LastDirectory")
-        dlgOpenFile.Filter = "NES Files (*.nes)|*.nes|All files (*.*)|*.*"
-        dlgOpenFile.FilterIndex = 0
-
-        If dlgOpenFile.ShowDialog() = Windows.Forms.DialogResult.OK Then
-            strFilename = Path.GetFileName(dlgOpenFile.FileName)
-            strFilepath = Path.GetDirectoryName(dlgOpenFile.FileName)
-            WriteConfig.SetValue("LastDirectory", strFilepath)
-            Me.Text = strProgramTitle & " - " & strFilename
-        End If
-
-        tmpCart = New NativeCartridge(dlgOpenFile.FileName)
+        'WriteConfig = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(strRegistryPath)
+        'ReadConfig = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(strRegistryPath)
+        '
+        'dlgOpenFile.InitialDirectory = ReadConfig.GetValue("LastDirectory")
+        'dlgOpenFile.Filter = "NES Files (*.nes)|*.nes|All files (*.*)|*.*"
+        'dlgOpenFile.FilterIndex = 0
+        '
+        'If dlgOpenFile.ShowDialog() = Windows.Forms.DialogResult.OK Then
+        '    strFilename = Path.GetFileName(dlgOpenFile.FileName)
+        '    strFilepath = Path.GetDirectoryName(dlgOpenFile.FileName)
+        '    WriteConfig.SetValue("LastDirectory", strFilepath)
+        '    Me.Text = strProgramTitle & " - " & strFilename
+        'End If
+        '
+        'tmpCart = New NativeCartridge(dlgOpenFile.FileName)
     End Sub
 
+    Private _fpscounter As Boolean = False
+    Private Sub OnToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles OnToolStripMenuItem.Click
+        _fpscounter = True
+    End Sub
+
+    Private Sub OffToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles OffToolStripMenuItem.Click
+        _fpscounter = False
+    End Sub
 End Class
