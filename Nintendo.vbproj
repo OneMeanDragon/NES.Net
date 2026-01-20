@@ -228,22 +228,7 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="NotUsed\abandonedaitests\" />
-    <Folder Include="NotUsed\ApplicationCore\" />
-    <Folder Include="NotUsed\Cartridge\MapperFactory\Mappers\MapperBase\" />
-    <Folder Include="NotUsed\Chipset\2A03\" />
-    <Folder Include="NotUsed\Chipset\2C02\" />
-    <Folder Include="NotUsed\Chipset\6502\Oldest\LoopyRegister\" />
-    <Folder Include="NotUsed\Chipset\6502\Oldest\ObjectAttributeEntry\" />
-    <Folder Include="NotUsed\Chipset\6502\Oldest\PpuControlRegister\" />
-    <Folder Include="NotUsed\Chipset\6502\Oldest\PpuMaskRegister\" />
-    <Folder Include="NotUsed\Chipset\6502\Oldest\PpuStatusRegister\" />
-    <Folder Include="NotUsed\Chipset\6502\Previous\" />
-    <Folder Include="NotUsed\Chipset\Bus\Oldest\" />
-    <Folder Include="NotUsed\Chipset\Bus\Previous\" />
-    <Folder Include="NotUsed\NAudio\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <Content Include="Chips\nestest_diagnose.txt" />
   </ItemGroup>
