@@ -143,9 +143,6 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ApplicationCore\CoreApplication.vb" />
-    <Compile Include="ApplicationCore\Hardware.vb" />
-    <Compile Include="ApplicationCore\KeyboardVariables.vb" />
     <Compile Include="Audio\FMODAudioNative.vb" />
     <Compile Include="Bus\NATIVE.NES.BUS.vb" />
     <Compile Include="Chips\2A03\NATIVE.APU2A03.vb" />
@@ -233,6 +230,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="NotUsed\abandonedaitests\" />
+    <Folder Include="NotUsed\ApplicationCore\" />
     <Folder Include="NotUsed\Cartridge\MapperFactory\Mappers\MapperBase\" />
     <Folder Include="NotUsed\Chipset\2A03\" />
     <Folder Include="NotUsed\Chipset\2C02\" />
