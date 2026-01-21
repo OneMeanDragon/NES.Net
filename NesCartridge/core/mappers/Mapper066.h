@@ -4,6 +4,11 @@
 namespace nes {
 
     class Mapper066 : public MapperBase {
+    public:
+        static constexpr uint8_t     ID   = 66;
+        static constexpr const char* NAME = "GxROM";
+        virtual constexpr uint8_t GetMapperNumber() const noexcept override { return ID; }
+        virtual constexpr const char* GetMapperName() const noexcept override { return NAME; }
     private:
         uint8_t _prgBank = 0;
         uint8_t _chrBank = 0;
@@ -13,9 +18,6 @@ namespace nes {
             : MapperBase(prgBanks, chrBanks) {
             Reset();
         }
-
-        uint8_t GetMapperNumber() const override { return 66; }
-        std::string GetMapperName() const override { return "GxROM"; }
 
         void Reset() override {
             _chrBank = 0;

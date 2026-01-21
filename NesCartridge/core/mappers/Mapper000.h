@@ -3,7 +3,15 @@
 
 namespace nes {
 
+    constexpr uint8_t     MAPPER_000_ID   = 0;
+    constexpr const char* MAPPER_000_NAME = "NROM";
+
     class Mapper000 : public MapperBase {
+    public:
+        static constexpr uint8_t     ID   = 0;
+        static constexpr const char* NAME = "NROM";
+        virtual constexpr uint8_t GetMapperNumber() const noexcept override { return ID; }
+        virtual constexpr const char* GetMapperName() const noexcept override { return NAME; }
     public:
         // Constructor matches the base class required parameters
         Mapper000(uint8_t prgBanks, uint8_t chrBanks)
@@ -13,9 +21,6 @@ namespace nes {
                 _cartRam.resize(8192); // Allocate 8KB of RAM
             }
         }
-
-        uint8_t GetMapperNumber() const override { return 0; }
-        std::string GetMapperName() const override { return "NROM"; }
 
         void Reset() override {
             // Nothing to reset for NROM

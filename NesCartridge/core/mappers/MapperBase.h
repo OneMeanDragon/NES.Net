@@ -6,6 +6,9 @@
 #include "../Interfaces/MirrorModeRequired.h"
 
 class MapperBase {
+public: // Propertys
+    virtual constexpr uint8_t GetMapperNumber() const noexcept = 0;
+    virtual constexpr const char* GetMapperName() const noexcept = 0;
 protected:
     uint8_t _prgBanks = 0;
     uint8_t _chrBanks = 0;
@@ -21,8 +24,6 @@ public:
     virtual ~MapperBase() = default;
 
 public:
-    virtual uint8_t GetMapperNumber() const = 0;
-    virtual std::string GetMapperName() const = 0;
     virtual void Reset() = 0;
 
 public:

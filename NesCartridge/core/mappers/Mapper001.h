@@ -4,6 +4,11 @@
 namespace nes {
 
     class Mapper001 : public MapperBase {
+    public:
+        static constexpr uint8_t     ID   = 1;
+        static constexpr const char* NAME = "MMC1 (SxROM)";
+        virtual constexpr uint8_t GetMapperNumber() const noexcept override { return ID; }
+        virtual constexpr const char* GetMapperName() const noexcept override { return NAME; }
     private:
         // Internal shift register state
         uint8_t _loadRegister = 0x00;
@@ -25,9 +30,6 @@ namespace nes {
             _cartRam.assign(8192, 0x00);
             Reset();
         }
-
-        uint8_t GetMapperNumber() const override { return 1; }
-        std::string GetMapperName() const override { return "MMC1 (SxROM)"; }
 
         void Reset() override {
             _loadRegister = 0x00;

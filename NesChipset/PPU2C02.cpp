@@ -375,7 +375,7 @@ void PPU2C02::IncrementScrollX() {
 
     if (_vramAddr.coarseX == 31) {
         _vramAddr.coarseX = 0;
-        _vramAddr.nametableX = ~_vramAddr.nametableX; //!_vramAddr.nametableX;
+        _vramAddr.nametableX = !_vramAddr.nametableX; //!_vramAddr.nametableX;
     }
     else {
         _vramAddr.coarseX++;
@@ -392,7 +392,7 @@ void PPU2C02::IncrementScrollY() {
         _vramAddr.fineY = 0;
         if (_vramAddr.coarseY == 29) {
             _vramAddr.coarseY = 0;
-            _vramAddr.nametableY = ~_vramAddr.nametableY; //!_vramAddr.nametableY;
+            _vramAddr.nametableY = !_vramAddr.nametableY; //!_vramAddr.nametableY;
         }
         else if (_vramAddr.coarseY == 31) {
             _vramAddr.coarseY = 0;
@@ -521,7 +521,7 @@ void PPU2C02::LoadSpriteShifters() {
     }
 }
 
-uint8_t PPU2C02::FlipByte(uint8_t b) {
+constexpr uint8_t PPU2C02::FlipByte(uint8_t b) noexcept {
     if (b == 0) return 0;
     b = ((b & 0xF0) >> 4) | ((b & 0x0F) << 4);
     b = ((b & 0xCC) >> 2) | ((b & 0x33) << 2);

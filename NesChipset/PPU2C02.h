@@ -236,7 +236,8 @@ private:
     // Sprite helpers
     void EvaluateSprites();
     void LoadSpriteShifters();
-    uint8_t FlipByte(uint8_t b);
+
+    constexpr uint8_t FlipByte(uint8_t b) noexcept;
 
     // Logging
     void Log(const char* msg);

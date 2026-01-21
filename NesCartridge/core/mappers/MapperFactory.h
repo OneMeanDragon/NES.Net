@@ -22,14 +22,14 @@ namespace nes {
 
         static std::unique_ptr<MapperBase> CreateMapper(uint8_t mapperNumber, uint8_t prgBanks, uint8_t chrBanks) {
             switch (mapperNumber) {
-            case 0:  return std::make_unique<Mapper000>(prgBanks, chrBanks);
-            case 1:  return std::make_unique<Mapper001>(prgBanks, chrBanks);
-            case 2:  return std::make_unique<Mapper002>(prgBanks, chrBanks);
-            case 3:  return std::make_unique<Mapper003>(prgBanks, chrBanks);
-            case 4:  return std::make_unique<Mapper004>(prgBanks, chrBanks);
-            case 9:  return std::make_unique<Mapper009>(prgBanks, chrBanks);
-            case 66: return std::make_unique<Mapper066>(prgBanks, chrBanks);
-            case 206: return std::make_unique<Mapper206>(prgBanks, chrBanks);
+            case Mapper000::ID: return std::make_unique<Mapper000>(prgBanks, chrBanks);
+            case Mapper001::ID: return std::make_unique<Mapper001>(prgBanks, chrBanks);
+            case Mapper002::ID: return std::make_unique<Mapper002>(prgBanks, chrBanks);
+            case Mapper003::ID: return std::make_unique<Mapper003>(prgBanks, chrBanks);
+            case Mapper004::ID: return std::make_unique<Mapper004>(prgBanks, chrBanks);
+            case Mapper009::ID: return std::make_unique<Mapper009>(prgBanks, chrBanks);
+            case Mapper066::ID: return std::make_unique<Mapper066>(prgBanks, chrBanks);
+            case Mapper206::ID: return std::make_unique<Mapper206>(prgBanks, chrBanks);
             default:
                 return nullptr;
             }
@@ -37,55 +37,56 @@ namespace nes {
 
         static bool IsSupported(uint8_t mapperNumber) {
             switch (mapperNumber) {
-                case 0: return true;
-                case 1: return true;
-                case 2: return true;
-                case 3: return true;
-                case 4: return true;
-                case 9: return true;
-                case 66: return true;
-                case 206: return true;
+                case Mapper000::ID: return true;
+                case Mapper001::ID: return true;
+                case Mapper002::ID: return true;
+                case Mapper003::ID: return true;
+                case Mapper004::ID: return true;
+                case Mapper009::ID: return true;
+                case Mapper066::ID: return true;
+                case Mapper206::ID: return true;
                 default: return false;
             }
         }
 
         static std::string GetMapperName(uint8_t mapperNumber) {
             switch (mapperNumber) {
-            case 0:  return "NROM";
-            case 1:  return "MMC1 (SxROM)";
-            case 2:  return "UxROM";
-            case 3:  return "CNROM";
-            case 4:  return "MMC3 (TxROM)";
-            case 9:  return "MMC2 (PxROM)";
-            case 66: return "GxROM";
-            case 206: return "Namcot 108 / Tengen MIMIC-1";
+            case Mapper000::ID: return Mapper000::NAME;
+            case Mapper001::ID: return Mapper001::NAME;
+            case Mapper002::ID: return Mapper002::NAME;
+            case Mapper003::ID: return Mapper003::NAME;
+            case Mapper004::ID: return Mapper004::NAME;
+            case Mapper009::ID: return Mapper009::NAME;
+            case Mapper066::ID: return Mapper066::NAME;
+            case Mapper206::ID: return Mapper206::NAME;
             default: return "Unknown Mapper (" + std::to_string(mapperNumber) + ")";
             }
         }
 
         static std::string GetMapperInfo(uint8_t mapperNumber) {
             switch (mapperNumber) {
-            case 0:  return "No mapper - simple direct mapping. 16KB or 32KB PRG, up to 8KB CHR.";
-            case 1:  return "Nintendo MMC1. Switchable PRG/CHR banks, serial register loading, 8KB cart RAM.";
-            case 2:  return "UxROM. Switchable 16KB PRG banks, fixed CHR.";
-            case 3:  return "CNROM. Fixed PRG, switchable 8KB CHR banks.";
-            case 4:  return "Nintendo MMC3. Advanced banking, scanline IRQ counter, 8KB cart RAM.";
-            case 9:  return "Nintendo MMC2. 16KB PRG banking with special CHR banking for split-screen effects.";
-            case 66: return "GxROM. Simple 32KB PRG + 8KB CHR banking.";
-            case 206: return "Tengen Tetris", "Gauntlet", "R.B.I. Baseball";
-            default: return "No information available.";
+            case Mapper000::ID: return "No mapper - simple direct mapping. 16KB or 32KB PRG, up to 8KB CHR.";
+            case Mapper001::ID: return "Nintendo MMC1. Switchable PRG/CHR banks, serial register loading, 8KB cart RAM.";
+            case Mapper002::ID: return "UxROM. Switchable 16KB PRG banks, fixed CHR.";
+            case Mapper003::ID: return "CNROM. Fixed PRG, switchable 8KB CHR banks.";
+            case Mapper004::ID: return "Nintendo MMC3. Advanced banking, scanline IRQ counter, 8KB cart RAM.";
+            case Mapper009::ID: return "Nintendo MMC2. 16KB PRG banking with special CHR banking for split-screen effects.";
+            case Mapper066::ID: return "GxROM. Simple 32KB PRG + 8KB CHR banking.";
+            case Mapper206::ID: return "Tengen Tetris", "Gauntlet", "R.B.I. Baseball";
+            default:  return "No information available.";
             }
         }
 
         static std::vector<std::string> GetExampleGames(uint8_t mapperNumber) {
             switch (mapperNumber) {
-            case 0:  return { "Donkey Kong", "Mario Bros", "Excitebike", "Ice Climber" };
-            case 1:  return { "The Legend of Zelda", "Metroid", "Kid Icarus", "Mega Man 2" };
-            case 2:  return { "Mega Man", "Castlevania", "Contra", "Duck Tales" };
-            case 3:  return { "Solomon's Key", "Arkanoid", "Paperboy", "Cybernoid" };
-            case 4:  return { "Super Mario Bros 3", "Mega Man 3-6", "Kirby's Adventure", "Batman" };
-            case 9:  return { "Punch-Out!!", "Mike Tyson's Punch-Out!!", "Rad Racer" };
-            case 66: return { "Super Mario Bros + Duck Hunt", "Gumshoe" };
+            case Mapper000::ID: return { "Donkey Kong", "Mario Bros", "Excitebike", "Ice Climber" };
+            case Mapper001::ID: return { "The Legend of Zelda", "Metroid", "Kid Icarus", "Mega Man 2" };
+            case Mapper002::ID: return { "Mega Man", "Castlevania", "Contra", "Duck Tales" };
+            case Mapper003::ID: return { "Solomon's Key", "Arkanoid", "Paperboy", "Cybernoid" };
+            case Mapper004::ID: return { "Super Mario Bros 3", "Mega Man 3-6", "Kirby's Adventure", "Batman" };
+            case Mapper009::ID: return { "Punch-Out!!", "Mike Tyson's Punch-Out!!", "Rad Racer" };
+            case Mapper066::ID: return { "Super Mario Bros + Duck Hunt", "Gumshoe" };
+            case Mapper206::ID: return { "RBI. Baseball" };
             default: return {};
             }
         }

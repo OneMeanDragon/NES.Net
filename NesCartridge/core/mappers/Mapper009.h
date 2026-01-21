@@ -5,6 +5,11 @@
 namespace nes {
 
     class Mapper009 : public MapperBase {
+    public:
+        static constexpr uint8_t     ID   = 9;
+        static constexpr const char* NAME = "MMC2 (PxROM)";
+        virtual constexpr uint8_t GetMapperNumber() const noexcept override { return ID; }
+        virtual constexpr const char* GetMapperName() const noexcept override { return NAME; }
     private:
         // PRG Reg: $A000-$AFFF
         int _prgBankSelect = 0;
@@ -35,9 +40,6 @@ namespace nes {
             _cartRam.assign(8192, 0); // Allocate 8KB cart RAM
             Reset();
         }
-
-        uint8_t GetMapperNumber() const override { return 9; }
-        std::string GetMapperName() const override { return "MMC2 (PxROM)"; }
 
         void Reset() override {
             _prgBankSelect = 0;
