@@ -3,11 +3,11 @@
 #include <cstdint>
 
 #pragma region Constants
-constexpr size_t KB_SIZE = 1024;
+constexpr size_t KB_SIZE          = 1024;
 constexpr size_t INES_HEADER_SIZE = 16;
-constexpr size_t PRG_BANK_SIZE = KB_SIZE * 16;  // 16KB
-constexpr size_t CHR_BANK_SIZE = KB_SIZE * 8;   // 8KB
-constexpr size_t TRAINER_SIZE = 512;
+constexpr size_t PRG_BANK_SIZE    = KB_SIZE * 16;  // 16KB
+constexpr size_t CHR_BANK_SIZE    = KB_SIZE * 8;   // 8KB
+constexpr size_t TRAINER_SIZE     = 512;
 #pragma endregion
 
 

@@ -373,11 +373,16 @@ DLLEXPORT Cartridge* CreateCartridgeDiag(DiagnosticLogCallback callback) {
 
 DLLEXPORT void DestroyCartridge(Cartridge* cart) {
     if (cart) {
+        // we need the log from the cartridge before destruction
         DiagnosticLogCallback _log = cart->_diagnosticCallback;
         bool islogged = cart->LoggingEnabled();
-        delete cart;
-        if (islogged) _log("Destroyed Native Car");
-    }
+        if (cart) {
+            delete cart;
+            cart = nullptr;
+            if (islogged) _log("Info: Cartridge destroyed.");
+        }
+    } 
+    // else: "Cartridge instance is nullptr.", not nec an error.
 }
 
 DLLEXPORT bool LoadCartridge(Cartridge* cart, const char* path) {

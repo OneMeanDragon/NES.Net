@@ -32,7 +32,7 @@ namespace nes {
         void Reset() override {
             _loadRegister = 0x00;
             _loadCounter = 0x00;
-            _controlReg = 0x1C; // Standard MMC1 power-up state
+            _controlReg = 0x1C; // Standard MMC1 power-up state (PRG mode 3)
 
             _chrBank4Lo = 0;
             _chrBank4Hi = 0;
@@ -58,9 +58,11 @@ namespace nes {
                 if (_controlReg & 0x08) {
                     // 16KB mode
                     if (addr < 0xC000) {
+                        // $8000-$BFFF
                         mappedAddr = static_cast<uint32_t>(_prgBank16Lo) * 0x4000 + (addr & 0x3FFF);
                     }
                     else {
+                        // $C000-$FFFF
                         mappedAddr = static_cast<uint32_t>(_prgBank16Hi) * 0x4000 + (addr & 0x3FFF);
                     }
                 }
@@ -87,7 +89,7 @@ namespace nes {
                     // Reset shift register
                     _loadRegister = 0x00;
                     _loadCounter = 0x00;
-                    _controlReg |= 0x0C;
+                    _controlReg |= 0x0C; // Lock PRG to mode 3
                 }
                 else {
                     // Load bit serially (LSB first)
@@ -105,31 +107,35 @@ namespace nes {
 
                         case 1: // CHR bank 0 ($A000-$BFFF)
                             if (_controlReg & 0x10) {
+                                // 4KB CHR mode
                                 _chrBank4Lo = _loadRegister & 0x1F;
                             }
                             else {
+                                // 8KB CHR mode (ignore low bit)
                                 _chrBank8 = _loadRegister & 0x1E;
                             }
                             break;
 
                         case 2: // CHR bank 1 ($C000-$DFFF)
                             if (_controlReg & 0x10) {
+                                // 4KB CHR mode
                                 _chrBank4Hi = _loadRegister & 0x1F;
                             }
+                            // Else: ignored in 8KB mode
                             break;
 
                         case 3: // PRG bank ($E000-$FFFF)
                         {
                             uint8_t prgMode = (_controlReg >> 2) & 0x03;
                             switch (prgMode) {
-                            case 0: case 1: // 32KB
+                            case 0: case 1: // 32KB mode
                                 _prgBank32 = (_loadRegister & 0x0E) >> 1;
                                 break;
-                            case 2: // Fix first, swap second
+                            case 2: // Fix first bank at $8000, switch at $C000
                                 _prgBank16Lo = 0;
                                 _prgBank16Hi = _loadRegister & 0x0F;
                                 break;
-                            case 3: // Swap first, fix last
+                            case 3: // Switch at $8000, fix last bank at $C000
                                 _prgBank16Lo = _loadRegister & 0x0F;
                                 _prgBank16Hi = _prgBanks - 1;
                                 break;
@@ -150,12 +156,13 @@ namespace nes {
         bool PpuMapRead(uint16_t addr, uint32_t& mappedAddr) override {
             if (addr < 0x2000) {
                 if (_chrBanks == 0) {
+                    // CHR-RAM
                     mappedAddr = addr;
                     return true;
                 }
 
                 if (_controlReg & 0x10) {
-                    // 4KB mode
+                    // 4KB CHR mode
                     if (addr < 0x1000) {
                         mappedAddr = static_cast<uint32_t>(_chrBank4Lo) * 0x1000 + (addr & 0x0FFF);
                     }
@@ -164,7 +171,7 @@ namespace nes {
                     }
                 }
                 else {
-                    // 8KB mode
+                    // 8KB CHR mode
                     mappedAddr = static_cast<uint32_t>(_chrBank8) * 0x2000 + (addr & 0x1FFF);
                 }
                 return true;
@@ -174,7 +181,20 @@ namespace nes {
 
         bool PpuMapWrite(uint16_t addr, uint32_t& mappedAddr) override {
             if (addr < 0x2000 && _chrBanks == 0) {
-                mappedAddr = addr;
+                // CHR-RAM writes (mirroring same banking as reads)
+                if (_controlReg & 0x10) {
+                    // 4KB CHR mode
+                    if (addr < 0x1000) {
+                        mappedAddr = static_cast<uint32_t>(_chrBank4Lo) * 0x1000 + (addr & 0x0FFF);
+                    }
+                    else {
+                        mappedAddr = static_cast<uint32_t>(_chrBank4Hi) * 0x1000 + (addr & 0x0FFF);
+                    }
+                }
+                else {
+                    // 8KB CHR mode
+                    mappedAddr = static_cast<uint32_t>(_chrBank8) * 0x2000 + (addr & 0x1FFF);
+                }
                 return true;
             }
             return false;

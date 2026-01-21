@@ -42,9 +42,9 @@ public: //readonly propertys
 
 private:
     bool _loggingEnabled = false;
-    static void __stdcall DummyLogger(const char* message) {}
+    static void __stdcall DummyLogger(const char* message) { /*static*/ }
 public:
-    // Destry needs to know the callback
+    // Destroy needs to know the callback
     DiagnosticLogCallback _diagnosticCallback = &DummyLogger;
     void EnableLogging(bool enable);
 	bool LoggingEnabled() const { return _loggingEnabled; }

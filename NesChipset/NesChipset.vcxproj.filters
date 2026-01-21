@@ -33,9 +33,6 @@
     <ClInclude Include="NESBus.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PPU2C02.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="FMODAudio\FMODAudioSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -43,6 +40,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="InputSystem\InputSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PPU2C02.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -83,9 +83,6 @@
     <ClCompile Include="NESBus.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PPU2C02.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="FMODAudio\FMODAudioSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -99,6 +96,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="InputSystem\InputSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PPU2C02.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

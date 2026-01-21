@@ -22,7 +22,7 @@ namespace nes {
 
     public:
         Mapper009(uint8_t prgBanks16KB, uint8_t chrBanks8KB)
-            // MMC2 uses 8KB banks internally. 
+            // MMC2 uses 8KB PRG banks internally. 
             // The base class needs total number of banks in its size unit.
             : MapperBase(prgBanks16KB * 2, chrBanks8KB * 2) {
 
@@ -53,7 +53,7 @@ namespace nes {
         // --- CPU Mapping ---
 
         bool CpuMapRead(uint16_t addr, uint32_t& mappedAddr, uint8_t& data) override {
-            // PRG RAM: $6000-$7FFF
+            // PRG RAM: $6000-$7FFF (PlayChoice version only)
             if (addr >= 0x6000 && addr <= 0x7FFF) {
                 mappedAddr = 0xFFFFFFFF; // Sentinel for internal RAM
                 data = _cartRam[addr & 0x1FFF];
@@ -97,7 +97,7 @@ namespace nes {
                 _chrBank1FE = data & 0x1F;
             }
             else if (addr >= 0xF000 && addr <= 0xFFFF) {
-                // Mirroring control (Vertical or Horizontal)
+                // Mirroring control (0 = Vertical, 1 = Horizontal)
                 _mirrorMode = (data & 0x01) == 0 ? MirrorMode::Vertical : MirrorMode::Horizontal;
             }
             return false;
@@ -120,11 +120,21 @@ namespace nes {
                 }
 
                 // CRITICAL: Update latches based on specific PPU address reads
-                // Monitor PPU A12-A0 lines for $FD8/9, $FE8/9 patterns
-                if ((addr & 0xFFF0) == 0x0FD0) _latch0 = 0;
-                if ((addr & 0xFFF0) == 0x0FE0) _latch0 = 1;
-                if ((addr & 0xFFF0) == 0x1FD0) _latch1 = 0;
-                if ((addr & 0xFFF0) == 0x1FE0) _latch1 = 1;
+                // Latch 0 (left pattern table) only triggers on single addresses
+                if (addr == 0x0FD8) {
+                    _latch0 = 0; // Set to FD state
+                }
+                else if (addr == 0x0FE8) {
+                    _latch0 = 1; // Set to FE state
+                }
+
+                // Latch 1 (right pattern table) triggers on ranges
+                if (addr >= 0x1FD8 && addr <= 0x1FDF) {
+                    _latch1 = 0; // Set to FD state
+                }
+                else if (addr >= 0x1FE8 && addr <= 0x1FEF) {
+                    _latch1 = 1; // Set to FE state
+                }
 
                 return true;
             }
@@ -142,6 +152,22 @@ namespace nes {
                     int bank = (_latch1 == 0) ? _chrBank1FD : _chrBank1FE;
                     mappedAddr = static_cast<uint32_t>(bank * 0x1000) + (addr & 0x0FFF);
                 }
+
+                // Update latches on writes too (though rare with CHR-RAM)
+                if (addr == 0x0FD8) {
+                    _latch0 = 0;
+                }
+                else if (addr == 0x0FE8) {
+                    _latch0 = 1;
+                }
+
+                if (addr >= 0x1FD8 && addr <= 0x1FDF) {
+                    _latch1 = 0;
+                }
+                else if (addr >= 0x1FE8 && addr <= 0x1FEF) {
+                    _latch1 = 1;
+                }
+
                 return true;
             }
             return false; // Typically CHR-ROM

@@ -577,11 +577,6 @@ void APU2A03::Clock() {
     // DMC (runs every CPU cycle)
     ClockDMC();
 
-    // ============ Generate Audio ============ (no do not do this here)
-    // Generate audio samples based on accumulated time
-    // GenerateSample(); // this needs to be faster.
-    // ========================================
-
     // Visual feedback
     pulse1_visual = (pulse1_enable && pulse1_env.output > 1 && !pulse1_sweep.mute) ?
         pulse1_seq.reload : 2047;

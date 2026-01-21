@@ -11,6 +11,7 @@
 #include "Mapper004.h"
 #include "Mapper009.h"
 #include "Mapper066.h"
+#include "Mapper206.h"
 
 namespace nes {
 
@@ -28,6 +29,7 @@ namespace nes {
             case 4:  return std::make_unique<Mapper004>(prgBanks, chrBanks);
             case 9:  return std::make_unique<Mapper009>(prgBanks, chrBanks);
             case 66: return std::make_unique<Mapper066>(prgBanks, chrBanks);
+            case 206: return std::make_unique<Mapper206>(prgBanks, chrBanks);
             default:
                 return nullptr;
             }
@@ -35,10 +37,15 @@ namespace nes {
 
         static bool IsSupported(uint8_t mapperNumber) {
             switch (mapperNumber) {
-            case 0: case 1: case 2: case 3: case 4: case 9: case 66:
-                return true;
-            default:
-                return false;
+                case 0: return true;
+                case 1: return true;
+                case 2: return true;
+                case 3: return true;
+                case 4: return true;
+                case 9: return true;
+                case 66: return true;
+                case 206: return true;
+                default: return false;
             }
         }
 
@@ -51,6 +58,7 @@ namespace nes {
             case 4:  return "MMC3 (TxROM)";
             case 9:  return "MMC2 (PxROM)";
             case 66: return "GxROM";
+            case 206: return "Namcot 108 / Tengen MIMIC-1";
             default: return "Unknown Mapper (" + std::to_string(mapperNumber) + ")";
             }
         }
@@ -64,6 +72,7 @@ namespace nes {
             case 4:  return "Nintendo MMC3. Advanced banking, scanline IRQ counter, 8KB cart RAM.";
             case 9:  return "Nintendo MMC2. 16KB PRG banking with special CHR banking for split-screen effects.";
             case 66: return "GxROM. Simple 32KB PRG + 8KB CHR banking.";
+            case 206: return "Tengen Tetris", "Gauntlet", "R.B.I. Baseball";
             default: return "No information available.";
             }
         }

@@ -4,14 +4,28 @@
 #include "CartridgeApi/MapperInterfaceAPI.h"
 #include "CartridgeApi/CartridgeInterfaceAPI.h"
 
-PPU2C02::PPU2C02() 
+constexpr uint16_t nametableAddr(uint16_t addressVRAM) {
+    return 0x2000 | (addressVRAM & 0x0FFF);
+}
+constexpr uint16_t attributeAddr(uint16_t addressVRAM) {
+    return 0x23C0
+        | (addressVRAM & (VRAM_NAMETABLEX | VRAM_NAMETABLEY))  // 0000001111100000 //VRAM_COARSEY
+        | ((addressVRAM & VRAM_COARSEX) >> 2)                  //     001110000000
+        | ((addressVRAM & 0x0380) >> 4);                       // (VRAM_COARSEY >> 2) << 3)
+}
+constexpr uint16_t bgPatternAddr(uint8_t control_reg, uint16_t bgNametableLatch, uint16_t addressVRAM)
+{
+    return ((control_reg & CTRL_BACKGROUNDPATTERN) << 8)
+        | (bgNametableLatch << 4)
+        | ((addressVRAM & VRAM_FINEY) >> 12);
+}
+
+PPU2C02::PPU2C02()
     : _cart(nullptr), _pixelCallback(nullptr), _diagnosticCallback(nullptr)
 {
     std::memset(_nametable0, 0, sizeof(_nametable0));
     std::memset(_nametable1, 0, sizeof(_nametable1));
     std::memset(_paletteRam, 0, sizeof(_paletteRam));
-    std::memset(_patternTable0, 0, sizeof(_patternTable0));
-    std::memset(_patternTable1, 0, sizeof(_patternTable1));
 
     InitializeSystemPalette();
     Reset(true);
@@ -72,11 +86,6 @@ void PPU2C02::InitializeSystemPalette() {
     _systemPalette[0x2E] = Pixel(0, 0, 0);
     _systemPalette[0x2F] = Pixel(0, 0, 0);
 
-    // 0x30-0x3F MIRROR 0x20-0x2F (not separate colors!)
-    //for (int i = 0; i < 16; i++) {
-    //    _systemPalette[0x30 + i] = _systemPalette[0x20 + i];
-    //}
-
     _systemPalette[0x30] = Pixel(236, 238, 236);
     _systemPalette[0x31] = Pixel(168, 204, 236);
     _systemPalette[0x32] = Pixel(188, 188, 236);
@@ -96,19 +105,18 @@ void PPU2C02::InitializeSystemPalette() {
 }
 
 void PPU2C02::Reset(bool coldstart) {
-    if (coldstart) { // we just inserted a cartridge
+    if (coldstart) {
         // Power-on behavior
         for (int i = 0; i < 64; i++) OAM[i].Fill(0xFF);
-        // Palette either random or all zeros
         for (int i = 0; i < 32; i++) _paletteRam[i] = 0x00;
-    } // warm reset preserves the above    
+    }
 
     _oamAddress = 0;
     _control.reg = 0;
     _mask.reg = 0;
-    _status.reg = 0xA0; // 0
-    _vramAddr.reg = 0;
-    _tramAddr.reg = 0;
+    _status.reg = 0xA0;
+    _vramAddr = 0;
+    _tramAddr = 0;
     _fineX = 0;
     _addressLatch = 0;
     _dataBuffer = 0;
@@ -153,25 +161,45 @@ uint8_t PPU2C02::CpuRead(uint16_t addr, bool rdOnly) {
         case 0x0000: data = _control.reg; break;
         case 0x0001: data = _mask.reg; break;
         case 0x0002: data = _status.reg; break;
+        case 0x0003: data = _oamAddress; break;
+        case 0x0005: data = 0; break; // Write-only
+        case 0x0006: data = 0; break; // Write-only
         }
     }
     else {
         switch (addr) {
-        case 0x0002: // Status
-            data = (_status.reg & 0xE0) | (_dataBuffer & 0x1F);
-            _status.verticalBlank = false;
-            _addressLatch = 0;
+        case PPUCTRL:
+        case PPUMASK:
+        case OAMADDR:
+        case PPUSCROLL:
+        case PPUADDR:
             break;
 
-        case 0x0004: // OAM Data
+        case PPUSTATUS: // PPUSTATUS
+            // Top 3 bits from status, bottom 5 bits from data buffer (PPU open bus)
+            data = (_status.reg & 0xE0) | (_dataBuffer & 0x1F);
+            _status.verticalBlank = false;
+            // updatenmi?
+            _addressLatch = 0;
+            // secondwrite?
+            break;
+
+        case OAMDATA: // OAMDATA
+            // Reading during rendering returns different values
+            // For simplicity, we read the current OAM address
             data = OAM[_oamAddress / 4].GetByteAt(_oamAddress);
             break;
 
-        case 0x0007: // PPU Data
+        case PPUDATA: // PPUDATA
             data = _dataBuffer;
-            _dataBuffer = PpuRead(_vramAddr.reg);
-            if (_vramAddr.reg >= 0x3F00) data = _dataBuffer;
-            _vramAddr.reg += (_control.incrementMode ? 32 : 1);
+            _dataBuffer = PpuRead(_vramAddr);
+
+            // Palette reads are not buffered
+            if (_vramAddr >= 0x3F00) {
+                data = _dataBuffer;
+            }
+
+            _vramAddr += (_control.incrementMode ? 32 : 1);
             break;
         }
     }
@@ -181,52 +209,72 @@ uint8_t PPU2C02::CpuRead(uint16_t addr, bool rdOnly) {
 
 void PPU2C02::CpuWrite(uint16_t addr, uint8_t data) {
     switch (addr) {
-    case 0x0000: // Control
+    case PPUCTRL: // PPUCTRL
         _control.reg = data;
-        _tramAddr.nametableX = _control.nametableX;
-        _tramAddr.nametableY = _control.nametableY;
+        //
+        _tramAddr &= ~(VRAM_NAMETABLEX | VRAM_NAMETABLEY);
+        _tramAddr |= (data & 0x03) << 10;
         break;
 
-    case 0x0001: // Mask
+    case PPUMASK: // PPUMASK
         _mask.reg = data;
         break;
 
-    case 0x0003: // OAM Address
+    case OAMADDR: // OAMADDR
+        // OAM Corruption?
         _oamAddress = data;
         break;
 
-    case 0x0004: // OAM Data
+    case OAMDATA: // OAMDATA
         OAM[_oamAddress / 4].SetByteAt(_oamAddress, data);
+        _oamAddress++;
         break;
 
-    case 0x0005: // Scroll
+    case PPUSCROLL: // PPUSCROLL
+        //if (_addressLatch == 0) {
+        //    _tramAddr &= ~VRAM_COARSEX;
+        //    _tramAddr |= data >> 3;
+        //    _fineX = data & 0x7;
+        //}
+        //else {
+        //    _tramAddr &= ~(VRAM_COARSEY | VRAM_FINEY);
+        //    _tramAddr |= static_cast<uint16_t>(data & 0x07) << 12;  // Fine Y: bits 0-2 -> 12-14
+        //    _tramAddr |= static_cast<uint16_t>(data >> 3) << 5;     // Coarse Y: bits 3-7 -> 5-9
+        //}
         if (_addressLatch == 0) {
-            _fineX = data & 0x07;
-            _tramAddr.coarseX = data >> 3;
-            _addressLatch = 1;
+            _tramAddr &= ~VRAM_COARSEX;
+            _tramAddr |= data >> 3;
+            _fineX = data & 0x7;
         }
         else {
-            _tramAddr.fineY = data & 0x07;
-            _tramAddr.coarseY = data >> 3; // ff>>3=1f<<5=3e0
-            _addressLatch = 0;
+            _tramAddr &= ~(VRAM_COARSEY | VRAM_FINEY);
+            uint16_t fineY = (data & 0x07) << 12;
+            uint16_t coarseY = (data & 0xF8) << 2;
+            _tramAddr |= fineY | coarseY;
+
+            // DEBUG: Print what we just set
+//            printf("PPUSCROLL Y: data=%d, fineY=%d, coarseY=%d, tramAddr=%04X\n",
+//                data, (fineY >> 12), (coarseY >> 5), _tramAddr);
         }
+        _addressLatch ^= 1;
         break;
 
-    case 0x0006: // Address
+    case PPUADDR: // PPUADDR
         if (_addressLatch == 0) {
-            _tramAddr.reg = (uint16_t)((data & 0x3F) << 8) | (_tramAddr.reg & 0x00FF);
-            _addressLatch = 1;
+            _tramAddr &= 0xFF;
+            _tramAddr |= static_cast<uint16_t>(data & 0x3f) << 8;
         }
         else {
-            _tramAddr.reg = (_tramAddr.reg & 0xFF00) | data;
+            _tramAddr &= 0xFF00; //0x7F00
+            _tramAddr |= data;
             _vramAddr = _tramAddr;
-            _addressLatch = 0;
         }
+        _addressLatch ^= 1;
         break;
 
-    case 0x0007: // Data
-        PpuWrite(_vramAddr.reg, data);
-        _vramAddr.reg += (_control.incrementMode ? 32 : 1);
+    case PPUDATA: // PPUDATA
+        PpuWrite(_vramAddr, data);
+        _vramAddr += (_control.incrementMode ? 32 : 1);
         break;
     }
 }
@@ -235,19 +283,21 @@ uint8_t PPU2C02::PpuRead(uint16_t addr, bool rdOnly) {
     uint8_t data = 0;
     addr &= 0x3FFF;
 
-    if (_cart->PpuRead(addr, &data)) {
-        // Cartridge handled the read
+    // Pattern tables ($0000-$1FFF) - handled by cartridge
+    if (addr <= 0x1FFF) {
+        if (!_cart->PpuRead(addr, &data)) {
+            // If cartridge doesn't handle it, return open bus
+            data = 0;
+        }
     }
-    else if (addr <= 0x1FFF) {
-        // Pattern tables
-        data = (addr < 0x1000) ? _patternTable0[addr] : _patternTable1[addr & 0x0FFF];
-    }
+    // Nametables ($2000-$3EFF)
     else if (addr <= 0x3EFF) {
-        // Nametables
         addr &= 0x0FFF;
+
         MirrorMode mirror = _cart->GetMirrorMode();
 
         if (mirror == MirrorMode::Vertical) {
+            // Vertical: $2000=$2800, $2400=$2C00
             if (addr < 0x0400) {
                 data = _nametable0[addr];
             }
@@ -261,7 +311,8 @@ uint8_t PPU2C02::PpuRead(uint16_t addr, bool rdOnly) {
                 data = _nametable1[addr & 0x03FF];
             }
         }
-        else { // Horizontal
+        else if (mirror == MirrorMode::Horizontal) {
+            // Horizontal: $2000=$2400, $2800=$2C00
             if (addr < 0x0400) {
                 data = _nametable0[addr];
             }
@@ -273,26 +324,36 @@ uint8_t PPU2C02::PpuRead(uint16_t addr, bool rdOnly) {
             }
             else {
                 data = _nametable1[addr & 0x03FF];
+            }
+        }
+        else if (mirror == MirrorMode::OneScreenLo) {
+            // All nametables map to first
+            data = _nametable0[addr & 0x03FF];
+        }
+        else if (mirror == MirrorMode::OneScreenHi) {
+            // All nametables map to second
+            data = _nametable1[addr & 0x03FF];
+        }
+        else {
+            // Four-screen or other mapper-controlled mirroring
+            // Let the cartridge handle it
+            if (!_cart->PpuRead(0x2000 | addr, &data)) {
+                // Default to nametable 0 if not handled
+                data = _nametable0[addr & 0x03FF];
             }
         }
     }
+    // Palette RAM ($3F00-$3FFF)
     else {
-        //===================================
-        // Palette RAM
         addr &= 0x1F;
+
+        // Mirror backdrop color addresses
         if (addr == 0x10) addr = 0x00;
         if (addr == 0x14) addr = 0x04;
         if (addr == 0x18) addr = 0x08;
         if (addr == 0x1C) addr = 0x0C;
+
         data = _paletteRam[addr] & (_mask.grayscale ? 0x30 : 0x3F);
-        //===================================
-        //addr &= 0x1F;
-        // Handle background color mirror
-        //if ((addr & 0x13) == 0x10) addr &= 0x0F;
-        // READ: Apply grayscale mask
-        //data = _paletteRam[addr];
-        //if (_mask.grayscale) data &= 0x30;
-        //else data &= 0x3F;
     }
 
     return data;
@@ -301,20 +362,12 @@ uint8_t PPU2C02::PpuRead(uint16_t addr, bool rdOnly) {
 void PPU2C02::PpuWrite(uint16_t addr, uint8_t data) {
     addr &= 0x3FFF;
 
-    if (_cart->PpuWrite(addr, data)) {
-        // Cartridge handled the write
+    // Pattern tables ($0000-$1FFF) - handled by cartridge (CHR RAM if writable)
+    if (addr <= 0x1FFF) {
+        _cart->PpuWrite(addr, data);
     }
-    else if (addr <= 0x1FFF) {
-        // Pattern tables
-        if (addr < 0x1000) {
-            _patternTable0[addr] = data;
-        }
-        else {
-            _patternTable1[addr & 0x0FFF] = data;
-        }
-    }
+    // Nametables ($2000-$3EFF)
     else if (addr <= 0x3EFF) {
-        // Nametables
         addr &= 0x0FFF;
         MirrorMode mirror = _cart->GetMirrorMode();
 
@@ -332,7 +385,7 @@ void PPU2C02::PpuWrite(uint16_t addr, uint8_t data) {
                 _nametable1[addr & 0x03FF] = data;
             }
         }
-        else { // Horizontal
+        else if (mirror == MirrorMode::Horizontal) {
             if (addr < 0x0400) {
                 _nametable0[addr] = data;
             }
@@ -346,22 +399,28 @@ void PPU2C02::PpuWrite(uint16_t addr, uint8_t data) {
                 _nametable1[addr & 0x03FF] = data;
             }
         }
+        else if (mirror == MirrorMode::OneScreenLo) {
+            _nametable0[addr & 0x03FF] = data;
+        }
+        else if (mirror == MirrorMode::OneScreenHi) {
+            _nametable1[addr & 0x03FF] = data;
+        }
+        else {
+            // Four-screen or mapper-controlled
+            _cart->PpuWrite(0x2000 | addr, data);
+        }
     }
+    // Palette RAM ($3F00-$3FFF)
     else {
-        //==============================
-        // Palette RAM
         addr &= 0x1F;
+
+        // Mirror backdrop color addresses
         if (addr == 0x10) addr = 0x00;
         if (addr == 0x14) addr = 0x04;
         if (addr == 0x18) addr = 0x08;
         if (addr == 0x1C) addr = 0x0C;
+
         _paletteRam[addr] = data;
-        //===============================
-        //addr &= 0x1F;
-        //// Handle background color mirror
-        //if ((addr & 0x13) == 0x10) addr &= 0x0F;
-        //// WRITE: Store full 6-bit value
-        //_paletteRam[addr] = data & 0x3F;
     }
 }
 
@@ -373,47 +432,70 @@ Pixel PPU2C02::GetColorFromPalette(uint8_t palette, uint8_t pixel) {
 void PPU2C02::IncrementScrollX() {
     if (!_mask.renderBackground && !_mask.renderSprites) return;
 
-    if (_vramAddr.coarseX == 31) {
-        _vramAddr.coarseX = 0;
-        _vramAddr.nametableX = ~_vramAddr.nametableX; //!_vramAddr.nametableX;
+    if ((_vramAddr & VRAM_COARSEX) == VRAM_COARSEX) {
+        _vramAddr &= ~VRAM_COARSEX;
+        _vramAddr ^= VRAM_NAMETABLEX;
     }
-    else {
-        _vramAddr.coarseX++;
-    }
+    else { _vramAddr++; }
 }
 
 void PPU2C02::IncrementScrollY() {
     if (!_mask.renderBackground && !_mask.renderSprites) return;
 
-    if (_vramAddr.fineY < 7) {
-        _vramAddr.fineY++;
-    }
-    else {
-        _vramAddr.fineY = 0;
-        if (_vramAddr.coarseY == 29) {
-            _vramAddr.coarseY = 0;
-            _vramAddr.nametableY = ~_vramAddr.nametableY; //!_vramAddr.nametableY;
+    if ((_vramAddr & VRAM_FINEY) == VRAM_FINEY) {
+        // Fine Y at max (7), wrap to 0 and increment coarse Y
+        _vramAddr &= ~VRAM_FINEY;  // Clear fine Y bits
+
+        uint16_t coarseY = (_vramAddr & VRAM_COARSEY) >> 5;
+
+        if (coarseY == 29) {
+            // Last visible row, wrap to top of OTHER nametable
+            _vramAddr &= ~VRAM_COARSEY;  // Reset coarse Y to 0
+            _vramAddr ^= VRAM_NAMETABLEY; // Toggle vertical nametable
         }
-        else if (_vramAddr.coarseY == 31) {
-            _vramAddr.coarseY = 0;
+        else if (coarseY == 31) {
+            // In the off-screen area, just wrap
+            _vramAddr &= ~VRAM_COARSEY;
         }
         else {
-            _vramAddr.coarseY++;
+            // Normal case: increment coarse Y
+            _vramAddr += 0x0020;  // Add 1 to coarse Y (bit 5)
         }
+    }
+    else {
+        // Increment fine Y
+        _vramAddr += 0x1000;  // Add 1 to fine Y (bit 12)
     }
 }
 
+//void PPU2C02::TransferAddressX() {
+//    if (!_mask.renderBackground && !_mask.renderSprites) return;
+//    _vramAddr &= ~(VRAM_COARSEX | VRAM_NAMETABLEX);
+//    _vramAddr |= (_tramAddr & (VRAM_COARSEX | VRAM_NAMETABLEX));
+//}
+//
+//void PPU2C02::TransferAddressY() {
+//    if (!_mask.renderBackground && !_mask.renderSprites) return;
+//    _vramAddr &= ~(VRAM_COARSEY | VRAM_NAMETABLEY | VRAM_FINEY);
+//    _vramAddr |= (_tramAddr & (VRAM_COARSEY | VRAM_NAMETABLEY | VRAM_FINEY));
+//}
 void PPU2C02::TransferAddressX() {
     if (!_mask.renderBackground && !_mask.renderSprites) return;
-    _vramAddr.nametableX = _tramAddr.nametableX;
-    _vramAddr.coarseX = _tramAddr.coarseX;
+    _vramAddr = (_vramAddr & ~(VRAM_COARSEX | VRAM_NAMETABLEX))
+        | (_tramAddr & (VRAM_COARSEX | VRAM_NAMETABLEX));
 }
 
 void PPU2C02::TransferAddressY() {
     if (!_mask.renderBackground && !_mask.renderSprites) return;
-    _vramAddr.fineY = _tramAddr.fineY;
-    _vramAddr.nametableY = _tramAddr.nametableY;
-    _vramAddr.coarseY = _tramAddr.coarseY;
+    //_vramAddr = (_vramAddr & ~(VRAM_COARSEY | VRAM_NAMETABLEY | VRAM_FINEY))
+    //    | (_tramAddr & (VRAM_COARSEY | VRAM_NAMETABLEY | VRAM_FINEY));
+
+    uint16_t old_vram = _vramAddr;
+    _vramAddr = (_vramAddr & ~(VRAM_COARSEY | VRAM_NAMETABLEY | VRAM_FINEY))
+        | (_tramAddr & (VRAM_COARSEY | VRAM_NAMETABLEY | VRAM_FINEY));
+
+    printf("TransferY: tramAddr=%04X, old_vramAddr=%04X, new_vramAddr=%04X\n",
+        _tramAddr, old_vram, _vramAddr);
 }
 
 void PPU2C02::LoadBackgroundShifters() {
@@ -457,7 +539,7 @@ void PPU2C02::EvaluateSprites() {
 
     uint8_t entry = 0;
     while (entry < 64 && _spriteCount < 9) {
-        int16_t diff = (_scanline + 1) - (int16_t)OAM[entry].y;
+        int16_t diff = ((int16_t)_scanline) - (int16_t)OAM[entry].y;
         int16_t height = _control.spriteSize ? 16 : 8;
 
         if (diff >= 0 && diff < height) {
@@ -481,7 +563,7 @@ void PPU2C02::LoadSpriteShifters() {
         uint8_t patternLo, patternHi;
         uint16_t addrLo, addrHi;
 
-        int16_t spriteLine = (_scanline + 1) - (int16_t)_spriteScanline[i].y;
+        int16_t spriteLine = ((int16_t)_scanline) - (int16_t)_spriteScanline[i].y;
 
         if (!_control.spriteSize) {
             // 8x8 mode
@@ -530,13 +612,15 @@ uint8_t PPU2C02::FlipByte(uint8_t b) {
 }
 
 void PPU2C02::Clock() {
-    // Visible scanlines + pre-render
+    // Visible scanlines (0-239) + pre-render scanline (-1)
     if (_scanline >= -1 && _scanline < 240) {
 
+        // Skip cycle 0 of scanline 0 on odd frames (if rendering enabled)
         if (_scanline == 0 && _cycle == 0 && _oddFrame && (_mask.renderBackground || _mask.renderSprites)) {
             _cycle = 1;
         }
 
+        // Start of pre-render scanline - clear flags
         if (_scanline == -1 && _cycle == 1) {
             _status.verticalBlank = false;
             _status.spriteOverflow = false;
@@ -548,40 +632,39 @@ void PPU2C02::Clock() {
             }
         }
 
+        // Background tile fetching and rendering
         if ((_cycle >= 2 && _cycle < 258) || (_cycle >= 321 && _cycle < 338)) {
             UpdateShifters();
 
             switch ((_cycle - 1) % 8) {
             case 0:
                 LoadBackgroundShifters();
-                _bgNextTileId = PpuRead(0x2000 | (_vramAddr.reg & 0x0FFF));
+                _bgNextTileId = PpuRead(nametableAddr(_vramAddr));
                 break;
 
             case 2:
-                _bgNextTileAttrib = PpuRead(0x23C0 |
-                    ((_vramAddr.nametableY ? 1 : 0) << 11) |
-                    ((_vramAddr.nametableX ? 1 : 0) << 10) |
-                    ((_vramAddr.coarseY >> 2) << 3) |
-                    (_vramAddr.coarseX >> 2));
+                // Fetch attribute byte
+                _bgNextTileAttrib = PpuRead(attributeAddr(_vramAddr));
 
+                // TEMPORARY: Force palette 0
+                //_bgNextTileAttrib = 0;
+                // Extract the 2-bit palette from the attribute byte
                 {
                     uint8_t shift = 0;
-                    if ((_vramAddr.coarseY & 0x02) != 0) shift += 4;
-                    if ((_vramAddr.coarseX & 0x02) != 0) shift += 2;
+                    if (((_vramAddr & VRAM_COARSEY) & 0x40) != 0) shift += 4;
+                    if (((_vramAddr & VRAM_COARSEX) & 0x02) != 0) shift += 2;
                     _bgNextTileAttrib = (_bgNextTileAttrib >> shift) & 0x03;
                 }
                 break;
 
             case 4:
-                _bgNextTileLsb = PpuRead((_control.patternBackground ? 0x1000 : 0) |
-                    ((uint16_t)_bgNextTileId << 4) |
-                    _vramAddr.fineY);
+                // Fetch tile LSB
+                _bgNextTileLsb = PpuRead(bgPatternAddr(_control.reg, _bgNextTileId, _vramAddr));
                 break;
 
             case 6:
-                _bgNextTileMsb = PpuRead((_control.patternBackground ? 0x1000 : 0) |
-                    ((uint16_t)_bgNextTileId << 4) |
-                    _vramAddr.fineY + 8);
+                // Fetch tile MSB
+                _bgNextTileMsb = PpuRead(bgPatternAddr(_control.reg, _bgNextTileId, _vramAddr) + 0x8);
                 break;
 
             case 7:
@@ -590,66 +673,87 @@ void PPU2C02::Clock() {
             }
         }
 
-        if (_cycle == 256) IncrementScrollY();
+        // End of visible scanline - increment Y
+        if (_cycle == 256) {
+            IncrementScrollY();
+        }
 
+        // Copy horizontal position from t to v
         if (_cycle == 257) {
             LoadBackgroundShifters();
             TransferAddressX();
         }
 
+        // Unused nametable fetches (but mappers might use these cycles)
         if (_cycle == 338 || _cycle == 340) {
-            _bgNextTileId = PpuRead(0x2000 | (_vramAddr.reg & 0x0FFF));
+            _bgNextTileId = PpuRead(nametableAddr(_vramAddr));
         }
 
+        // Pre-render scanline: copy vertical position from t to v
         if (_scanline == -1 && _cycle >= 280 && _cycle < 305) {
             TransferAddressY();
         }
 
+        // Sprite evaluation for next scanline
         if (_cycle == 257 && _scanline >= 0) {
             EvaluateSprites();
         }
 
+        // Load sprite shifters for current scanline
         if (_cycle == 340) {
             LoadSpriteShifters();
         }
     }
 
-    // Post-render scanline
+    // Post-render scanline (240) - idle
     if (_scanline == 240) {
-        // Idle
+        // Do nothing
     }
 
-    // VBlank
+    // VBlank scanlines (241-260)
     if (_scanline >= 241 && _scanline < 261) {
         if (_scanline == 241 && _cycle == 1) {
             _status.verticalBlank = true;
-            if (_control.enableNmi) _nmiRequested = true;
+            if (_control.enableNmi) {
+                _nmiRequested = true;
+            }
         }
     }
 
-    // Render pixel
+    // ============================================
+    // PIXEL RENDERING
+    // ============================================
     uint8_t bgPixel = 0, bgPalette = 0;
     uint8_t fgPixel = 0, fgPalette = 0, fgPriority = 0;
 
+    // Get background pixel
     if (_mask.renderBackground) {
-
+        // Left 8 pixels clipping
         if (_mask.renderBackgroundLeft || _cycle >= 9) {
             uint16_t mux = 0x8000 >> _fineX;
-            bgPixel = (((_bgShifterPatternHi & mux) != 0 ? 1 : 0) << 1) | ((_bgShifterPatternLo & mux) != 0 ? 1 : 0);
-            bgPalette = (((_bgShifterAttribHi & mux) != 0 ? 1 : 0) << 1) | ((_bgShifterAttribLo & mux) != 0 ? 1 : 0);
+            uint8_t pixelLo = (_bgShifterPatternLo & mux) != 0 ? 1 : 0;
+            uint8_t pixelHi = (_bgShifterPatternHi & mux) != 0 ? 1 : 0;
+            bgPixel = (pixelHi << 1) | pixelLo;
+
+            uint8_t palLo = (_bgShifterAttribLo & mux) != 0 ? 1 : 0;
+            uint8_t palHi = (_bgShifterAttribHi & mux) != 0 ? 1 : 0;
+            bgPalette = (palHi << 1) | palLo;
         }
     }
 
+    // Get sprite pixel
     if (_mask.renderSprites) {
-
+        // Left 8 pixels clipping
         if (_mask.renderSpritesLeft || _cycle >= 9) {
             _spriteZeroBeingRendered = false;
 
             for (int i = 0; i < std::min((int)_spriteCount, 8); i++) {
                 if (_spriteScanline[i].x == 0) {
-                    fgPixel = (((_spriteShifterHi[i] & 0x80) != 0 ? 1 : 0) << 1) | ((_spriteShifterLo[i] & 0x80) != 0 ? 1 : 0);
+                    uint8_t pixelLo = (_spriteShifterLo[i] & 0x80) != 0 ? 1 : 0;
+                    uint8_t pixelHi = (_spriteShifterHi[i] & 0x80) != 0 ? 1 : 0;
+                    fgPixel = (pixelHi << 1) | pixelLo;
                     fgPalette = (_spriteScanline[i].attributes & 0x03) + 4;
-                    fgPriority = ((_spriteScanline[i].attributes & 0x20) == 0 ? 1 : 0);
+                    fgPriority = (_spriteScanline[i].attributes & 0x20) == 0 ? 1 : 0;
 
                     if (fgPixel != 0) {
                         if (i == 0) _spriteZeroBeingRendered = true;
@@ -660,48 +764,67 @@ void PPU2C02::Clock() {
         }
     }
 
+    // Combine background and sprite pixels
     uint8_t pixel = 0, palette = 0;
 
     if (bgPixel == 0 && fgPixel == 0) {
-        pixel = 0; palette = 0;
+        // Both transparent - use backdrop color
+        pixel = 0;
+        palette = 0;
     }
     else if (bgPixel == 0 && fgPixel > 0) {
-        pixel = fgPixel; palette = fgPalette;
+        // Background transparent, sprite opaque
+        pixel = fgPixel;
+        palette = fgPalette;
     }
     else if (bgPixel > 0 && fgPixel == 0) {
-        pixel = bgPixel; palette = bgPalette;
+        // Background opaque, sprite transparent
+        pixel = bgPixel;
+        palette = bgPalette;
     }
-    else if (bgPixel > 0 && fgPixel > 0) {
-        if (fgPriority != 0) {
-            pixel = fgPixel; palette = fgPalette;
+    else {
+        // Both opaque - priority decides
+        if (fgPriority) {
+            pixel = fgPixel;
+            palette = fgPalette;
         }
         else {
-            pixel = bgPixel; palette = bgPalette;
+            pixel = bgPixel;
+            palette = bgPalette;
         }
 
+        // Sprite zero hit detection
         if (_spriteZeroHitPossible && _spriteZeroBeingRendered) {
             if (_mask.renderBackground && _mask.renderSprites) {
+                // Check if both left edge clipping flags are off
                 if (!(_mask.renderBackgroundLeft || _mask.renderSpritesLeft)) {
-                    if (_cycle >= 9 && _cycle < 258) _status.spriteZeroHit = true;
+                    // Hit only happens in cycles 9-255
+                    if (_cycle >= 9 && _cycle < 258) {
+                        _status.spriteZeroHit = true;
+                    }
                 }
                 else {
-                    if (_cycle >= 1 && _cycle < 258) _status.spriteZeroHit = true;
+                    // Hit can happen in cycles 1-255
+                    if (_cycle >= 1 && _cycle < 258) {
+                        _status.spriteZeroHit = true;
+                    }
                 }
             }
         }
     }
 
-    // Draw pixel
-    if (_scanline >= 0 && _scanline < 240 && _cycle >= 1 && _cycle < 257) {
+    // Draw the pixel
+    if (_scanline >= 0 && _scanline < 240 && _cycle >= 1 && _cycle <= 256) {
         if (_pixelCallback) {
             Pixel color = GetColorFromPalette(palette, pixel);
             _pixelCallback(_cycle - 1, _scanline, color.r, color.g, color.b);
         }
     }
 
+    // Advance cycle and scanline counters
     _cycle++;
 
-    // Scanline counter for mappers (like MMC3)
+    // Notify mappers of scanline events (important for MMC3/Mapper 4)
     if (_mask.renderBackground || _mask.renderSprites) {
         if (_cycle == 260 && _scanline < 240) {
             MapperInterfaceAPI mapper = _cart->GetMapper();
@@ -709,9 +832,12 @@ void PPU2C02::Clock() {
         }
     }
 
+    // End of scanline
     if (_cycle >= 341) {
         _cycle = 0;
         _scanline++;
+
+        // End of frame
         if (_scanline >= 261) {
             _scanline = -1;
             _frameComplete = true;
@@ -719,7 +845,6 @@ void PPU2C02::Clock() {
         }
     }
 }
-
 
 void PPU2C02::GetPatternTable(uint8_t table, uint8_t palette, uint8_t* buffer) {
     if (!buffer) return;
@@ -768,7 +893,7 @@ void PPU2C02::GetNameTable(uint8_t index, uint8_t* buffer) {
             uint8_t shift = 0;
             if ((y & 0x02) != 0) shift += 4;
             if ((x & 0x02) != 0) shift += 2;
-            uint8_t palette = (attrib >> shift) & 0x03;
+            uint8_t pal = (attrib >> shift) & 0x03;
 
             // Draw tile
             for (int row = 0; row < 8; row++) {
@@ -781,16 +906,16 @@ void PPU2C02::GetNameTable(uint8_t index, uint8_t* buffer) {
                     tileLsb >>= 1;
                     tileMsb >>= 1;
 
-                    Pixel color = GetColorFromPalette(palette, pixel);
+                    Pixel color = GetColorFromPalette(pal, pixel);
 
                     int px = x * 8 + (7 - col);
                     int py = y * 8 + row;
-                    int index = (py * 256 + px) * 4;
+                    int bufIdx = (py * 256 + px) * 4;
 
-                    buffer[index + 0] = color.r;
-                    buffer[index + 1] = color.g;
-                    buffer[index + 2] = color.b;
-                    buffer[index + 3] = 255;
+                    buffer[bufIdx + 0] = color.r;
+                    buffer[bufIdx + 1] = color.g;
+                    buffer[bufIdx + 2] = color.b;
+                    buffer[bufIdx + 3] = 255;
                 }
             }
         }
@@ -807,8 +932,10 @@ void PPU2C02::SetCartridge(CartridgeInterfaceAPI* cart) {
     }
 }
 
+// ============================================
+// EXPORTED PPU API FUNCTIONS
+// ============================================
 
-// Exported PPU functions
 DLLEXPORT PPU2C02* CreatePPU() {
     return new PPU2C02();
 }

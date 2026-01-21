@@ -18,10 +18,11 @@ namespace nes {
         bool _chrInversion = false;
 
         // IRQ Counter Logic
-        uint16_t _irqCounter = 0;
-        uint16_t _irqReload = 0;
+        uint8_t _irqCounter = 0;
+        uint8_t _irqReload = 0;
         bool _irqEnable = false;
         bool _irqActive = false;
+        bool _irqReloadFlag = false;
 
         void UpdateBanks() {
             // Update CHR banks (8 x 1KB banks)
@@ -84,6 +85,7 @@ namespace nes {
             _irqReload = 0;
             _irqEnable = false;
             _irqActive = false;
+            _irqReloadFlag = false;
 
             std::memset(_registers, 0, sizeof(_registers));
             std::memset(_prgBanksReg, 0, sizeof(_prgBanksReg));
@@ -120,34 +122,44 @@ namespace nes {
 
             if (addr >= 0x8000 && addr <= 0x9FFF) {
                 if (!(addr & 1)) {
+                    // Bank select ($8000, $8002, etc.)
                     _targetRegister = data & 0x07;
                     _prgBankMode = (data & 0x40) != 0;
                     _chrInversion = (data & 0x80) != 0;
+                    UpdateBanks();
                 }
                 else {
+                    // Bank data ($8001, $8003, etc.)
                     _registers[_targetRegister] = data;
                     UpdateBanks();
                 }
             }
             else if (addr >= 0xA000 && addr <= 0xBFFF) {
                 if (!(addr & 1)) {
-                    _mirrorMode = (data & 1) ? MirrorMode::Horizontal : MirrorMode::Vertical;
+                    // Mirroring ($A000, $A002, etc.)
+                    // 0 = vertical, 1 = horizontal
+                    _mirrorMode = (data & 1) ? MirrorMode::Vertical : MirrorMode::Horizontal;
                 }
+                // Odd addresses ($A001, $A003, etc.) are PRG RAM protect - not implemented here
             }
             else if (addr >= 0xC000 && addr <= 0xDFFF) {
                 if (!(addr & 1)) {
+                    // IRQ latch ($C000, $C002, etc.)
                     _irqReload = data;
                 }
                 else {
-                    _irqCounter = 0;
+                    // IRQ reload ($C001, $C003, etc.)
+                    _irqReloadFlag = true;
                 }
             }
             else if (addr >= 0xE000) {
                 if (!(addr & 1)) {
+                    // IRQ disable ($E000, $E002, etc.)
                     _irqEnable = false;
                     _irqActive = false;
                 }
                 else {
+                    // IRQ enable ($E001, $E003, etc.)
                     _irqEnable = true;
                 }
             }
@@ -164,20 +176,31 @@ namespace nes {
         }
 
         bool PpuMapWrite(uint16_t addr, uint32_t& mappedAddr) override {
-            return false; // MMC3 typically uses CHR-ROM
+            if (addr < 0x2000 && _chrBanks == 0) {
+                // CHR-RAM support
+                uint8_t bankIndex = addr / 0x0400;
+                mappedAddr = _chrBanksReg[bankIndex] + (addr & 0x03FF);
+                return true;
+            }
+            return false;
         }
 
         bool IsIrqActive() const override { return _irqActive; }
         void ClearIrq() override { _irqActive = false; }
 
+        // This should be called when PPU A12 rises (typically detected by tracking A12 transitions)
+        // For simplicity, many emulators call this once per scanline
         void ScanlineCounter() override {
-            if (_irqCounter == 0) {
+            // If reload flag is set or counter is 0, reload from latch
+            if (_irqReloadFlag || _irqCounter == 0) {
                 _irqCounter = _irqReload;
+                _irqReloadFlag = false;
             }
             else {
                 _irqCounter--;
             }
 
+            // Trigger IRQ if counter hits 0 and IRQ is enabled
             if (_irqCounter == 0 && _irqEnable) {
                 _irqActive = true;
             }

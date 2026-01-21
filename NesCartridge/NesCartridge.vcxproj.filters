@@ -51,6 +51,9 @@
     <ClInclude Include="core\Diagnostics\DiagnosticHelpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="core\mappers\Mapper206.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="private\Cartridge.cpp">

@@ -117,10 +117,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LibraryPath>$(SolutionDir)\bin\Release\;$(SolutionDir)\$(ProjectName)\vendor\FMOD\lib\$(Platform);$(LibraryPath)</LibraryPath>
     <IncludePath>$(SolutionDir)\NesCartridge;$(SolutionDir)\$(ProjectName)\vendor\FMOD\inc;$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)\bin\Release\</OutDir>
+    <IntDir>$(SolutionDir)\bin\Release\intermediates\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>$(SolutionDir)\NesCartridge;$(SolutionDir)\$(ProjectName)\vendor\FMOD\inc;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\bin\Release\;$(SolutionDir)\$(ProjectName)\vendor\FMOD\lib\$(Platform);$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)\bin\Debug\</OutDir>
+    <IntDir>$(SolutionDir)\bin\Debug\intermediates\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -128,9 +132,10 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;NESCHIPSET_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -146,9 +151,10 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;NESCHIPSET_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
