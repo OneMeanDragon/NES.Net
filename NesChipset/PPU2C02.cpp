@@ -4,7 +4,7 @@
 #include "CartridgeApi/MapperInterfaceAPI.h"
 #include "CartridgeApi/CartridgeInterfaceAPI.h"
 
-PPU2C02::PPU2C02() 
+PPU2C02::PPU2C02()
     : _cart(nullptr), _pixelCallback(nullptr), _diagnosticCallback(nullptr)
 {
     std::memset(_nametable0, 0, sizeof(_nametable0));

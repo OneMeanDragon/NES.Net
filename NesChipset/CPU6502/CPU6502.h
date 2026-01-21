@@ -13,6 +13,25 @@
 class NESBus;
 
 class CPU6502 {
+private:
+    enum
+    {
+        NMI_VECTOR = 0xFFFA,
+        RESET_VECTOR = 0xFFFC,
+        IRQ_VECTOR = 0xFFFE,
+        RESET_CYCLES = 7,
+        INT_CYCLES = 7,
+        BRK_CYCLES = 7,
+        RTI_CYCLES = 6,
+        RTS_CYCLES = 6,
+        PHA_CYCLES = 3,
+        PHP_CYCLES = 3,
+        PLA_CYCLES = 4,
+        PLP_CYCLES = 4,
+        JSR_CYCLES = 6,
+        JMP_ABS_CYCLES = 3,
+        JMP_IND_CYCLES = 5
+    };
 public:
     CPU6502();
     ~CPU6502();
@@ -58,7 +77,7 @@ private:
         C = 1 << 0,  // Carry
         Z = 1 << 1,  // Zero
         I = 1 << 2,  // Interrupt Disable
-        D = 1 << 3,  // Decimal (unused on NES)
+        D = 1 << 3,  // Decimal mode (not supported on the N2A03)
         B = 1 << 4,  // Break
         U = 1 << 5,  // Unused (always 1)
         V = 1 << 6,  // Overflow

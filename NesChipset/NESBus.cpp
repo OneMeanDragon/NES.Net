@@ -193,6 +193,7 @@ void NESBus::ConnectAPU(APU2A03* apu) {
 }
 
 void NESBus::Reset(bool poweron) {
+    Log(poweron ? "Info: Power turned on." : "Info: Warm Reset.");
     // Stop audio if it was playing
     if (_audioSystem && _audioSystem->IsPlaying()) {
         _audioSystem->Stop();
