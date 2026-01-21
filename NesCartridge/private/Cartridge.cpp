@@ -253,8 +253,7 @@ bool Cartridge::InitializeMapper() {
         // Create the mapper and store it in our unique_ptr
         _mapper = nes::MapperFactory::CreateMapper(mapperID, _header.prg_rom_size, _header.chr_rom_size);
 
-        std::string name = nes::MapperFactory::GetMapperName(mapperID);
-        Log(std::format("Loaded: {}", name).c_str());
+        Log(std::format("Loaded: {}", nes::MapperFactory::GetMapperName(mapperID)).c_str());
         return true;
     }
     else {

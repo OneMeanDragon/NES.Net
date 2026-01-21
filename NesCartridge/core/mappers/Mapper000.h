@@ -3,15 +3,14 @@
 
 namespace nes {
 
-    constexpr uint8_t     MAPPER_000_ID   = 0;
-    constexpr const char* MAPPER_000_NAME = "NROM";
-
     class Mapper000 : public MapperBase {
     public:
         static constexpr uint8_t     ID   = 0;
         static constexpr const char* NAME = "NROM";
+        static constexpr const char* INFO = "No mapper - simple direct mapping. 16KB or 32KB PRG, up to 8KB CHR.";
         virtual constexpr uint8_t GetMapperNumber() const noexcept override { return ID; }
         virtual constexpr const char* GetMapperName() const noexcept override { return NAME; }
+        virtual constexpr const char* GetMapperInfo() const noexcept override { return INFO; }
     public:
         // Constructor matches the base class required parameters
         Mapper000(uint8_t prgBanks, uint8_t chrBanks)

@@ -7,8 +7,10 @@ namespace nes {
     public:
         static constexpr uint8_t     ID   = 66;
         static constexpr const char* NAME = "GxROM";
+        static constexpr const char* INFO = "GxROM. Simple 32KB PRG + 8KB CHR banking.";
         virtual constexpr uint8_t GetMapperNumber() const noexcept override { return ID; }
         virtual constexpr const char* GetMapperName() const noexcept override { return NAME; }
+        virtual constexpr const char* GetMapperInfo() const noexcept override { return INFO; }
     private:
         uint8_t _prgBank = 0;
         uint8_t _chrBank = 0;

@@ -7,8 +7,10 @@ namespace nes {
     public:
         static constexpr uint8_t     ID   = 206;
         static constexpr const char* NAME = "Namcot 108/118 / Tengen MIMIC-1";
+        static constexpr const char* INFO = "Namco 118, Tengen MIMIC-1 DxROM";
         virtual constexpr uint8_t GetMapperNumber() const noexcept override { return ID; }
         virtual constexpr const char* GetMapperName() const noexcept override { return NAME; }
+        virtual constexpr const char* GetMapperInfo() const noexcept override { return INFO; }
     private:
         uint8_t _targetRegister = 0;
         uint8_t _prgBankSelect[2] = { 0, 0 };

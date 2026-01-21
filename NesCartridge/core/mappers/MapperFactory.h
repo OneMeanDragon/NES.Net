@@ -35,7 +35,7 @@ namespace nes {
             }
         }
 
-        static bool IsSupported(uint8_t mapperNumber) {
+        static constexpr bool IsSupported(uint8_t mapperNumber) {
             switch (mapperNumber) {
                 case Mapper000::ID: return true;
                 case Mapper001::ID: return true;
@@ -49,7 +49,7 @@ namespace nes {
             }
         }
 
-        static std::string GetMapperName(uint8_t mapperNumber) {
+        static constexpr std::string_view GetMapperName(uint8_t mapperNumber) {
             switch (mapperNumber) {
             case Mapper000::ID: return Mapper000::NAME;
             case Mapper001::ID: return Mapper001::NAME;
@@ -63,16 +63,16 @@ namespace nes {
             }
         }
 
-        static std::string GetMapperInfo(uint8_t mapperNumber) {
+        static constexpr std::string_view GetMapperInfo(uint8_t mapperNumber) {
             switch (mapperNumber) {
-            case Mapper000::ID: return "No mapper - simple direct mapping. 16KB or 32KB PRG, up to 8KB CHR.";
-            case Mapper001::ID: return "Nintendo MMC1. Switchable PRG/CHR banks, serial register loading, 8KB cart RAM.";
-            case Mapper002::ID: return "UxROM. Switchable 16KB PRG banks, fixed CHR.";
-            case Mapper003::ID: return "CNROM. Fixed PRG, switchable 8KB CHR banks.";
-            case Mapper004::ID: return "Nintendo MMC3. Advanced banking, scanline IRQ counter, 8KB cart RAM.";
-            case Mapper009::ID: return "Nintendo MMC2. 16KB PRG banking with special CHR banking for split-screen effects.";
-            case Mapper066::ID: return "GxROM. Simple 32KB PRG + 8KB CHR banking.";
-            case Mapper206::ID: return "Tengen Tetris", "Gauntlet", "R.B.I. Baseball";
+            case Mapper000::ID: return Mapper000::INFO;
+            case Mapper001::ID: return Mapper001::INFO;
+            case Mapper002::ID: return Mapper002::INFO;
+            case Mapper003::ID: return Mapper003::INFO;
+            case Mapper004::ID: return Mapper004::INFO;
+            case Mapper009::ID: return Mapper009::INFO;
+            case Mapper066::ID: return Mapper066::INFO;
+            case Mapper206::ID: return Mapper206::INFO;
             default:  return "No information available.";
             }
         }

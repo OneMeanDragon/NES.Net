@@ -8,8 +8,10 @@ namespace nes {
     public:
         static constexpr uint8_t     ID   = 9;
         static constexpr const char* NAME = "MMC2 (PxROM)";
+        static constexpr const char* INFO = "Nintendo MMC2. 16KB PRG banking with special CHR banking for split-screen effects.";
         virtual constexpr uint8_t GetMapperNumber() const noexcept override { return ID; }
         virtual constexpr const char* GetMapperName() const noexcept override { return NAME; }
+        virtual constexpr const char* GetMapperInfo() const noexcept override { return INFO; }
     private:
         // PRG Reg: $A000-$AFFF
         int _prgBankSelect = 0;

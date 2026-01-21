@@ -9,8 +9,10 @@ namespace nes {
     public:
         static constexpr uint8_t     ID   = 4;
         static constexpr const char* NAME = "MMC3 (TxROM)";
+        static constexpr const char* INFO = "Nintendo MMC3. Advanced banking, scanline IRQ counter, 8KB cart RAM.";
         virtual constexpr uint8_t GetMapperNumber() const noexcept override { return ID; }
         virtual constexpr const char* GetMapperName() const noexcept override { return NAME; }
+        virtual constexpr const char* GetMapperInfo() const noexcept override { return INFO; }
     private:
         // Internal Registers
         uint8_t _registers[8]{ 0 };
