@@ -25,6 +25,8 @@ class FMODAudioSystem;
 
 class NESBus {
 public:
+    uint8_t _openBus = 0;
+public:
     NESBus();
     ~NESBus();
 

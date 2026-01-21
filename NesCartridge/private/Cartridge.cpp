@@ -284,12 +284,45 @@ bool Cartridge::CpuRead(uint16_t addr, uint8_t& data) {
         // _prgRom can be a std::vector<uint8_t> or std::span<uint8_t>
         if (mappedAddr < _prgRom.size()) {
             data = _prgRom[mappedAddr];
+
+            // DEBUG
+            //char msg[256];
+            //snprintf(msg, sizeof(msg),
+            //    "Cartridge: Read $%04X -> offset %04X = $%02X",
+            //    addr, mappedAddr, data);
+            //Log(msg);
+
             return true;
         }
+
+        // DEBUG ERROR
+        //char msg[256];
+        //snprintf(msg, sizeof(msg),
+        //    "Cartridge ERROR: Offset %04X out of bounds (size: %04X)",
+        //    mappedAddr, _prgRom.size());
+        //Log(msg);
     }
 
     return false;
 }
+
+/*
+bool Cartridge::CpuWrite(uint16_t addr, uint8_t data) {
+    if (!_isLoaded || _mapper == nullptr) return false;
+
+    uint32_t mappedAddr = 0;
+
+    // Let mapper handle it
+    bool mapperReturn = _mapper->CpuMapWrite(addr, mappedAddr, data);
+
+    // If mapper returns true OR address is in mapper space, consider it handled
+    if (mapperReturn || (addr >= 0x8000 && addr <= 0xFFFF)) {
+        return true;  // Mapper handled it (either as memory write or register)
+    }
+
+    return false;
+}
+*/
 
 bool Cartridge::CpuWrite(uint16_t addr, uint8_t data) {
     if (!_isLoaded || _mapper == nullptr) return false;

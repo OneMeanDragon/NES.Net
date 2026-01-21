@@ -1,121 +1,210 @@
 #pragma once
 #include "MapperBase.h"
+#include <cstring>
+#include <cstdio>
 
 namespace nes {
 
     class Mapper206 : public MapperBase {
     public:
-        static constexpr uint8_t     ID   = 206;
+        static constexpr uint8_t     ID = 206;
         static constexpr const char* NAME = "Namcot 108/118 / Tengen MIMIC-1";
-        static constexpr const char* INFO = "Namco 118, Tengen MIMIC-1 DxROM";
+        static constexpr const char* INFO = "Namco 118, Tengen MIMIC-1 (Discrete MMC3)";
         virtual constexpr uint8_t GetMapperNumber() const noexcept override { return ID; }
         virtual constexpr const char* GetMapperName() const noexcept override { return NAME; }
         virtual constexpr const char* GetMapperInfo() const noexcept override { return INFO; }
+
     private:
+        // 8 registers like MMC3
+        uint8_t _registers[8]{ 0 };
         uint8_t _targetRegister = 0;
-        uint8_t _prgBankSelect[2] = { 0, 0 };
-        uint8_t _chrBankSelect[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+        // Control flags
+        bool _prgBankMode = false;     // PRG banking mode (0/1)
+        bool _chrInversion = false;    // CHR banking mode (0/1)
+
+        // Cached bank addresses for faster access
+        uint32_t _prgBankOffsets[4]{ 0 };
+        uint32_t _chrBankOffsets[8]{ 0 };
+
+        // IRQ
+        uint8_t _irqCounter = 0;
+        uint8_t _irqReload = 0;
+        bool _irqEnable = false;
+        bool _irqActive = false;
+        bool _irqReloadFlag = false;
+
+        // Debug
+        bool _debug = false;
+
+        void UpdateBanks() {
+            // --- Update PRG banks (4 x 8KB) ---
+            uint32_t total8KBBanks = _prgBanks * 2;
+            uint32_t last8KBBank = total8KBBanks - 1;
+            uint32_t secondLast8KBBank = total8KBBanks - 2;
+
+            // Mask for available banks
+            uint8_t bankMask = (total8KBBanks - 1) & 0x3F;
+
+            if (_prgBankMode) {
+                // Mode 1: $8000-$9FFF fixed to second-last, $C000-$DFFF switchable
+                _prgBankOffsets[0] = secondLast8KBBank * 0x2000;
+                _prgBankOffsets[1] = (_registers[7] & bankMask) * 0x2000;
+                _prgBankOffsets[2] = (_registers[6] & bankMask) * 0x2000;
+                _prgBankOffsets[3] = last8KBBank * 0x2000;
+            }
+            else {
+                // Mode 0: $8000-$9FFF switchable, $C000-$DFFF fixed to second-last
+                _prgBankOffsets[0] = (_registers[6] & bankMask) * 0x2000;
+                _prgBankOffsets[1] = (_registers[7] & bankMask) * 0x2000;
+                _prgBankOffsets[2] = secondLast8KBBank * 0x2000;
+                _prgBankOffsets[3] = last8KBBank * 0x2000;
+            }
+
+            // --- Update CHR banks (8 x 1KB) ---
+            uint32_t total1KBBanks = _chrBanks * 8;
+            uint32_t chrMask = total1KBBanks - 1;
+
+            if (_chrInversion) {
+                // Inverted: Two 2KB banks at $1000-$1FFF, four 1KB at $0000-$0FFF
+                _chrBankOffsets[0] = (_registers[2] & chrMask) * 0x0400;
+                _chrBankOffsets[1] = (_registers[3] & chrMask) * 0x0400;
+                _chrBankOffsets[2] = (_registers[4] & chrMask) * 0x0400;
+                _chrBankOffsets[3] = (_registers[5] & chrMask) * 0x0400;
+                _chrBankOffsets[4] = ((_registers[0] & 0xFE) & chrMask) * 0x0400;
+                _chrBankOffsets[5] = ((_registers[0] | 0x01) & chrMask) * 0x0400;
+                _chrBankOffsets[6] = ((_registers[1] & 0xFE) & chrMask) * 0x0400;
+                _chrBankOffsets[7] = ((_registers[1] | 0x01) & chrMask) * 0x0400;
+            }
+            else {
+                // Normal: Two 2KB banks at $0000-$0FFF, four 1KB at $1000-$1FFF
+                _chrBankOffsets[0] = ((_registers[0] & 0xFE) & chrMask) * 0x0400;
+                _chrBankOffsets[1] = ((_registers[0] | 0x01) & chrMask) * 0x0400;
+                _chrBankOffsets[2] = ((_registers[1] & 0xFE) & chrMask) * 0x0400;
+                _chrBankOffsets[3] = ((_registers[1] | 0x01) & chrMask) * 0x0400;
+                _chrBankOffsets[4] = (_registers[2] & chrMask) * 0x0400;
+                _chrBankOffsets[5] = (_registers[3] & chrMask) * 0x0400;
+                _chrBankOffsets[6] = (_registers[4] & chrMask) * 0x0400;
+                _chrBankOffsets[7] = (_registers[5] & chrMask) * 0x0400;
+            }
+
+            if (_debug) {
+                printf("Mapper206: UpdateBanks\n");
+                printf("  PRG Mode: %d, CHR Inv: %d\n", _prgBankMode, _chrInversion);
+                printf("  PRG Offsets: %08X %08X %08X %08X\n",
+                    _prgBankOffsets[0], _prgBankOffsets[1],
+                    _prgBankOffsets[2], _prgBankOffsets[3]);
+            }
+        }
 
     public:
         Mapper206(uint8_t prgBanks, uint8_t chrBanks)
             : MapperBase(prgBanks, chrBanks) {
+            Reset();
         }
 
         void Reset() override {
             _targetRegister = 0;
-            _prgBankSelect[0] = 0;
-            _prgBankSelect[1] = 1;
-            for (int i = 0; i < 8; i++) {
-                _chrBankSelect[i] = i;
+            _prgBankMode = false;
+            _chrInversion = false;
+            _mirrorMode = MirrorMode::Vertical;
+
+            _irqCounter = 0;
+            _irqReload = 0;
+            _irqEnable = false;
+            _irqActive = false;
+            _irqReloadFlag = false;
+
+            std::memset(_registers, 0, sizeof(_registers));
+
+            // Set initial banks for 64KB PRG-ROM (4 banks of 16KB = 8 banks of 8KB)
+            // $8000-$9FFF = first 8KB
+            // $A000-$BFFF = second 8KB  
+            // $C000-$DFFF = second-last 8KB (bank 6)
+            // $E000-$FFFF = last 8KB (bank 7)
+            _registers[6] = 0;  // Bank for $8000-$9FFF
+            _registers[7] = 1;  // Bank for $A000-$BFFF
+
+            UpdateBanks();
+
+            if (_debug) {
+                printf("Mapper206: Reset\n");
+                printf("  PRG banks: %d, CHR banks: %d\n", _prgBanks, _chrBanks);
             }
         }
 
         // --- CPU Mapping ---
-
         bool CpuMapRead(uint16_t addr, uint32_t& mappedAddr, uint8_t& data) override {
-            if (addr >= 0x8000 && addr <= 0x9FFF) {
-                // First 8KB switchable bank
-                mappedAddr = (_prgBankSelect[0] * 0x2000) + (addr & 0x1FFF);
-                return true;
+            // PRG-ROM reads ($8000-$FFFF)
+            if (addr >= 0x8000 && addr <= 0xFFFF) {
+                int index = (addr >> 13) & 0x03;
+                mappedAddr = _prgBankOffsets[index] + (addr & 0x1FFF);
+                return true;  // Memory read
             }
-            else if (addr >= 0xA000 && addr <= 0xBFFF) {
-                // Second 8KB switchable bank
-                mappedAddr = (_prgBankSelect[1] * 0x2000) + (addr & 0x1FFF);
-                return true;
-            }
-            else if (addr >= 0xC000 && addr <= 0xDFFF) {
-                // Third 8KB fixed to second-to-last bank
-                mappedAddr = ((_prgBanks * 2 - 2) * 0x2000) + (addr & 0x1FFF);
-                return true;
-            }
-            else if (addr >= 0xE000 && addr <= 0xFFFF) {
-                // Last 8KB fixed to last bank
-                mappedAddr = ((_prgBanks * 2 - 1) * 0x2000) + (addr & 0x1FFF);
-                return true;
-            }
-            return false;
+
+            return false;  // Not PRG-ROM
         }
 
         bool CpuMapWrite(uint16_t addr, uint32_t& mappedAddr, uint8_t data) override {
-            // Only respond to writes in $8000-$9FFF range (no $A000-$FFFF registers)
-            if (addr >= 0x8000 && addr <= 0x9FFF) {
-                // Even addresses: Bank select
-                if ((addr & 0x01) == 0) {
-                    _targetRegister = data & 0x07; // Only bits 0-2 used (8 registers)
-                }
-                // Odd addresses: Bank data
-                else {
-                    if (_targetRegister >= 0 && _targetRegister <= 5) {
-                        // CHR bank registers (R0-R5)
-                        // R0-R5 are 1KB CHR banks
-                        _chrBankSelect[_targetRegister] = data;
-                    }
-                    else if (_targetRegister == 6) {
-                        // PRG bank 0 (R6) - 8KB switchable
-                        // Limit to max 128KB PRG (16 banks of 8KB)
-                        _prgBankSelect[0] = data & 0x0F;
-                    }
-                    else if (_targetRegister == 7) {
-                        // PRG bank 1 (R7) - 8KB switchable
-                        _prgBankSelect[1] = data & 0x0F;
-                    }
-                }
-                return false; // Don't write to cartridge memory
+            if (_debug && addr >= 0x8000) {
+                printf("Mapper206: Write to $%04X = $%02X\n", addr, data);
             }
-            // No registers in $A000-$FFFF range
-            return false;
+
+            // Mapper 206 has NO cart RAM, only registers
+            if (addr >= 0x8000 && addr <= 0xFFFF) {
+                // Bank select/data ($8000-$9FFF)
+                if (addr >= 0x8000 && addr <= 0x9FFF) {
+                    if ((addr & 1) == 0) {
+                        _targetRegister = data & 0x07;
+                        _prgBankMode = (data & 0x40) != 0;
+                        _chrInversion = (data & 0x80) != 0;
+                    }
+                    else {
+                        _registers[_targetRegister] = data;
+                        UpdateBanks();
+                    }
+                }
+                // Mirroring ($A000-$BFFF)
+                else if (addr >= 0xA000 && addr <= 0xBFFF) {
+                    if ((addr & 1) == 0) {
+                        _mirrorMode = (data & 1) ? MirrorMode::Horizontal : MirrorMode::Vertical;
+                    }
+                }
+                // IRQ ($C000-$FFFF)
+                else if (addr >= 0xC000 && addr <= 0xDFFF) {
+                    if ((addr & 1) == 0) {
+                        _irqReload = data;
+                    }
+                    else {
+                        _irqReloadFlag = true;
+                    }
+                }
+                else if (addr >= 0xE000 && addr <= 0xFFFF) {
+                    if ((addr & 1) == 0) {
+                        _irqEnable = false;
+                        _irqActive = false;
+                    }
+                    else {
+                        _irqEnable = true;
+                    }
+                }
+
+                return false;  // Register write handled internally
+            }
+
+            return false;  // Not a mapper write
         }
 
         // --- PPU Mapping ---
-
         bool PpuMapRead(uint16_t addr, uint32_t& mappedAddr) override {
             if (addr < 0x2000) {
-                // CHR Banking: Left pattern table (0000-0FFF) uses 2KB banks (R0, R1)
-                // Right pattern table (1000-1FFF) uses 1KB banks (R2-R5)
+                // CHR banking - 1KB banks
+                uint8_t bankIndex = (addr >> 10) & 0x07;
+                mappedAddr = _chrBankOffsets[bankIndex] + (addr & 0x03FF);
 
-                if (addr < 0x0800) {
-                    // First 2KB bank (uses R0 as 2KB)
-                    mappedAddr = ((_chrBankSelect[0] & 0xFE) * 0x0400) + (addr & 0x07FF);
-                }
-                else if (addr < 0x1000) {
-                    // Second 2KB bank (uses R1 as 2KB)
-                    mappedAddr = ((_chrBankSelect[1] & 0xFE) * 0x0400) + (addr & 0x07FF);
-                }
-                else if (addr < 0x1400) {
-                    // First 1KB bank in right pattern table (R2)
-                    mappedAddr = (_chrBankSelect[2] * 0x0400) + (addr & 0x03FF);
-                }
-                else if (addr < 0x1800) {
-                    // Second 1KB bank (R3)
-                    mappedAddr = (_chrBankSelect[3] * 0x0400) + (addr & 0x03FF);
-                }
-                else if (addr < 0x1C00) {
-                    // Third 1KB bank (R4)
-                    mappedAddr = (_chrBankSelect[4] * 0x0400) + (addr & 0x03FF);
-                }
-                else {
-                    // Fourth 1KB bank (R5)
-                    mappedAddr = (_chrBankSelect[5] * 0x0400) + (addr & 0x03FF);
+                if (_debug && addr < 0x0100) {
+                    printf("Mapper206: Read CHR $%04X -> bank %d, offset %08X\n",
+                        addr, bankIndex, mappedAddr);
                 }
                 return true;
             }
@@ -123,30 +212,33 @@ namespace nes {
         }
 
         bool PpuMapWrite(uint16_t addr, uint32_t& mappedAddr) override {
-            if (addr < 0x2000 && _chrBanks == 0) {
-                // Allow writes to CHR-RAM if no CHR-ROM present
-                // Use same banking logic as PpuMapRead
-                if (addr < 0x0800) {
-                    mappedAddr = ((_chrBankSelect[0] & 0xFE) * 0x0400) + (addr & 0x07FF);
-                }
-                else if (addr < 0x1000) {
-                    mappedAddr = ((_chrBankSelect[1] & 0xFE) * 0x0400) + (addr & 0x07FF);
-                }
-                else if (addr < 0x1400) {
-                    mappedAddr = (_chrBankSelect[2] * 0x0400) + (addr & 0x03FF);
-                }
-                else if (addr < 0x1800) {
-                    mappedAddr = (_chrBankSelect[3] * 0x0400) + (addr & 0x03FF);
-                }
-                else if (addr < 0x1C00) {
-                    mappedAddr = (_chrBankSelect[4] * 0x0400) + (addr & 0x03FF);
-                }
-                else {
-                    mappedAddr = (_chrBankSelect[5] * 0x0400) + (addr & 0x03FF);
-                }
-                return true;
-            }
+            // CHR-ROM (not writable)
             return false;
+        }
+
+        // --- IRQ Functions ---
+        bool IsIrqActive() const override { return _irqActive; }
+        void ClearIrq() override { _irqActive = false; }
+
+        void ScanlineCounter() override {
+            if (_irqReloadFlag) {
+                _irqCounter = _irqReload;
+                _irqReloadFlag = false;
+            }
+            else if (_irqCounter == 0) {
+                _irqCounter = _irqReload;
+            }
+            else {
+                _irqCounter--;
+            }
+
+            if (_irqCounter == 0 && _irqEnable) {
+                _irqActive = true;
+            }
+        }
+
+        MirrorMode GetMirrorMode() const override {
+            return _mirrorMode;
         }
     };
 }

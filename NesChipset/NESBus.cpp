@@ -237,41 +237,59 @@ void NESBus::Reset(bool poweron) {
 }
 
 uint8_t NESBus::CpuRead(uint16_t addr, bool isReadOnly) {
-    uint8_t data = 0;
+    uint8_t data = _openBus;
 
-    if (_cart && _cart->CpuRead(addr, &data)) {
-        return data;
-    }
+    // LOG ALL mapper writes
+    //if (addr >= 0x8000) {
+    //    char msg[256];
+    //    snprintf(msg, sizeof(msg),
+    //        "BUS: Read from mapper $%04X = $%02X (PC=$%04X)",
+    //        addr, data, _cpu ? _cpu->GetPC() : 0xFFFF);
+    //    Log(msg);
+    //}
 
+    bool _carthandled = _cart->CpuRead(addr, &data);
+    if (_carthandled) {
+    } 
+    
     if (addr <= 0x1FFF) {
-        return _cpuRam[addr & CPU_RAM_MIRROR_MASK];
+        data = _cpuRam[addr & CPU_RAM_MIRROR_MASK];
     }
-
-    if (addr >= 0x2000 && addr <= 0x3FFF) {
-        if (_ppu) {
-            return _ppu->CpuRead(addr & PPU_REG_MIRROR_MASK, isReadOnly);
-        }
-        return 0;
+    else if (addr >= 0x2000 && addr <= 0x3FFF) {
+        data = _ppu->CpuRead(addr & PPU_REG_MIRROR_MASK, isReadOnly);
     }
 
     if (addr == 0x4015) {
-        if (_apu) {
-            return _apu->CpuRead(addr);
-        }
-        return 0;
-    }
-
-    if (addr >= 0x4016 && addr <= 0x4017) {
+        data = _apu->CpuRead(addr);
+    } else if (addr >= 0x4016 && addr <= 0x4017) {
         uint8_t controllerIndex = addr & 1;
         data = (_controllerState[controllerIndex] & 0x80) ? 1 : 0;
         _controllerState[controllerIndex] <<= 1;
-        return data;
     }
 
-    return 0;
+    if (addr >= 0x4020 && !_carthandled) {
+        char msg[256];
+        snprintf(msg, sizeof(msg), "UNHANDLED READ: $%04X (PC: $%04X)",
+            addr, _cpu ? _cpu->GetPC() : 0xFFFF);
+        Log(msg);
+    }
+
+    _openBus = data;
+    return _openBus;
 }
 
 void NESBus::CpuWrite(uint16_t addr, uint8_t data) {
+    _openBus = data;
+    
+    // LOG ALL mapper writes
+    //if (addr >= 0x8000) {
+    //    char msg[256];
+    //    snprintf(msg, sizeof(msg),
+    //        "BUS: Write to mapper $%04X = $%02X (PC=$%04X)",
+    //        addr, data, _cpu ? _cpu->GetPC() : 0xFFFF);
+    //    Log(msg);
+    //}
+
     if (_cart && _cart->CpuWrite(addr, data)) {
         return;
     }
@@ -411,14 +429,26 @@ void NESBus::PreFillAudioBuffer(int numSamples) {
 
 bool NESBus::Clock() {
     // CPU runs at 1/3 PPU speed
-    if ((_systemClockCounter % 3) == 0) {
-        if (_dmaTransfer) {
-            ProcessDMA();
-        }
-        else {
-            if (_cpu) {
-                _cpu->Clock();
-            }
+    //if ((_systemClockCounter % 3) == 0) {
+    //    if (_dmaTransfer) {
+    //        ProcessDMA();
+    //    }
+    //    else {
+    //        if (_cpu) {
+    //            _cpu->Clock();
+    //        }
+    //    }
+    //}
+        // Check for DMA first - it has highest priority
+    if (_dmaTransfer) {
+        ProcessDMA();
+        // After DMA processes, still need to clock other components
+        // but CPU is stalled
+    }
+    else if ((_systemClockCounter % 3) == 0) {
+        // Only run CPU if not in DMA and on CPU cycle
+        if (_cpu) {
+            _cpu->Clock();
         }
     }
 
