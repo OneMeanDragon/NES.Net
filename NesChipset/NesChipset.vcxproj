@@ -28,7 +28,12 @@
     <ClInclude Include="FMODAudio\FMODAudioSystem.h" />
     <ClInclude Include="InputSystem\InputSystem.h" />
     <ClInclude Include="NESBus.h" />
-    <ClInclude Include="PPU2C02.h" />
+    <ClInclude Include="PPU2C02\PPU2C02.Background.h" />
+    <ClInclude Include="PPU2C02\PPU2C02.h" />
+    <ClInclude Include="PPU2C02\PPU2C02.Memory.h" />
+    <ClInclude Include="PPU2C02\PPU2C02.Registers.h" />
+    <ClInclude Include="PPU2C02\PPU2C02.Sprites.h" />
+    <ClInclude Include="PPU2C02\PPU2C02.Types.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="APU2A03.cpp" />
@@ -43,12 +48,17 @@
     <ClCompile Include="CPU6502\CPU6502.Instructions.Official.cpp" />
     <ClCompile Include="CPU6502\CPU6502.Interrupts.cpp" />
     <ClCompile Include="Diagnostics\DiagnosticHelpers.cpp" />
+    <ClCompile Include="Exports\PpuExports.cpp" />
     <ClCompile Include="FMODAudio\FMODAudioSystem.cpp" />
     <ClCompile Include="InputSystem\InputSystem.cpp" />
     <ClCompile Include="InputSystem\InputSystem.UpdateInput.Other.cpp" />
     <ClCompile Include="InputSystem\InputSystem.UpdateInput.Windows.cpp" />
     <ClCompile Include="NESBus.cpp" />
-    <ClCompile Include="PPU2C02.cpp" />
+    <ClCompile Include="PPU2C02\PPU2C02.Background.cpp" />
+    <ClCompile Include="PPU2C02\PPU2C02.cpp" />
+    <ClCompile Include="PPU2C02\PPU2C02.Memory.cpp" />
+    <ClCompile Include="PPU2C02\PPU2C02.Registers.cpp" />
+    <ClCompile Include="PPU2C02\PPU2C02.Sprites.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>

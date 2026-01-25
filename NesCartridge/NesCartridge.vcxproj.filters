@@ -36,9 +36,6 @@
     <ClInclude Include="core\mappers\Mapper003.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="core\mappers\Mapper004.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="core\mappers\Mapper009.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -54,12 +51,18 @@
     <ClInclude Include="core\mappers\Mapper206.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="core\mappers\Mapper004.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="core\Diagnostics\DiagnosticHelpers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="private\Cartridge.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="core\Diagnostics\DiagnosticHelpers.cpp">
+    <ClCompile Include="private\CartridgeExports.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

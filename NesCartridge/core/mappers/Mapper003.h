@@ -41,7 +41,10 @@ namespace nes {
             if (addr >= 0x8000) {
                 // CNROM bank select: Writing to ROM space selects a 8KB CHR bank.
                 // It usually only uses the lowest 2 bits (supporting up to 4 banks / 32KB CHR).
-                _chrBank = data & 0x03;
+                //_chrBank = data & (_chrBanks - 1);
+                if (_chrBanks > 1) _chrBank = data & (_chrBanks - 1);
+                else _chrBank = 0;
+                return true;
             }
             // Return false as no actual PRG data is being written
             return false;

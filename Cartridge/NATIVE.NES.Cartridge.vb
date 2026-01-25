@@ -5,9 +5,6 @@ Imports System.Runtime.InteropServices
 #Const DIAGNOSE_CREATE_CARTRIDGE_CLASS = True
 
 Namespace NintendoEntertainmentSystem
-    Public Module CartridgeGlobal
-        Public Cart As NativeCartridge
-    End Module
 
     Public Module DLLPath
         Public Const NesCartridge As String = "NesCartridge.dll"

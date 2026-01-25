@@ -33,6 +33,7 @@ public:
     // Lifecycle
     void Reset(bool poweron);
     bool Clock();
+    void ClockDMA();
 
     // Component connections
     void ConnectCartridge(Cartridge* cart);

@@ -10,7 +10,7 @@
 #include "CartridgeApi/CartridgeInterfaceAPI.h"
 #include "CPU6502/CPU6502.h"
 #include "APU2A03.h"
-#include "PPU2C02.h"
+#include "PPU2C02/PPU2C02.h"
 #include "FMODAudio/FMODAudioSystem.h"
 
 
@@ -237,129 +237,134 @@ void NESBus::Reset(bool poweron) {
 }
 
 uint8_t NESBus::CpuRead(uint16_t addr, bool isReadOnly) {
-    uint8_t data = _openBus;
+    uint8_t data = 0x00;
 
-    // LOG ALL mapper writes
-    //if (addr >= 0x8000) {
-    //    char msg[256];
-    //    snprintf(msg, sizeof(msg),
-    //        "BUS: Read from mapper $%04X = $%02X (PC=$%04X)",
-    //        addr, data, _cpu ? _cpu->GetPC() : 0xFFFF);
-    //    Log(msg);
-    //}
+    // Cartridge address space: $4020-$FFFF (and some mappers use $6000-$7FFF for RAM)
+    if (_cart && _cart->CpuRead(addr, &data)) {
+        // Cartridge handled the read (PRG-ROM or cartridge RAM)
+        _openBus = data;
+        return data;
+    }
 
-    bool _carthandled = _cart->CpuRead(addr, &data);
-    if (_carthandled) {
-    } 
-    
+    // CPU RAM: $0000-$1FFF (mirrored every $800 bytes)
     if (addr <= 0x1FFF) {
         data = _cpuRam[addr & CPU_RAM_MIRROR_MASK];
     }
+    // PPU Registers: $2000-$3FFF (mirrored every 8 bytes)
     else if (addr >= 0x2000 && addr <= 0x3FFF) {
-        data = _ppu->CpuRead(addr & PPU_REG_MIRROR_MASK, isReadOnly);
+        if (_ppu) {
+            data = _ppu->CpuRead(addr & PPU_REG_MIRROR_MASK, isReadOnly);
+        }
     }
-
-    if (addr == 0x4015) {
-        data = _apu->CpuRead(addr);
-    } else if (addr >= 0x4016 && addr <= 0x4017) {
+    // APU and I/O Registers: $4000-$4017
+    else if (addr == 0x4015) {
+        // APU Status
+        if (_apu) {
+            data = _apu->CpuRead(addr);
+        }
+    }
+    else if (addr == 0x4016 || addr == 0x4017) {
+        // Controller ports
         uint8_t controllerIndex = addr & 1;
-        data = (_controllerState[controllerIndex] & 0x80) ? 1 : 0;
+        data = (_controllerState[controllerIndex] & 0x80) ? 0x41 : 0x40;  // Bits 6-7 set, bit 0 = button state
         _controllerState[controllerIndex] <<= 1;
     }
-
-    if (addr >= 0x4020 && !_carthandled) {
-        char msg[256];
-        snprintf(msg, sizeof(msg), "UNHANDLED READ: $%04X (PC: $%04X)",
-            addr, _cpu ? _cpu->GetPC() : 0xFFFF);
-        Log(msg);
+    // $4018-$401F: APU and I/O functionality that is normally disabled
+    // Typically returns open bus
+    else if (addr >= 0x4018 && addr <= 0x401F) {
+        data = _openBus;  // Open bus
     }
+    // $4020-$FFFF: Cartridge space (already handled above)
 
     _openBus = data;
-    return _openBus;
+    return data;
 }
 
 void NESBus::CpuWrite(uint16_t addr, uint8_t data) {
     _openBus = data;
-    
-    // LOG ALL mapper writes
-    //if (addr >= 0x8000) {
-    //    char msg[256];
-    //    snprintf(msg, sizeof(msg),
-    //        "BUS: Write to mapper $%04X = $%02X (PC=$%04X)",
-    //        addr, data, _cpu ? _cpu->GetPC() : 0xFFFF);
-    //    Log(msg);
-    //}
 
+    // Cartridge address space: $4020-$FFFF (and $6000-$7FFF for cart RAM on some mappers)
     if (_cart && _cart->CpuWrite(addr, data)) {
+        // Cartridge handled the write
         return;
     }
 
+    // CPU RAM: $0000-$1FFF (mirrored every $800 bytes)
     if (addr <= 0x1FFF) {
         _cpuRam[addr & CPU_RAM_MIRROR_MASK] = data;
         return;
     }
-
-    if (addr >= 0x2000 && addr <= 0x3FFF) {
+    // PPU Registers: $2000-$3FFF (mirrored every 8 bytes)
+    else if (addr >= 0x2000 && addr <= 0x3FFF) {
         if (_ppu) {
             _ppu->CpuWrite(addr & PPU_REG_MIRROR_MASK, data);
         }
         return;
     }
-
-    if (addr >= 0x4000 && addr <= 0x4013) {
+    // APU Pulse/Triangle/Noise/DMC: $4000-$4013
+    else if (addr >= 0x4000 && addr <= 0x4013) {
         if (_apu) {
             _apu->CpuWrite(addr, data);
         }
         return;
     }
-
-    if (addr == 0x4014) {
+    // OAM DMA: $4014
+    else if (addr == 0x4014) {
         _dmaPage = data;
         _dmaAddr = 0;
         _dmaTransfer = true;
         _dmaDummy = true;
         return;
     }
-
-    if (addr == 0x4015 || addr == 0x4017) {
+    // APU Status/Frame Counter: $4015, $4017
+    else if (addr == 0x4015 || addr == 0x4017) {
         if (_apu) {
             _apu->CpuWrite(addr, data);
         }
         return;
     }
-
-    if (addr >= 0x4016 && addr <= 0x4017) {
+    // Controller strobe: $4016, $4017
+    else if (addr == 0x4016 || addr == 0x4017) {
         uint8_t controllerIndex = addr & 1;
-        _controllerState[controllerIndex] = _controllerLatch[controllerIndex];
+        // When bit 0 is set, continuously reload controller state
+        // When cleared, start reading button sequence
+        if (data & 0x01) {
+            _controllerState[controllerIndex] = _controllerLatch[controllerIndex];
+        }
         return;
     }
+    // $4018-$401F: APU and I/O functionality that is normally disabled
+    // Writes typically ignored
+    else if (addr >= 0x4018 && addr <= 0x401F) {
+        // Ignored
+        return;
+    }
+    // $4020-$FFFF: Cartridge space (already handled above)
 }
 
 void NESBus::ProcessDMA() {
-    if (_dmaDummy) {
-        if ((_systemClockCounter % 2) == 1) {
-            _dmaDummy = false;
-        }
-        return;
-    }
-
-    if ((_systemClockCounter % 2) == 0) {
-        uint16_t addr = (static_cast<uint16_t>(_dmaPage) << 8) | _dmaAddr;
-        _dmaData = CpuRead(addr);
-    }
-    else {
-        if (_ppu) {
-            uint8_t index = _dmaAddr / 4;
-            if (index < 64) {
-                _ppu->OAM[index].SetByteAt(_dmaAddr, _dmaData);
+    if (_dmaTransfer) {
+        if (_dmaDummy) {
+            // Wait for alignment (odd/even cycle)
+            if (_systemClockCounter % 2 == 1) {
+                _dmaDummy = false;
             }
         }
+        else {
+            if (_systemClockCounter % 2 == 0) {
+                // Read cycle
+                _dmaData = CpuRead((_dmaPage << 8) | _dmaAddr);
+            }
+            else {
+                // Write cycle
+                reinterpret_cast<uint8_t*>(_ppu->GetOAMMutable())[_dmaAddr] = _dmaData;
+                _dmaAddr++;
 
-        _dmaAddr = (_dmaAddr + 1) & 0xFF;
-
-        if (_dmaAddr == 0) {
-            _dmaTransfer = false;
-            _dmaDummy = true;
+                if (_dmaAddr == 0) {  // Wrapped to 0 (256 bytes transferred)
+                    _dmaTransfer = false;
+                    _dmaDummy = true;
+                }
+            }
         }
     }
 }
@@ -427,70 +432,155 @@ void NESBus::PreFillAudioBuffer(int numSamples) {
     Log("Audio buffer ready - will fill during emulation");
 }
 
-bool NESBus::Clock() {
-    // CPU runs at 1/3 PPU speed
-    //if ((_systemClockCounter % 3) == 0) {
-    //    if (_dmaTransfer) {
-    //        ProcessDMA();
-    //    }
-    //    else {
-    //        if (_cpu) {
-    //            _cpu->Clock();
-    //        }
-    //    }
-    //}
-        // Check for DMA first - it has highest priority
-    if (_dmaTransfer) {
-        ProcessDMA();
-        // After DMA processes, still need to clock other components
-        // but CPU is stalled
-    }
-    else if ((_systemClockCounter % 3) == 0) {
-        // Only run CPU if not in DMA and on CPU cycle
-        if (_cpu) {
-            _cpu->Clock();
-        }
-    }
+//bool NESBus::Clock() {
+//    // CPU runs at 1/3 PPU speed
+//    //if ((_systemClockCounter % 3) == 0) {
+//    //    if (_dmaTransfer) {
+//    //        ProcessDMA();
+//    //    }
+//    //    else {
+//    //        if (_cpu) {
+//    //            _cpu->Clock();
+//    //        }
+//    //    }
+//    //}
+//        // Check for DMA first - it has highest priority
+//    if (_dmaTransfer) {
+//        ProcessDMA();
+//        // After DMA processes, still need to clock other components
+//        // but CPU is stalled
+//    }
+//    else if ((_systemClockCounter % 3) == 0) {
+//        // Only run CPU if not in DMA and on CPU cycle
+//        if (_cpu) {
+//            _cpu->Clock();
+//        }
+//    }
+//
+//    if (_ppu) {
+//        _ppu->Clock();
+//    }
+//
+//    if (_apu) {
+//        _apu->Clock();
+//    }
+//
+//    // Process audio every clock
+//    ProcessAudio();
+//
+//    // Handle NMI from PPU
+//    if (_ppu && _ppu->GetNmiRequested()) {
+//        _ppu->ClearNmiRequested();
+//        if (_cpu) {
+//            _cpu->NMI();
+//        }
+//    }
+//
+//    // Handle IRQ from cartridge mapper
+//    if (_cart) {
+//        MapperInterfaceAPI mapper = _cart->GetMapper();
+//        if (mapper.IsIrqActive()) {
+//            mapper.ClearIrq();
+//            if (_cpu) {
+//                _cpu->IRQ();
+//            }
+//        }
+//    }
+//
+//    // Handle IRQ from APU
+//    if (_apu && _apu->IsIRQActive()) {
+//        if (_cpu) {
+//            _cpu->IRQ();
+//        }
+//    }
+//
+//    _systemClockCounter++;
+//    return true;
+//}
+bool NESBus::Clock()
+{
+    // ------------------------------------------------------------
+    // PPU always clocks
+    // ------------------------------------------------------------
+    _ppu->Clock();
 
-    if (_ppu) {
-        _ppu->Clock();
-    }
-
-    if (_apu) {
-        _apu->Clock();
-    }
-
+    // APU always clocks with CPU
+    //_apu->Clock();
     // Process audio every clock
     ProcessAudio();
 
-    // Handle NMI from PPU
-    if (_ppu && _ppu->GetNmiRequested()) {
-        _ppu->ClearNmiRequested();
-        if (_cpu) {
+    // ------------------------------------------------------------
+    // CPU & APU clock every 3 PPU cycles
+    // ------------------------------------------------------------
+    if ((_systemClockCounter % 3) == 0)
+    {
+        if (_dmaTransfer)
+        {
+            ClockDMA();   // handles read/write + cycle counting
+        }
+        else
+        {
+            _cpu->Clock();
+        }
+
+        //// APU always clocks with CPU
+        _apu->Clock();
+        //// Process audio every clock
+        //ProcessAudio();
+
+        // CPU samples interrupts on clock edge
+        if (_ppu->GetNmiRequested())
+        {
+            _ppu->ClearNmiRequested();
             _cpu->NMI();
         }
-    }
 
-    // Handle IRQ from cartridge mapper
-    if (_cart) {
-        MapperInterfaceAPI mapper = _cart->GetMapper();
-        if (mapper.IsIrqActive()) {
-            mapper.ClearIrq();
-            if (_cpu) {
-                _cpu->IRQ();
-            }
+        if (_cart->GetMapper().IsIrqActive())
+        {
+            _cart->GetMapper().ClearIrq();
+            _cpu->IRQ();
         }
-    }
 
-    // Handle IRQ from APU
-    if (_apu && _apu->IsIRQActive()) {
-        if (_cpu) {
+        if (_apu->IsIRQActive())
+        {
             _cpu->IRQ();
         }
     }
 
     _systemClockCounter++;
     return true;
+}
+
+void NESBus::ClockDMA()
+{
+    // Align DMA to CPU cycle parity (dummy cycle)
+    if (_dmaDummy)
+    {
+        // Wait for an even CPU cycle
+        if ((_systemClockCounter % 2) == 1)
+            _dmaDummy = false;
+        return;
+    }
+
+    // Even CPU cycle: read from CPU memory
+    if ((_systemClockCounter % 2) == 0)
+    {
+        uint16_t addr = (_dmaPage << 8) | _dmaAddr;
+        _dmaData = CpuRead(addr);
+    }
+    // Odd CPU cycle: write to OAM via $2004
+    else
+    {
+        _ppu->CpuWrite(0x2004 & PPU_REG_MIRROR_MASK, _dmaData);
+        _dmaAddr++;
+
+        // DMA complete after 256 bytes
+        if (_dmaAddr == 0x00)
+        {
+            _dmaTransfer = false;
+            _dmaDummy = true;
+        }
+    }
 }
 
 void NESBus::SetController(uint8_t index, uint8_t state) {
@@ -560,6 +650,7 @@ void NESBus::Tick() {
     if (_audioSystem) {
         _audioSystem->Update();
     }
+
 }
 
 void NESBus::DisplayAudioStatus() {

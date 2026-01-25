@@ -116,12 +116,12 @@ Namespace NintendoEntertainmentSystem
             End Sub
 
             Public Sub SetByteAt(byteIndex As Byte, value As Byte)
-                Dim oamAddr As Byte = CByte(_index * 4 + (byteIndex And &H3))
+                Dim oamAddr As Byte = _index 'CByte(_index * 4 + (byteIndex And &H3))
                 PPU_SetOAMByte(_ppuHandle, oamAddr, value)
             End Sub
 
             Public Function GetByteAt(byteIndex As Byte) As Byte
-                Dim oamAddr As Byte = CByte(_index * 4 + (byteIndex And &H3))
+                Dim oamAddr As Byte = _index 'CByte(_index * 4 + (byteIndex And &H3))
                 Return PPU_GetOAMByte(_ppuHandle, oamAddr)
             End Function
 

@@ -1,10 +1,12 @@
 #pragma once
+//#define HAVE_DIAGNOSTICS 
 
 #include <cstdint>
 #include <cstring>
 
-// Diagnostics
+#if defined(HAVE_DIAGNOSTICS) // Diagnostics
 #include "Diagnostics/DiagnosticHelpers.h"
+#endif
 
 #ifdef _WIN32
 #define DLLEXPORT extern "C" __declspec(dllexport)
@@ -26,48 +28,48 @@ struct Pixel {
     Pixel(uint8_t red, uint8_t green, uint8_t blue) : r(red), g(green), b(blue) {}
 };
 
-struct OAMEntry {
-    uint8_t y;
-    uint8_t tileID;
-    uint8_t attributes;
-    uint8_t x;
-
-    void Fill(uint8_t value) {
-        y = value;
-        tileID = value;
-        attributes = value;
-        x = value;
-    }
-
-    void CopyFrom(const OAMEntry& other) {
-        y = other.y;
-        tileID = other.tileID;
-        attributes = other.attributes;
-        x = other.x;
-    }
-
-    uint8_t GetByteAt(uint8_t oamAddr) const {
-        switch (oamAddr & 0x03) {
-        case 0: return y;
-        case 1: return tileID;
-        case 2: return attributes;
-        case 3: return x;
-        default: return 0xFF;
-        }
-    }
-
-    void SetByteAt(uint8_t oamAddr, uint8_t data) {
-        switch (oamAddr & 0x03) {
-        case 0: y = data; break;
-        case 1: tileID = data; break;
-        case 2: attributes = data; break;
-        case 3: x = data; break;
-        }
-    }
-
-    bool IsFlippedVertically() const { return (attributes & 0x80) != 0; }
-    bool IsFlippedHorizontally() const { return (attributes & 0x40) != 0; }
-};
+//struct OAMEntryA {
+//    uint8_t y;
+//    uint8_t tileID;
+//    uint8_t attributes;
+//    uint8_t x;
+//
+//    void Fill(uint8_t value) {
+//        y = value;
+//        tileID = value;
+//        attributes = value;
+//        x = value;
+//    }
+//
+//    void CopyFrom(const OAMEntryA& other) {
+//        y = other.y;
+//        tileID = other.tileID;
+//        attributes = other.attributes;
+//        x = other.x;
+//    }
+//
+//    uint8_t GetByteAt(uint8_t oamAddr) const {
+//        switch (oamAddr & 0x03) {
+//        case 0: return y;
+//        case 1: return tileID;
+//        case 2: return attributes;
+//        case 3: return x;
+//        default: return 0xFF;
+//        }
+//    }
+//
+//    void SetByteAt(uint8_t oamAddr, uint8_t data) {
+//        switch (oamAddr & 0x03) {
+//        case 0: y = data; break;
+//        case 1: tileID = data; break;
+//        case 2: attributes = data; break;
+//        case 3: x = data; break;
+//        }
+//    }
+//
+//    bool IsFlippedVertically() const { return (attributes & 0x80) != 0; }
+//    bool IsFlippedHorizontally() const { return (attributes & 0x40) != 0; }
+//};
 
 union PpuControlRegister {
     struct {
@@ -129,6 +131,8 @@ union LoopyRegister {
 #pragma pack(pop)
 
 class PPU2C02 {
+private:
+    uint8_t _openBus    = 0x00;  // CPU data bus decay
 public:
     PPU2C02();
     ~PPU2C02();
@@ -159,22 +163,33 @@ public:
 
     // Callbacks
     void SetPixelCallback(PixelCallback callback) { _pixelCallback = callback; }
+
+#if defined(HAVE_DIAGNOSTICS) // Diagnostics
     void SetDiagnosticCallback(DiagnosticLogCallback callback) { _diagnosticCallback = callback; }
+#endif
 
     // Debug helpers
     void GetPatternTable(uint8_t table, uint8_t palette, uint8_t* buffer);
     void GetNameTable(uint8_t index, uint8_t* buffer);
 
+    struct OAMEntry {
+        uint8_t y;
+        uint8_t id;
+        uint8_t attribute;
+        uint8_t x;
+    };
     // Public OAM access (for external tools)
     OAMEntry OAM[64];
-
+//public:
+//    void OamDma(uint8_t* page);
 private:
     // Memory
     uint8_t _nametable0[1024];
     uint8_t _nametable1[1024];
+    uint8_t _nametable2[1024];  // Add these
+    uint8_t _nametable3[1024];  // Add these
+
     uint8_t _paletteRam[32];
-    uint8_t _patternTable0[4096];
-    uint8_t _patternTable1[4096];
     Pixel _systemPalette[64];
 
     // Registers & State
@@ -217,7 +232,9 @@ private:
 
     // Callbacks
     PixelCallback _pixelCallback;
+#if defined(HAVE_DIAGNOSTICS) // Diagnostics
     DiagnosticLogCallback _diagnosticCallback;
+#endif
 
     // Helper functions
     void InitializeSystemPalette();
@@ -246,5 +263,4 @@ private: // non owning
     class NESBus* _bus = nullptr;
 public:
     void ConnectBus(class NESBus* bus) { _bus = bus; }
-
 };

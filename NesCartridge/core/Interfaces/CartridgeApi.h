@@ -148,8 +148,8 @@ typedef MIRRORMODE(*LPFN_CARTRIDGE_GET_MIRRORMODE)(LPCARTRIDGE);
 constexpr const char* LPFN_CARTRIDGE_IS_LOADED_NAME = "CartridgeIsLoaded";
 typedef bool(*LPFN_CARTRIDGE_IS_LOADED)(LPCARTRIDGE);
 
-constexpr const char* LPFN_CARTRIDGE_CLOCK_NAME = "CartridgeClock";
-typedef void(*LPFN_CARTRIDGE_CLOCK)(LPCARTRIDGE);
+//constexpr const char* LPFN_CARTRIDGE_CLOCK_NAME = "CartridgeClock";
+//typedef void(*LPFN_CARTRIDGE_CLOCK)(LPCARTRIDGE);
 
 constexpr const char* LPFN_CARTRIDGE_CPU_READ_NAME = "CartCpuRead";
 typedef bool(*LPFN_CARTRIDGE_CPU_READ)(LPCARTRIDGE, uint16_t, uint8_t*);
@@ -178,7 +178,7 @@ struct CartridgeApi {
 	LPFN_CARTRIDGE_ENABLE_LOGGING CartridgeEnableLogging;
 	LPFN_CARTRIDGE_GET_MIRRORMODE CartridgeGetMirrorMode;
 	LPFN_CARTRIDGE_IS_LOADED CartridgeIsLoaded;
-	LPFN_CARTRIDGE_CLOCK CartridgeClock;
+	//LPFN_CARTRIDGE_CLOCK CartridgeClock;
 	LPFN_CARTRIDGE_CPU_READ CartCpuRead;
 	LPFN_CARTRIDGE_CPU_WRITE CartCpuWrite;
 	LPFN_CARTRIDGE_PPU_READ CartPpuRead;

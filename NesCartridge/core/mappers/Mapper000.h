@@ -16,9 +16,6 @@ namespace nes {
         Mapper000(uint8_t prgBanks, uint8_t chrBanks)
             : MapperBase(prgBanks, chrBanks) {
             // NROM often uses CHR-RAM if no CHR-ROM banks are present.
-            if (_chrBanks == 0) {
-                _cartRam.resize(8192); // Allocate 8KB of RAM
-            }
         }
 
         void Reset() override {

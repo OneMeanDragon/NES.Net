@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NesCartridge", "NesCartridg
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NesChipset", "NesChipset\NesChipset.vcxproj", "{A4A22FB5-FAFF-4732-ADF6-01FC9CEE398C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Testing", "Testing\Testing.vcxproj", "{A022F878-9605-4FB3-9FA0-9CE82716D69A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -45,6 +47,14 @@ Global
 		{A4A22FB5-FAFF-4732-ADF6-01FC9CEE398C}.Release|x64.Build.0 = Release|x64
 		{A4A22FB5-FAFF-4732-ADF6-01FC9CEE398C}.Release|x86.ActiveCfg = Release|Win32
 		{A4A22FB5-FAFF-4732-ADF6-01FC9CEE398C}.Release|x86.Build.0 = Release|Win32
+		{A022F878-9605-4FB3-9FA0-9CE82716D69A}.Debug|x64.ActiveCfg = Debug|x64
+		{A022F878-9605-4FB3-9FA0-9CE82716D69A}.Debug|x64.Build.0 = Debug|x64
+		{A022F878-9605-4FB3-9FA0-9CE82716D69A}.Debug|x86.ActiveCfg = Debug|Win32
+		{A022F878-9605-4FB3-9FA0-9CE82716D69A}.Debug|x86.Build.0 = Debug|Win32
+		{A022F878-9605-4FB3-9FA0-9CE82716D69A}.Release|x64.ActiveCfg = Release|x64
+		{A022F878-9605-4FB3-9FA0-9CE82716D69A}.Release|x64.Build.0 = Release|x64
+		{A022F878-9605-4FB3-9FA0-9CE82716D69A}.Release|x86.ActiveCfg = Release|Win32
+		{A022F878-9605-4FB3-9FA0-9CE82716D69A}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

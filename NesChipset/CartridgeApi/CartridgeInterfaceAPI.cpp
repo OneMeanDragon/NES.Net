@@ -16,13 +16,13 @@ CartridgeInterfaceAPI::CartridgeInterfaceAPI()
 			LPFN_GET_CARTRIDGE_API m_pGetCartApi = reinterpret_cast<LPFN_GET_CARTRIDGE_API>(GetSignature(_dll, LPFN_GET_CARTRIDGE_API_NAME));
 			if (m_pGetCartApi != nullptr) {
 				m_pGetCartApi(&_api);
-				if (_api.CartCpuRead == nullptr || _api.CartCpuWrite == nullptr || _api.CartPpuRead == nullptr || _api.CartPpuWrite == nullptr || _api.CartridgeClock == nullptr || _api.CartridgeEnableLogging == nullptr || _api.CartridgeGetMirrorMode == nullptr || _api.CartridgeIsLoaded == nullptr || _api.CartridgeMapper == nullptr || _api.CartridgeSetDiagnosticLogCallback == nullptr || _api.CreateCartridge == nullptr || _api.CreateCartridgeDiag == nullptr || _api.DestroyCartridge == nullptr || _api.LoadCartridge == nullptr || _api.ResetCartridge == nullptr) {
+				if (_api.CartCpuRead == nullptr || _api.CartCpuWrite == nullptr || _api.CartPpuRead == nullptr || _api.CartPpuWrite == nullptr || /*_api.CartridgeClock == nullptr ||*/ _api.CartridgeEnableLogging == nullptr || _api.CartridgeGetMirrorMode == nullptr || _api.CartridgeIsLoaded == nullptr || _api.CartridgeMapper == nullptr || _api.CartridgeSetDiagnosticLogCallback == nullptr || _api.CreateCartridge == nullptr || _api.CreateCartridgeDiag == nullptr || _api.DestroyCartridge == nullptr || _api.LoadCartridge == nullptr || _api.ResetCartridge == nullptr) {
 					CloseDll(_dll); _dll = nullptr;
 					if (_api.CartCpuRead == nullptr)                       throw std::runtime_error("Could not find function Signature CartCpuRead.");
 					if (_api.CartCpuWrite == nullptr)                      throw std::runtime_error("Could not find function Signature CartCpuWrite.");
 					if (_api.CartPpuRead == nullptr)                       throw std::runtime_error("Could not find function Signature CartPpuRead.");
 					if (_api.CartPpuWrite == nullptr)                      throw std::runtime_error("Could not find function Signature CartPpuWrite.");
-					if (_api.CartridgeClock == nullptr)                    throw std::runtime_error("Could not find function Signature CartridgeClock.");
+					//if (_api.CartridgeClock == nullptr)                    throw std::runtime_error("Could not find function Signature CartridgeClock.");
 					if (_api.CartridgeEnableLogging == nullptr)            throw std::runtime_error("Could not find function Signature CartridgeEnableLogging.");
 					if (_api.CartridgeGetMirrorMode == nullptr)            throw std::runtime_error("Could not find function Signature CartridgeGetMirrorMode.");
 					if (_api.CartridgeIsLoaded == nullptr)                 throw std::runtime_error("Could not find function Signature CartridgeIsLoaded.");
@@ -141,10 +141,10 @@ bool CartridgeInterfaceAPI::IsLoaded() const
 	return _api.CartridgeIsLoaded(_cartridge);
 }
 
-void CartridgeInterfaceAPI::Clock()
-{
-	_api.CartridgeClock(_cartridge);
-}
+//void CartridgeInterfaceAPI::Clock()
+//{
+//	_api.CartridgeClock(_cartridge);
+//}
 
 bool CartridgeInterfaceAPI::CpuRead(uint16_t addr, uint8_t* data)
 {

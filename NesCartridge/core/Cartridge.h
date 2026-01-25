@@ -4,6 +4,7 @@
 #include <vector>
 #include <span>
 #include <memory>
+#include <filesystem>
 
 #include "INESHeader.h"
 #include "mappers/MapperBase.h"
@@ -11,14 +12,10 @@
 // Diagnostics
 #include "Diagnostics/DiagnosticHelpers.h"
 
-#ifdef _WIN32
-#define DLLEXPORT extern "C" __declspec(dllexport)
-#else
-#define DLLEXPORT
-#endif
-
 
 class Cartridge {
+private:
+    std::filesystem::path _filepath{};
 private:
     std::unique_ptr<MapperBase> _mapper = nullptr;
 private:
@@ -29,6 +26,7 @@ private:
 
 private:
     INESHeader _header{ 0 };
+
     bool _isLoaded = false;
 
 public: //readonly propertys
@@ -63,7 +61,7 @@ public:
     bool CpuWrite(uint16_t addr, uint8_t data);
     bool PpuRead(uint16_t addr, uint8_t& data);
     bool PpuWrite(uint16_t addr, uint8_t data);
-    void Clock();
+    //void Clock();
     
 private:
     void ResetState();

@@ -1,0 +1,211 @@
+#pragma once
+
+#include <cstdint>
+
+// Diagnostics
+#include "../Diagnostics/DiagnosticHelpers.h"
+
+// Forward declaration
+class CartridgeInterfaceAPI;
+// Callback types
+typedef void (*PixelCallback)(int x, int y, uint8_t r, uint8_t g, uint8_t b);
+
+#pragma pack(push, 1)
+struct Pixel {
+    uint8_t r, g, b;
+
+    Pixel() : r(0), g(0), b(0) {}
+    Pixel(uint8_t red, uint8_t green, uint8_t blue) : r(red), g(green), b(blue) {}
+};
+
+union PpuControlRegister {
+    struct {
+        uint8_t nametableX : 1;
+        uint8_t nametableY : 1;
+        uint8_t incrementMode : 1;
+        uint8_t patternSprite : 1;
+        uint8_t patternBackground : 1;
+        uint8_t spriteSize : 1;
+        uint8_t slaveMode : 1;
+        uint8_t enableNmi : 1;
+    };
+    uint8_t reg;
+
+    PpuControlRegister() : reg(0) {}
+};
+
+union PpuMaskRegister {
+    struct {
+        uint8_t grayscale : 1;
+        uint8_t renderBackgroundLeft : 1;
+        uint8_t renderSpritesLeft : 1;
+        uint8_t renderBackground : 1;
+        uint8_t renderSprites : 1;
+        uint8_t enhanceRed : 1;
+        uint8_t enhanceGreen : 1;
+        uint8_t enhanceBlue : 1;
+    };
+    uint8_t reg;
+
+    PpuMaskRegister() : reg(0) {}
+};
+
+union PpuStatusRegister {
+    struct {
+        uint8_t unused : 5;
+        uint8_t spriteOverflow : 1;
+        uint8_t spriteZeroHit : 1;
+        uint8_t verticalBlank : 1;
+    };
+    uint8_t reg;
+
+    PpuStatusRegister() : reg(0) {}
+};
+
+union LoopyRegister {
+    struct {
+        uint16_t coarseX : 5;
+        uint16_t coarseY : 5;
+        uint16_t nametableX : 1;
+        uint16_t nametableY : 1;
+        uint16_t fineY : 3;
+        uint16_t unused : 1;
+    };
+    uint16_t reg;
+
+    LoopyRegister() : reg(0) {}
+};
+#pragma pack(pop)
+
+class PPU2C02 {
+private:
+    uint8_t _openBus    = 0x00;  // CPU data bus decay
+public:
+    PPU2C02();
+    ~PPU2C02();
+
+    void SetCartridge(CartridgeInterfaceAPI* cart);
+
+    // Core functions
+    void Reset(bool coldstart);
+    void Clock();
+
+    // CPU interface
+    uint8_t CpuRead(uint16_t addr, bool rdOnly = false);
+    void CpuWrite(uint16_t addr, uint8_t data);
+
+    // PPU bus interface
+    uint8_t PpuRead(uint16_t addr, bool rdOnly = false);
+    void PpuWrite(uint16_t addr, uint8_t data);
+
+    // Frame status
+    bool IsFrameComplete() const { return _frameComplete; }
+    void SetFrameComplete(bool value) { _frameComplete = value; }
+
+    // NMI/Scanline triggers
+    bool GetNmiRequested() const { return _nmiRequested; }
+    void ClearNmiRequested() { _nmiRequested = false; }
+    bool GetScanlineTrigger() const { return _scanlineTrigger; }
+    void ClearScanlineTrigger() { _scanlineTrigger = false; }
+
+    // Callbacks
+    void SetPixelCallback(PixelCallback callback) { _pixelCallback = callback; }
+    void SetDiagnosticCallback(DiagnosticLogCallback callback) { _diagnosticCallback = callback; }
+
+    // Debug helpers
+    void GetPatternTable(uint8_t table, uint8_t palette, uint8_t* buffer);
+    void GetNameTable(uint8_t index, uint8_t* buffer);
+
+    struct OAMEntry {
+        uint8_t y;
+        uint8_t id;
+        uint8_t attribute;
+        uint8_t x;
+    };
+    // Public OAM access (for external tools)
+    OAMEntry OAM[64];
+//public:
+//    void OamDma(uint8_t* page);
+private:
+    // Memory
+    uint8_t _nametable0[1024];
+    uint8_t _nametable1[1024];
+    uint8_t _nametable2[1024];  // Add these
+    uint8_t _nametable3[1024];  // Add these
+
+    uint8_t ReadNametable(uint16_t addr);
+    void WriteNametable(uint16_t addr, uint8_t data);
+
+    uint8_t _paletteRam[32];
+    Pixel _systemPalette[64];
+
+    // Registers & State
+    PpuControlRegister _control;
+    PpuMaskRegister _mask;
+    PpuStatusRegister _status;
+    LoopyRegister _vramAddr;
+    LoopyRegister _tramAddr;
+    uint8_t _fineX;
+    uint8_t _addressLatch;
+    uint8_t _dataBuffer;
+    int16_t _scanline;
+    int16_t _cycle;
+    bool _oddFrame;
+    bool _frameComplete;
+    bool _nmiRequested;
+    bool _scanlineTrigger;
+
+    // Background rendering
+    uint8_t _bgNextTileId;
+    uint8_t _bgNextTileAttrib;
+    uint8_t _bgNextTileLsb;
+    uint8_t _bgNextTileMsb;
+    uint16_t _bgShifterPatternLo;
+    uint16_t _bgShifterPatternHi;
+    uint16_t _bgShifterAttribLo;
+    uint16_t _bgShifterAttribHi;
+
+    // Sprite rendering
+    uint8_t _oamAddress;
+    OAMEntry _spriteScanline[8];
+    uint8_t _spriteCount;
+    uint8_t _spriteShifterLo[8];
+    uint8_t _spriteShifterHi[8];
+    bool _spriteZeroHitPossible;
+    bool _spriteZeroBeingRendered;
+
+    // Cartridge reference
+    CartridgeInterfaceAPI* _cart;
+
+    // Callbacks
+    PixelCallback _pixelCallback;
+    DiagnosticLogCallback _diagnosticCallback;
+
+    // Helper functions
+    void InitializeSystemPalette();
+
+public: /* for API call */
+    Pixel GetColorFromPalette(uint8_t palette, uint8_t pixel);
+private:
+    // Background helpers
+    void IncrementScrollX();
+    void IncrementScrollY();
+    void TransferAddressX();
+    void TransferAddressY();
+    void LoadBackgroundShifters();
+    void UpdateShifters();
+
+    // Sprite helpers
+    void EvaluateSprites();
+    void LoadSpriteShifters();
+
+    constexpr uint8_t FlipByte(uint8_t b) noexcept;
+
+    // Logging
+    void Log(const char* msg);
+
+private: // non owning
+    class NESBus* _bus = nullptr;
+public:
+    void ConnectBus(class NESBus* bus) { _bus = bus; }
+};

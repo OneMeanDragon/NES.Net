@@ -75,16 +75,14 @@ uint8_t CPU6502::Fetch() {
 
 // Reset
 void CPU6502::Reset(bool coldstart) {
+    PC = (static_cast<uint16_t>(Read(RESET_VECTOR + 1)) << 8) | Read(RESET_VECTOR); // (hi << 8) | lo
+    
     if (coldstart) { // we havent turned on the power yet, cold start the cpu
-        PC = (static_cast<uint16_t>(Read(RESET_VECTOR + 1)) << 8) | Read(RESET_VECTOR); // (hi << 8) | lo
-        A = 0;
-        X = 0;
-        Y = 0;
+        A = X = Y = 0;
         SP = 0xFD;
         Status = U | I;
     }
     else {
-        PC = (static_cast<uint16_t>(Read(RESET_VECTOR + 1)) << 8) | Read(RESET_VECTOR); // (hi << 8) | lo
         SP = (SP - 3) & 0xFF;
         Status = (Status & ~I) | I;
     }
@@ -95,10 +93,10 @@ void CPU6502::Reset(bool coldstart) {
     _addrAbs = 0;
     _fetched = 0;
 
-    _cycles = 8;
+    _cycles = 0;
 
     InstructionCount = 0;
-    ClockCount = 0;
+    ClockCount = 7;
 }
 
 // Clock - Execute one CPU cycle

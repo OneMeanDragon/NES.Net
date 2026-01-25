@@ -155,7 +155,6 @@ Public Class Form1
 #End Region
 
 #Region "Emulation Information"
-    Private emNES As New NativeNESBus 'NESBus
     Private resetRequest As Boolean = False
 #End Region
 
@@ -245,17 +244,6 @@ Public Class Form1
 
         'Need to Check if were currently emulating
         If running Then Return
-        If Not IsNothing(Cart) Then
-            Cart.Dispose()
-        End If
-        Cart = New NativeCartridge(dlgOpenFile.FileName)
-
-        If Not Cart.IsLoaded Then
-            Return
-        End If
-
-        ' Connect our cartridge
-        emNES.ConnectCartridge(Cart.NativeHandle)
 
         ' DON'T call diagnostics here - nothing has run yet!
         ' Instead, set a flag to call it after some frames
@@ -277,6 +265,17 @@ Public Class Form1
 
     Private VideoThread As Thread
     Public Sub Run()
+        Dim emNES As New NativeNESBus 'NESBus
+        If Not IsNothing(emNES.Cart) Then
+            emNES.Cart.Dispose()
+        End If
+        emNES.Cart = New NativeCartridge(dlgOpenFile.FileName)
+        If Not emNES.Cart.IsLoaded Then
+            Return
+        End If
+        ' Connect our cartridge
+        emNES.ConnectCartridge(emNES.Cart.NativeHandle)
+
         '-----
         'm_timepoint1 As DateTime = DateTime.Now
         'While running
@@ -340,6 +339,7 @@ Public Class Form1
             If running = False Then Exit While
         End While
         emNES.Stop() ' Fix for the always running Audio fetching {temporary}
+        emNES.Dispose()
 
         ' Clean up
         renderer.Clear(GraphicsObjects.PixelColors.DarkGrey)
@@ -365,26 +365,26 @@ Public Class Form1
     Private diagnosticRun As Boolean = False
 
     ' Dump CHR range from the cartridge for inspection (safe, non-destructive)
-    Private Sub DumpCartCHR(startAddr As Integer, length As Integer)
-        If IsNothing(Cart) Then
-            Debug.WriteLine("DumpCartCHR: Cart is Nothing")
-            Return
-        End If
-        Dim sb As New System.Text.StringBuilder()
-        sb.AppendFormat("Cart CHR dump 0x{0:X4}..0x{1:X4}:", startAddr, startAddr + length - 1)
-        Debug.WriteLine(sb.ToString())
-        For i As Integer = 0 To length - 1
-            Dim addr As UShort = CUShort((startAddr + i) And &H3FFFUS)
-            Dim b As Byte = 0
-            Dim ok As Boolean = False
-            Try
-                ok = Cart.PpuRead(addr, b)
-            Catch ex As Exception
-                Debug.WriteLine("Cart.ppuRead threw: " & ex.Message)
-            End Try
-            Debug.WriteLine(String.Format("  0x{0:X4}: {1} 0x{2:X2}", addr, If(ok, "OK", "NO"), b))
-        Next
-    End Sub
+    'Private Sub DumpCartCHR(startAddr As Integer, length As Integer)
+    '    If IsNothing(Cart) Then
+    '        Debug.WriteLine("DumpCartCHR: Cart is Nothing")
+    '        Return
+    '    End If
+    '    Dim sb As New System.Text.StringBuilder()
+    '    sb.AppendFormat("Cart CHR dump 0x{0:X4}..0x{1:X4}:", startAddr, startAddr + length - 1)
+    '    Debug.WriteLine(sb.ToString())
+    '    For i As Integer = 0 To length - 1
+    '        Dim addr As UShort = CUShort((startAddr + i) And &H3FFFUS)
+    '        Dim b As Byte = 0
+    '        Dim ok As Boolean = False
+    '        Try
+    '            ok = Cart.PpuRead(addr, b)
+    '        Catch ex As Exception
+    '            Debug.WriteLine("Cart.ppuRead threw: " & ex.Message)
+    '        End Try
+    '        Debug.WriteLine(String.Format("  0x{0:X4}: {1} 0x{2:X2}", addr, If(ok, "OK", "NO"), b))
+    '    Next
+    'End Sub
 
     Private tmpCart As NativeCartridge
 

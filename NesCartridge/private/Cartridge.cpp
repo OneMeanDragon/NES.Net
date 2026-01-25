@@ -13,6 +13,7 @@ void Cartridge::ResetState() {
 
     _romData.clear();
     _chrRom.clear();
+    _filepath.clear();
 
     // IMPORTANT: Spans MUST be reset if the owning vector is cleared 
     // to avoid dangling pointers.
@@ -49,33 +50,162 @@ void Cartridge::LogDiagnostics() {
     Log("===============================================================");
     Log("");
 
-    std::string msg;
-    msg = std::format("File Size:       {} bytes.", _romData.size());
-    Log(msg.c_str());
-    msg = std::format("Mapper:          {} (0x{:02X}).", _header.get_mapper_number(), _header.get_mapper_number());
-    Log(msg.c_str());
-    msg = std::format("PRG Banks:       {} * 16KB = {} KB.", _header.prg_rom_size, (_header.prg_rom_size * 16));
-    Log(msg.c_str());
-    msg = std::format("CHR Banks:       {} * 8KB = {} KB.", _header.chr_rom_size, (_header.chr_rom_size * 8));
-    Log(msg.c_str());
-    msg = std::format("CHR Type:        {}.", (_header.chr_rom_size == 0 ? "RAM" : "ROM"));
-    Log(msg.c_str());
-    msg = std::format("Mirroring:       {}.", (_header.is_vertical_mirroring() ? "Vertical" : "Horizontal"));
-    Log(msg.c_str());
-    msg = std::format("Battery:         {}.", _header.has_battery_backed_ram());
-    Log(msg.c_str());
-    msg = std::format("Trainer:         {}.", _header.has_trainer());
-    Log(msg.c_str());
-    msg = std::format("Format:          {}.", (_header.is_nes2_format() ? "iNES 2.0" : "iNES 1.0"));
-    Log(msg.c_str());
+    std::string filename = _filepath.filename().string();
+    Log(std::format("Filename:        {}", filename).c_str());
+    Log(std::format("File Size:       {} bytes", _romData.size()).c_str());
 
-    if (_prgRom.size() >= INES_HEADER_SIZE) {
+    // Format type
+    const char* format = _header.is_nes2_format() ? "NES 2.0" : "iNES 1.0";
+    Log(std::format("Format:          {}", format).c_str());
+
+    // Mapper
+    uint16_t mapperNum = _header.get_mapper_number();
+    Log(std::format("Mapper:          {} (0x{:03X})", mapperNum, mapperNum).c_str());
+
+    if (_header.is_nes2_format()) {
+        uint8_t submapper = _header.get_submapper();
+        if (submapper > 0) {
+            Log(std::format("Submapper:       {}", submapper).c_str());
+        }
+    }
+
+    Log("");
+    Log("--- PRG (Program) Memory ---");
+
+    // PRG ROM
+    size_t prgSize = _header.get_prg_rom_size();
+    Log(std::format("PRG ROM Size:    {} bytes ({} KB)", prgSize, prgSize / 1024).c_str());
+    Log(std::format("PRG ROM Actual:  {} bytes", _prgRom.size()).c_str());
+
+    // PRG-RAM (volatile work RAM)
+    size_t prgRamSize = _header.get_prg_ram_size();
+    if (prgRamSize > 0) {
+        Log(std::format("PRG-RAM Size:    {} bytes ({} KB) [Volatile]", prgRamSize, prgRamSize / 1024).c_str());
+    }
+    else {
+        Log("PRG-RAM Size:    0 bytes (None)");
+    }
+
+    // PRG-NVRAM (battery-backed save RAM)
+    if (_header.is_nes2_format()) {
+        size_t prgNvramSize = _header.get_prg_nvram_size();
+        if (prgNvramSize > 0) {
+            Log(std::format("PRG-NVRAM Size:  {} bytes ({} KB) [Battery-Backed]", prgNvramSize, prgNvramSize / 1024).c_str());
+        }
+        else {
+            Log("PRG-NVRAM Size:  0 bytes (None)");
+        }
+    }
+    else {
+        // iNES 1.0 doesn't distinguish RAM/NVRAM, just show if battery is present
+        if (_header.has_battery_backed_ram() && prgRamSize > 0) {
+            Log(std::format("PRG-RAM:         {} bytes ({} KB) [Battery-Backed]", prgRamSize, prgRamSize / 1024).c_str());
+        }
+    }
+
+    Log("");
+    Log("--- CHR (Graphics) Memory ---");
+
+    // CHR ROM/RAM
+    size_t chrRomSize = _header.get_chr_rom_size();
+    if (chrRomSize > 0) {
+        Log(std::format("CHR ROM Size:    {} bytes ({} KB)", chrRomSize, chrRomSize / 1024).c_str());
+        Log(std::format("CHR-ROM Size: {} bytes, CHR banks: {}", _chrRom.size(), _mapper->GetChrBanks()).c_str());
+        Log("CHR Type:        ROM (Read-Only)");
+    }
+    else {
+        Log("CHR ROM Size:    0 bytes (None)");
+    }
+
+    // CHR-RAM (volatile graphics RAM)
+    size_t chrRamSize = _header.get_chr_ram_size();
+    if (chrRamSize > 0) {
+        Log(std::format("CHR-RAM Size:    {} bytes ({} KB) [Volatile]", chrRamSize, chrRamSize / 1024).c_str());
+        if (chrRomSize == 0) {
+            Log("CHR Type:        RAM (Read/Write)");
+        }
+    }
+    else if (chrRomSize == 0) {
+        Log("CHR-RAM Size:    0 bytes (None)");
+    }
+
+    // CHR-NVRAM (battery-backed graphics RAM - rare)
+    if (_header.is_nes2_format()) {
+        size_t chrNvramSize = _header.get_chr_nvram_size();
+        if (chrNvramSize > 0) {
+            Log(std::format("CHR-NVRAM Size:  {} bytes ({} KB) [Battery-Backed]", chrNvramSize, chrNvramSize / 1024).c_str());
+        }
+    }
+
+    Log(std::format("CHR Buffer Size: {} bytes (Allocated)", _chrRom.size()).c_str());
+
+    Log("");
+    Log("--- Memory Summary ---");
+
+    // Total ROM
+    size_t totalRom = prgSize + chrRomSize;
+    Log(std::format("Total ROM:       {} bytes ({} KB)", totalRom, totalRom / 1024).c_str());
+
+    // Total RAM (volatile)
+    size_t totalRam = prgRamSize + chrRamSize;
+    if (totalRam > 0) {
+        Log(std::format("Total RAM:       {} bytes ({} KB) [Volatile]", totalRam, totalRam / 1024).c_str());
+    }
+    else {
+        Log("Total RAM:       0 bytes (None)");
+    }
+
+    // Total NVRAM (battery-backed)
+    if (_header.is_nes2_format()) {
+        size_t totalNvram = _header.get_prg_nvram_size() + _header.get_chr_nvram_size();
+        if (totalNvram > 0) {
+            Log(std::format("Total NVRAM:     {} bytes ({} KB) [Battery-Backed]", totalNvram, totalNvram / 1024).c_str());
+        }
+        else {
+            Log("Total NVRAM:     0 bytes (None)");
+        }
+    }
+
+    Log("");
+    Log("--- Cartridge Configuration ---");
+
+    // Mirroring
+    if (_header.is_four_screen_mode()) {
+        Log("Mirroring:       Four-Screen (Extra VRAM)");
+    }
+    else if (_header.is_vertical_mirroring()) {
+        Log("Mirroring:       Vertical");
+    }
+    else {
+        Log("Mirroring:       Horizontal");
+    }
+
+    // Battery
+    Log(std::format("Battery:         {}", _header.has_battery_backed_ram() ? "Yes (Save RAM Present)" : "No").c_str());
+
+    // Trainer
+    Log(std::format("Trainer:         {}", _header.has_trainer() ? "Yes" : "No").c_str());
+    if (_header.has_trainer()) {
+        Log(std::format("Trainer Size:    {} bytes", _trainer.size()).c_str());
+    }
+
+    // TV System
+    const char* tvSystem = "NTSC";
+    switch (_header.get_tv_system()) {
+    case INESHeader::TVSystem::NTSC: tvSystem = "NTSC (60 Hz)"; break;
+    case INESHeader::TVSystem::PAL: tvSystem = "PAL (50 Hz)"; break;
+    case INESHeader::TVSystem::Dual: tvSystem = "Dual (NTSC/PAL)"; break;
+    case INESHeader::TVSystem::Dendy: tvSystem = "Dendy"; break;
+    }
+    Log(std::format("TV System:       {}", tvSystem).c_str());
+
+    // PRG ROM dump
+    if (_prgRom.size() >= 16) {
         Log("");
+        Log("--- PRG ROM Analysis ---");
         Log("PRG ROM - First 16 bytes:");
-
         std::string first16 = "";
         for (int i = 0; i < 16; ++i) {
-            // Append formatted hex string
             first16 += std::format("{:02X} ", _prgRom[i]);
         }
         Log(first16.c_str());
@@ -87,13 +217,22 @@ void Cartridge::LogDiagnostics() {
         }
         Log(last16.c_str());
 
-        // Decode reset vector
-        // NES Reset vector is at $FFFC-$FFFD (the last 4th and 3rd bytes of PRG ROM)
+        // Decode vectors
+        uint8_t nmiLo = _prgRom[_prgRom.size() - 6];
+        uint8_t nmiHi = _prgRom[_prgRom.size() - 5];
+        uint16_t nmiVec = (static_cast<uint16_t>(nmiHi) << 8) | nmiLo;
+
         uint8_t rstLo = _prgRom[_prgRom.size() - 4];
         uint8_t rstHi = _prgRom[_prgRom.size() - 3];
         uint16_t rstVec = (static_cast<uint16_t>(rstHi) << 8) | rstLo;
 
+        uint8_t irqLo = _prgRom[_prgRom.size() - 2];
+        uint8_t irqHi = _prgRom[_prgRom.size() - 1];
+        uint16_t irqVec = (static_cast<uint16_t>(irqHi) << 8) | irqLo;
+
+        Log(std::format("NMI Vector:      ${:04X}", nmiVec).c_str());
         Log(std::format("Reset Vector:    ${:04X}", rstVec).c_str());
+        Log(std::format("IRQ Vector:      ${:04X}", irqVec).c_str());
     }
 
     Log("");
@@ -142,8 +281,10 @@ bool Cartridge::Load(const char* path) {
     try {
         ResetState();
 
+        _filepath = path;
+
         // 1. Read entire file into memory
-        std::ifstream file(path, std::ios::binary | std::ios::ate);
+        std::ifstream file(_filepath, std::ios::binary | std::ios::ate);
         if (!file.is_open()) {
             Log("Error: Unable to open Cartridge file.");
             return false;
@@ -151,9 +292,7 @@ bool Cartridge::Load(const char* path) {
 
         std::streamsize size = file.tellg();
         if (size < INES_HEADER_SIZE) {
-            std::ostringstream out;
-            out << "Error: Cartridge file too small: " << INES_HEADER_SIZE;
-            Log(out.str().c_str());
+            Log(std::format("Error: Cartridge file too small. Need at least {} bytes.", INES_HEADER_SIZE).c_str());
             return false;
         }
 
@@ -165,7 +304,7 @@ bool Cartridge::Load(const char* path) {
             return false;
         }
 
-        // 2. Parse Header (direct copy into struct)
+        // 2. Parse Header
         std::memcpy(&_header, _romData.data(), INES_HEADER_SIZE);
 
         if (!_header.is_valid()) {
@@ -173,7 +312,7 @@ bool Cartridge::Load(const char* path) {
             return false;
         }
 
-        // 3. Calculate offsets and Slice
+        // 3. Calculate offsets and slice
         uint32_t offset = INES_HEADER_SIZE;
 
         // Handle Trainer
@@ -182,23 +321,30 @@ bool Cartridge::Load(const char* path) {
             offset += TRAINER_SIZE;
         }
 
-        // Extract PRG ROM
-        uint32_t prgSize = _header.prg_rom_size * PRG_BANK_SIZE;
-        if (offset + prgSize > _romData.size()) return false;
+        // Extract PRG ROM (use NES 2.0 aware size getter)
+        size_t prgSize = _header.get_prg_rom_size();
+        if (offset + prgSize > _romData.size()) {
+            Log("Error: PRG ROM size exceeds file size.");
+            return false;
+        }
         _prgRom = std::span(_romData.data() + offset, prgSize);
         offset += prgSize;
 
-        // Extract CHR ROM/RAM
-        if (_header.chr_rom_size == 0) {
-            // CHR-RAM: Allocate 8KB of writable RAM
-            _chrRom.assign(CHR_BANK_SIZE, 0);
+        // Extract CHR ROM/RAM (use NES 2.0 aware size getter)
+        size_t chrRomSize = _header.get_chr_rom_size();
+        if (chrRomSize == 0) {
+            // CHR-RAM: Allocate based on header info
+            size_t chrRamSize = _header.get_chr_ram_size();
+            _chrRom.assign(chrRamSize, 0);
+            Log(std::format("Info: Allocated {} bytes of CHR-RAM.", chrRamSize).c_str());
         }
         else {
-            // CHR-ROM: Copy from file into its own vector
-            uint32_t chrSize = _header.chr_rom_size * CHR_BANK_SIZE;
-            if (offset + chrSize > _romData.size()) return false;
-
-            _chrRom.assign(_romData.begin() + offset, _romData.begin() + offset + chrSize);
+            // CHR-ROM: Copy from file
+            if (offset + chrRomSize > _romData.size()) {
+                Log("Error: CHR ROM size exceeds file size.");
+                return false;
+            }
+            _chrRom.assign(_romData.begin() + offset, _romData.begin() + offset + chrRomSize);
         }
 
         // Initialize mapper
@@ -207,41 +353,11 @@ bool Cartridge::Load(const char* path) {
         }
 
         _isLoaded = true;
-
-        // Diagnostic: report CHR buffer and dump a few regions important for pattern tables
-        Log(std::format("Debug: CHR buffer size = {} bytes (chr_rom_size field = {})", _chrRom.size(), _header.chr_rom_size).c_str());
-
-        // Dump first 32 bytes (0x0000..0x001F) and the 0x1240..0x127F range if present
-        {
-            std::string s = "Debug: CHR @0x0000..0x001F:";
-            size_t limit = std::min<size_t>(_chrRom.size(), 0x20);
-            for (size_t i = 0; i < limit; ++i) {
-                s += std::format(" {:02X}", _chrRom[i]);
-            }
-            Log(s.c_str());
-        }
-
-        const uint32_t probeAddr = 0x1240;
-        const uint32_t probeLen = 64;
-        if (probeAddr < _chrRom.size()) {
-            std::string s = std::format("Debug: CHR dump @0x{0:04X}..0x{1:04X}:", probeAddr, probeAddr + probeLen - 1);
-            size_t limit = std::min<size_t>(_chrRom.size(), probeAddr + probeLen);
-            for (size_t i = probeAddr; i < limit; ++i) {
-                s += std::format(" {:02X}", _chrRom[i]);
-            }
-            Log(s.c_str());
-        }
-        else {
-            Log(std::format("Debug: CHR probe @0x{0:04X} out-of-range (size={1})", probeAddr, _chrRom.size()).c_str());
-        }
-
         LogDiagnostics();
         return true;
     }
     catch (const std::exception& e) {
-        std::ostringstream out;
-        out << "Error loading Cartridge: " << e.what();
-        Log(out.str().c_str());
+        Log(std::format("Error loading Cartridge: {}", e.what()).c_str());
         return false;
     }
 }
@@ -250,10 +366,26 @@ bool Cartridge::InitializeMapper() {
     uint8_t mapperID = _header.get_mapper_number();
 
     if (nes::MapperFactory::IsSupported(mapperID)) {
-        // Create the mapper and store it in our unique_ptr
-        _mapper = nes::MapperFactory::CreateMapper(mapperID, _header.prg_rom_size, _header.chr_rom_size);
+        //_mapper = nes::MapperFactory::CreateMapper(mapperID, _header.prg_rom_size, _header.chr_rom_size);
+        uint8_t prgBanks = _header.get_prg_rom_size() / SIXTEEN_KB; // 16KB units
+        uint8_t chrBanks = _header.get_chr_rom_size() / EIGHT_KB;   // 8KB units
+        if (chrBanks == 0) chrBanks = 1; // CHR-RAM fallback
+        _mapper = nes::MapperFactory::CreateMapper(mapperID, prgBanks, chrBanks);
 
-        Log(std::format("Loaded: {}", nes::MapperFactory::GetMapperName(mapperID)).c_str());
+        // Determine initial mirror mode from header
+        MirrorMode initialMirror;
+        if (_header.is_four_screen_mode()) {
+            initialMirror = MirrorMode::FourScreen;
+        }
+        else if (_header.is_vertical_mirroring()) {
+            initialMirror = MirrorMode::Vertical;
+        }
+        else {
+            initialMirror = MirrorMode::Horizontal;
+        }
+
+        // Set both initial and current mirror mode
+        _mapper->SetInitalMapper(initialMirror);
         return true;
     }
     else {
@@ -262,11 +394,11 @@ bool Cartridge::InitializeMapper() {
     }
 }
 
-void Cartridge::Clock() {
-    if (_mapper) {
-        _mapper->Clock();  // Let mapper handle its own timing
-    }
-}
+//void Cartridge::Clock() {
+//    if (_mapper) {
+//        _mapper->Clock();  // why did i have a clock in here?
+//    }
+//}
 
 bool Cartridge::CpuRead(uint16_t addr, uint8_t& data) {
     if (!_isLoaded || _mapper == nullptr) return false;
@@ -284,23 +416,8 @@ bool Cartridge::CpuRead(uint16_t addr, uint8_t& data) {
         // _prgRom can be a std::vector<uint8_t> or std::span<uint8_t>
         if (mappedAddr < _prgRom.size()) {
             data = _prgRom[mappedAddr];
-
-            // DEBUG
-            //char msg[256];
-            //snprintf(msg, sizeof(msg),
-            //    "Cartridge: Read $%04X -> offset %04X = $%02X",
-            //    addr, mappedAddr, data);
-            //Log(msg);
-
             return true;
         }
-
-        // DEBUG ERROR
-        //char msg[256];
-        //snprintf(msg, sizeof(msg),
-        //    "Cartridge ERROR: Offset %04X out of bounds (size: %04X)",
-        //    mappedAddr, _prgRom.size());
-        //Log(msg);
     }
 
     return false;
@@ -352,10 +469,13 @@ bool Cartridge::PpuRead(uint16_t addr, uint8_t& data) {
     uint32_t mappedAddr = 0;
     // Ask the mapper where this PPU address resides in the CHR data
     if (_mapper->PpuMapRead(addr, mappedAddr)) {
-        // Bounds check against the loaded CHR data
         if (mappedAddr < _chrRom.size()) {
             data = _chrRom[mappedAddr];
             return true;
+        }
+        else {
+            data = 0xFF; // TEMP: fill invalid reads with 0xFF to see difference
+            Log(std::format("PPU read mappedAddr out of bounds: {:X}", mappedAddr).c_str());
         }
     }
 
@@ -375,159 +495,4 @@ bool Cartridge::PpuWrite(uint16_t addr, uint8_t data) {
     }
 
     return false;
-}
-
-#pragma region "Exported Cartridge Functions"
-DLLEXPORT void CartridgeSetDiagnosticLogCallback(Cartridge* cart, DiagnosticLogCallback callback) {
-    if (cart && callback) {
-        cart->SetDiagnosticLogCallback(callback);
-        cart->Log("Info: Diagnostic Log Callback attached successfully.");
-    }
-    else if (cart == nullptr) {
-        if (callback) callback("Error: Cartridge instance is nullptr.");
-    }
-}
-
-DLLEXPORT Cartridge* CreateCartridge() {
-    return new Cartridge();
-}
-
-DLLEXPORT Cartridge* CreateCartridgeDiag(DiagnosticLogCallback callback) {
-    Cartridge* cart = new Cartridge();
-    if (cart == nullptr) {
-        if (callback) callback("Error: Unable to create Cartridge instance.");
-        return nullptr;
-    }
-    cart->SetDiagnosticLogCallback(callback);
-    cart->Log("Native Cartridge instance created.");
-    return cart;
-}
-
-DLLEXPORT void DestroyCartridge(Cartridge* cart) {
-    if (cart) {
-        // we need the log from the cartridge before destruction
-        DiagnosticLogCallback _log = cart->_diagnosticCallback;
-        bool islogged = cart->LoggingEnabled();
-        if (cart) {
-            delete cart;
-            cart = nullptr;
-            if (islogged) _log("Info: Cartridge destroyed.");
-        }
-    } 
-    // else: "Cartridge instance is nullptr.", not nec an error.
-}
-
-DLLEXPORT bool LoadCartridge(Cartridge* cart, const char* path) {
-    if (cart && path) {
-        bool result = cart->Load(path);
-        if (result) cart->Log("ROM loaded successfully.");
-        else cart->Log("Error: ROM load failed.");
-        return result;
-    }
-    return false;
-}
-
-DLLEXPORT void CartridgeEnableLogging(Cartridge* cart, bool enable) {
-    if (cart) return cart->EnableLogging(enable);
-}
-
-DLLEXPORT MirrorMode CartridgeGetMirrorMode(Cartridge* cart) {
-    if (cart) return cart->GetMirrorMode();
-    return MirrorMode::Hardware;
-}
-
-DLLEXPORT bool CartridgeIsLoaded(Cartridge* cart) {
-    if (cart) return cart->IsLoaded();
-    return false;
-}
-
-DLLEXPORT void CartridgeClock(Cartridge* cart) {
-    if (cart) cart->Clock();
-}
-
-DLLEXPORT bool CartCpuRead(Cartridge* cart, uint16_t addr, uint8_t* data) {
-    if (cart) return cart->CpuRead(addr, *data);
-    return false;
-}
-
-DLLEXPORT bool CartCpuWrite(Cartridge* cart, uint16_t addr, uint8_t data) {
-    if (cart) return cart->CpuWrite(addr, data);
-    return false;
-}
-
-DLLEXPORT bool CartPpuRead(Cartridge* cart, uint16_t addr, uint8_t* data) {
-    if (cart) return cart->PpuRead(addr, *data);
-    return false;
-}
-
-DLLEXPORT bool CartPpuWrite(Cartridge* cart, uint16_t addr, uint8_t data) {
-    if (cart) return cart->PpuWrite(addr, data);
-    return false;
-}
-
-#pragma region "Exported MapperBase Functions"
-// ============================= MAPPER RELATED Functionality =============================
-DLLEXPORT MapperBase* CartridgeMapper(Cartridge* cart) {
-    if (cart) return cart->GetMapper();
-    return nullptr;
-}
-DLLEXPORT bool MapperIsIrqActive(MapperBase* mapper) {
-    if (mapper) return mapper->IsIrqActive();
-    return false;
-}
-DLLEXPORT void MapperClearIrq(MapperBase* mapper) {
-    if (mapper) mapper->ClearIrq();
-}
-DLLEXPORT void MapperReset(MapperBase* mapper) {
-    if (mapper) mapper->Reset();
-}
-DLLEXPORT MirrorMode MapperGetMirrorMode(MapperBase* mapper) {
-    if (mapper) return mapper->GetMirrorMode();
-    return MirrorMode::Hardware;
-}
-DLLEXPORT void MapperScanlineCounter(MapperBase* mapper) {
-    if (mapper) mapper->ScanlineCounter();
-}
-#pragma endregion
-
-DLLEXPORT void ResetCartridge(Cartridge* cart) {
-    if (cart) {
-        // Cartridge doesn't have Reset, but mapper does
-        MapperBase* mapper = cart->GetMapper();
-        if (mapper) {
-            mapper->Reset();
-        }
-    }
-}
-
-#pragma endregion
-
-/* API Section for the NesChipset.dll */
-#include "../core/Interfaces/CartridgeApi.h"
-DLLEXPORT void GetCartridgeAPI(LPCARTRIDGEAPI api_cartridge) {
-    // CARTRIDGE API
-    api_cartridge->CreateCartridge = CreateCartridge;
-    api_cartridge->CreateCartridgeDiag = CreateCartridgeDiag;
-    api_cartridge->CartridgeSetDiagnosticLogCallback = CartridgeSetDiagnosticLogCallback;
-    api_cartridge->DestroyCartridge = DestroyCartridge;
-    api_cartridge->LoadCartridge = LoadCartridge;
-    api_cartridge->CartridgeEnableLogging = CartridgeEnableLogging;
-    api_cartridge->CartridgeGetMirrorMode = CartridgeGetMirrorMode;
-    api_cartridge->CartridgeIsLoaded = CartridgeIsLoaded;
-    api_cartridge->CartridgeClock = CartridgeClock;
-    api_cartridge->CartCpuRead = CartCpuRead;
-    api_cartridge->CartCpuWrite = CartCpuWrite;
-    api_cartridge->CartPpuRead = CartPpuRead;
-    api_cartridge->CartPpuWrite = CartPpuWrite;
-    api_cartridge->ResetCartridge = ResetCartridge;
-    api_cartridge->CartridgeMapper = CartridgeMapper;
-}
-
-DLLEXPORT void GetMapperAPI(LPMAPPERAPI api_mapper) {
-    // MAPPER API
-    api_mapper->MapperIsIrqActive = MapperIsIrqActive;
-    api_mapper->MapperClearIrq = MapperClearIrq;
-    api_mapper->MapperReset = MapperReset;
-    api_mapper->MapperGetMirrorMode = MapperGetMirrorMode;
-    api_mapper->MapperScanlineCounter = MapperScanlineCounter;
 }

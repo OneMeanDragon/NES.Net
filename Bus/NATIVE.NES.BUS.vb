@@ -1,4 +1,5 @@
 ﻿Imports System.Runtime.InteropServices
+Imports System.Windows.Forms.VisualStyles
 Imports Nintendo.NintendoEntertainmentSystem.NativeCartridge
 
 Namespace NintendoEntertainmentSystem
@@ -149,6 +150,7 @@ Namespace NintendoEntertainmentSystem
         Public ReadOnly CPU As New NativeCPU6502()
         Public ReadOnly PPU As New NativePPU2C02()
         Public ReadOnly APU As New NativeAPU2A03()
+        Public Cart As NativeCartridge
 
         Public Sub New()
             _diagnosticCallback = New DLLPath.DiagnosticLogDelegate(AddressOf BusDiagnosticLogger)
@@ -237,7 +239,18 @@ Namespace NintendoEntertainmentSystem
         Protected Overridable Sub Dispose(disposing As Boolean)
             If Not _disposed Then
                 If disposing Then
-                    ' Dispose managed resources (none for Bus currently)
+                    If Not IsNothing(Cart) Then
+                        Cart.Dispose()
+                    End If
+                    If Not IsNothing(PPU) Then
+                        PPU.Dispose()
+                    End If
+                    If Not IsNothing(APU) Then
+                        APU.Dispose()
+                    End If
+                    If Not IsNothing(CPU) Then
+                        CPU.Dispose()
+                    End If
                 End If
 
                 ' Dispose unmanaged resources

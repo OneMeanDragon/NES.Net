@@ -14,16 +14,16 @@ namespace nes {
     private:
         // Internal shift register state
         uint8_t _loadRegister = 0x00;
-        uint8_t _loadCounter = 0x00;
-        uint8_t _controlReg = 0x00;
+        uint8_t _loadCounter  = 0x00;
+        uint8_t _controlReg   = 0x00;
 
         // Bank selection registers
-        uint8_t _chrBank4Lo = 0x00;
-        uint8_t _chrBank4Hi = 0x00;
-        uint8_t _chrBank8 = 0x00;
+        uint8_t _chrBank4Lo  = 0x00;
+        uint8_t _chrBank4Hi  = 0x00;
+        uint8_t _chrBank8    = 0x00;
         uint8_t _prgBank16Lo = 0x00;
         uint8_t _prgBank16Hi = 0x00;
-        uint8_t _prgBank32 = 0x00;
+        uint8_t _prgBank32   = 0x00;
 
     public:
         Mapper001(uint8_t prgBanks, uint8_t chrBanks)
@@ -160,11 +160,12 @@ namespace nes {
         bool PpuMapRead(uint16_t addr, uint32_t& mappedAddr) override {
             if (addr < 0x2000) {
                 if (_chrBanks == 0) {
-                    // CHR-RAM
+                    // CHR-RAM - direct mapping, no banking
                     mappedAddr = addr;
                     return true;
                 }
 
+                // CHR-ROM - use banking
                 if (_controlReg & 0x10) {
                     // 4KB CHR mode
                     if (addr < 0x1000) {
@@ -185,20 +186,7 @@ namespace nes {
 
         bool PpuMapWrite(uint16_t addr, uint32_t& mappedAddr) override {
             if (addr < 0x2000 && _chrBanks == 0) {
-                // CHR-RAM writes (mirroring same banking as reads)
-                if (_controlReg & 0x10) {
-                    // 4KB CHR mode
-                    if (addr < 0x1000) {
-                        mappedAddr = static_cast<uint32_t>(_chrBank4Lo) * 0x1000 + (addr & 0x0FFF);
-                    }
-                    else {
-                        mappedAddr = static_cast<uint32_t>(_chrBank4Hi) * 0x1000 + (addr & 0x0FFF);
-                    }
-                }
-                else {
-                    // 8KB CHR mode
-                    mappedAddr = static_cast<uint32_t>(_chrBank8) * 0x2000 + (addr & 0x1FFF);
-                }
+                mappedAddr = addr;  // Direct map for CHR-RAM
                 return true;
             }
             return false;

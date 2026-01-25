@@ -346,8 +346,7 @@ uint8_t CPU6502::PHP() {
 }
 
 uint8_t CPU6502::PLP() {
-    Status = Pop();
-    SetFlag(U, true);
+    Status = (Pop() & 0xEF) | 0x20; // B does not transfer to PLP
     return 0;
 }
 

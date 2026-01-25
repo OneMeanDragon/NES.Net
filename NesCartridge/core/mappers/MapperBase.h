@@ -13,13 +13,23 @@ public: // Propertys
 protected:
     uint8_t _prgBanks = 0;
     uint8_t _chrBanks = 0;
-    MirrorMode _mirrorMode = MirrorMode::Hardware;
+    MirrorMode _initialMirrorMode = MirrorMode::Hardware; // From cartridge header
+    MirrorMode _mirrorMode        = MirrorMode::Hardware; // Current (can be changed by mapper)
+    bool _cartRamEnabled = false;
+    bool _cartRamWriteProtected = false;
     std::vector<uint8_t> _cartRam{};
-
+public:
+    void SetInitalMapper(MirrorMode mirror) { 
+        _initialMirrorMode = mirror; 
+        _mirrorMode = _initialMirrorMode; 
+        //printf("MirrorMode =%d\n", static_cast<uint8_t>(_mirrorMode));
+    };
 public:
     // Constructor
     MapperBase(uint8_t prgBanks, uint8_t chrBanks)
         : _prgBanks(prgBanks), _chrBanks(chrBanks), _mirrorMode(MirrorMode::Hardware) {
+        // Default to 8KB CHR-RAM if needed
+        _cartRam.assign(CHR_BANK_SIZE, 0);
     }
 
     virtual ~MapperBase() = default;
@@ -41,6 +51,7 @@ public:
     virtual bool IsIrqActive() const { return false; }
     virtual void ClearIrq() {}
     virtual void ScanlineCounter() {}
+    //virtual void PpuAddressUpdate(uint16_t addr) {}
 
     uint8_t GetPrgBanks() const { return _prgBanks; }
     uint8_t GetChrBanks() const { return _chrBanks; }
