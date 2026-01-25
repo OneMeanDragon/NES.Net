@@ -2,7 +2,7 @@
 #include <algorithm>
 
 PPU2C02_Sprites::PPU2C02_Sprites() {
-    std::memset(OAM, 0, sizeof(OAM));
+    std::memset(OAM.raw, 0xFF, sizeof(OAM.raw)); // Initialize all OAM to 0xFF
     std::memset(_spriteScanline, 0xFF, sizeof(_spriteScanline));
     std::memset(_spriteShifterLo, 0, sizeof(_spriteShifterLo));
     std::memset(_spriteShifterHi, 0, sizeof(_spriteShifterHi));
@@ -10,8 +10,7 @@ PPU2C02_Sprites::PPU2C02_Sprites() {
 
 void PPU2C02_Sprites::ResetSprites(bool coldstart) {
     if (coldstart) {
-        std::fill(reinterpret_cast<uint8_t*>(OAM),
-            reinterpret_cast<uint8_t*>(OAM) + 256, 0xFF);
+        std::fill(std::begin(OAM.raw), std::end(OAM.raw), 0xFF);
     }
 
     _oamAddress = 0;
@@ -27,16 +26,18 @@ void PPU2C02_Sprites::ResetSprites(bool coldstart) {
 }
 
 void PPU2C02_Sprites::WriteOAM(uint8_t data) {
-    reinterpret_cast<uint8_t*>(OAM)[_oamAddress] = data;
-    _oamAddress++;
+    // Optional debug print
+    static int writeCount = 0;
+    if (writeCount++ < 10) {
+        printf("OAM Write: addr=%02X data=%02X\n", _oamAddress, data);
+    }
+
+    OAM.raw[_oamAddress] = data;
+    _oamAddress = (_oamAddress + 1) & 0xFF; // Wrap around 0-255
 }
 
 void PPU2C02_Sprites::EvaluateSprites(int16_t scanline, const PpuControlRegister& control, PpuStatusRegister& status) {
     std::memset(_spriteScanline, 0xFF, sizeof(_spriteScanline));
-    for (int i = 0; i < 8; i++) {
-        _spriteShifterLo[i] = 0;
-        _spriteShifterHi[i] = 0;
-    }
 
     _spriteCount = 0;
     _spriteZeroHitPossible = false;
@@ -46,13 +47,11 @@ void PPU2C02_Sprites::EvaluateSprites(int16_t scanline, const PpuControlRegister
 
     status.spriteOverflow = false;
     for (uint8_t i = 0; i < 64; i++) {
-        // Sprite Y is the scanline where the TOP of the sprite appears
-        // So sprite with Y=50 appears on scanlines 50-57 (for 8x8)
-        int16_t diff = scanline - (int16_t)OAM[i].y;
+        int16_t diff = scanline - (int16_t)OAM.entries[i].y;
         if (diff >= 0 && diff < height) {
             if (found < 8) {
                 if (i == 0) _spriteZeroHitPossible = true;
-                _spriteScanline[found++] = OAM[i];
+                _spriteScanline[found++] = OAM.entries[i];
             }
             else {
                 status.spriteOverflow = true;
@@ -110,11 +109,14 @@ void PPU2C02_Sprites::LoadSpriteShifters(int16_t scanline, const PpuControlRegis
 void PPU2C02_Sprites::UpdateSpriteShifters(const PpuMaskRegister& mask, int16_t cycle) {
     if (mask.renderSprites && cycle >= 1 && cycle < 258) {
         for (int i = 0; i < std::min((int)_spriteCount, 8); i++) {
+            // FIXED: Decrement X only when > 0
+            // When X reaches 0, it stays at 0 and sprite becomes active
             if (_spriteScanline[i].x > 0) {
                 _spriteScanline[i].x--;
             }
             else {
-                // Sprite is active, shift its pattern data
+                // When X == 0, shift the pattern data
+                // This outputs the sprite pixels
                 _spriteShifterLo[i] <<= 1;
                 _spriteShifterHi[i] <<= 1;
             }
@@ -128,26 +130,21 @@ void PPU2C02_Sprites::GetSpritePixel(uint8_t& pixel, uint8_t& palette, uint8_t& 
     priority = 0;
     spriteZero = false;
 
+    // Check all sprites for the first visible one
     for (uint8_t i = 0; i < _spriteCount && i < 8; i++) {
+        // Sprite is active when X == 0
         if (_spriteScanline[i].x == 0) {
+            // Read MSB of shifter registers
             uint8_t pixelLo = (_spriteShifterLo[i] & 0x80) ? 1 : 0;
             uint8_t pixelHi = (_spriteShifterHi[i] & 0x80) ? 1 : 0;
             pixel = (pixelHi << 1) | pixelLo;
 
             if (pixel != 0) {
                 palette = (_spriteScanline[i].attribute & 0x03) + 4;
-                priority = !(_spriteScanline[i].attribute & 0x20);
+                priority = (_spriteScanline[i].attribute & 0x20) == 0;
                 if (i == 0) spriteZero = true;
-                break;
+                break;  // Use first non-transparent sprite
             }
-        }
-    }
-
-    // Shift all active sprites after reading
-    for (uint8_t i = 0; i < _spriteCount && i < 8; i++) {
-        if (_spriteScanline[i].x == 0) {
-            _spriteShifterLo[i] <<= 1;
-            _spriteShifterHi[i] <<= 1;
         }
     }
 }

@@ -1,7 +1,10 @@
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+
 #include "PPU2C02.h"
 #include "../CartridgeApi/MapperInterfaceAPI.h"
 #include "../CartridgeApi/CartridgeInterfaceAPI.h"
-#include <cstdio>
 
 PPU2C02::PPU2C02()
     : PPU2C02_Memory(),
@@ -107,6 +110,20 @@ void PPU2C02::Clock() {
             }
         }
 
+        // --------------------------------------------------------
+        // Pixel rendering (BEFORE updating shifters)
+        // --------------------------------------------------------
+        if (_scanline >= 0 && _scanline < 240 &&
+            _cycle >= 1 && _cycle <= 256) {
+
+            // Render pixel FIRST (reads current shifter values)
+            RenderPixel();
+
+            // THEN update shifters for next pixel
+            UpdateSpriteShifters(_mask, _cycle);
+        }
+
+
         // End of scanline operations
         if (renderingEnabled) {
             if (_cycle == 256) {
@@ -114,8 +131,10 @@ void PPU2C02::Clock() {
             }
             if (_cycle == 257) {
                 TransferAddressX(_vramAddr, _tramAddr, _mask);
-                EvaluateSprites(_scanline, _control, _status);
-                LoadSpriteShifters(_scanline, _control);
+                // CRITICAL FIX: Evaluate sprites for the NEXT scanline!
+                // This is why we pass _scanline + 1
+                EvaluateSprites(_scanline + 1, _control, _status);
+                LoadSpriteShifters(_scanline + 1, _control);
             }
             if (_scanline == -1 && _cycle >= 280 && _cycle <= 304) {
                 TransferAddressY(_vramAddr, _tramAddr, _mask);
@@ -127,19 +146,6 @@ void PPU2C02::Clock() {
     if (_scanline == 241 && _cycle == 1) {
         _status.verticalBlank = true;
         if (_control.enableNmi) _nmiRequested = true;
-    }
-
-    // --------------------------------------------------------
-    // Pixel rendering (BEFORE updating shifters)
-    // --------------------------------------------------------
-    if (_scanline >= 0 && _scanline < 240 &&
-        _cycle >= 1 && _cycle <= 256) {
-        RenderPixel();
-    }
-
-    // Update sprite shifters AFTER rendering
-    if (_scanline >= -1 && _scanline <= 239) {
-        UpdateSpriteShifters(_mask, _cycle);
     }
 
     // --------------------------------------------------------
@@ -163,6 +169,33 @@ void PPU2C02::Clock() {
 }
 
 void PPU2C02::RenderPixel() {
+    // DEBUG: Print sprite info once per frame
+    //static bool debugPrinted = false;
+    //if (_scanline == 100 && _cycle == 1 && !debugPrinted) {
+    //    printf("=== SPRITE DEBUG (Scanline 100) ===\n");
+    //    printf("Mask: renderSprites=%d, renderBackground=%d\n",
+    //        _mask.renderSprites, _mask.renderBackground);
+    //    printf("Sprite count: %d\n", _spriteCount);
+    //
+    //    for (int i = 0; i < 3 && i < _spriteCount; i++) {
+    //        printf("Sprite %d: Y=%d X=%d ID=%02X Attr=%02X\n",
+    //            i, _spriteScanline[i].y, _spriteScanline[i].x,
+    //            _spriteScanline[i].id, _spriteScanline[i].attribute);
+    //        printf("  Shifters: Lo=%02X Hi=%02X\n",
+    //            _spriteShifterLo[i], _spriteShifterHi[i]);
+    //    }
+    //
+    //    // Print first few OAM entries
+    //    printf("\nFirst 3 OAM entries:\n");
+    //    const OAMEntry* oam = GetOAM();
+    //    for (int i = 0; i < 3; i++) {
+    //        printf("OAM[%d]: Y=%d X=%d ID=%02X Attr=%02X\n",
+    //            i, oam[i].y, oam[i].x, oam[i].id, oam[i].attribute);
+    //    }
+    //    debugPrinted = true;
+    //}
+    //if (_scanline == 0 && _cycle == 1) debugPrinted = false;
+
     bool bgLeftAllowed = _mask.renderBackgroundLeft || _cycle > 8;
     bool sprLeftAllowed = _mask.renderSpritesLeft || _cycle > 8;
 

@@ -44,7 +44,7 @@ namespace nes {
                 //_chrBank = data & (_chrBanks - 1);
                 if (_chrBanks > 1) _chrBank = data & (_chrBanks - 1);
                 else _chrBank = 0;
-                return true;
+                //return true;
             }
             // Return false as no actual PRG data is being written
             return false;

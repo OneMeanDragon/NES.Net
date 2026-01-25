@@ -85,9 +85,14 @@ public:
     // Public OAM access (for external tools and DLL exports)
     using PPU2C02_Sprites::GetOAM;
     using PPU2C02_Sprites::GetOAMMutable;
+    // Public facing OAM functions required for PPU2C02_Registers
+    uint8_t ReadOAM() const override { return PPU2C02_Sprites::ReadOAM(); };
+    void WriteOAM(uint8_t data) override { PPU2C02_Sprites::WriteOAM(data); };
+    void SetOAMAddress(uint8_t addr) override { PPU2C02_Sprites::SetOAMAddress(addr); };
 
     // Direct OAM access for legacy compatibility
     OAMEntry* GetOAMArray() { return GetOAMMutable(); }
+
 
     // Expose GetColorFromPalette for DLL exports
     using PPU2C02_Memory::GetColorFromPalette;

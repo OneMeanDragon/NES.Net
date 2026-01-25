@@ -6,6 +6,8 @@
 #include "../Interfaces/MirrorModeRequired.h"
 
 class MapperBase {
+public:
+    static constexpr uint32_t CARTRAM_SIGNAL = 0xFFFFFFFF;
 public: // Propertys
     virtual constexpr uint8_t GetMapperNumber() const noexcept = 0;
     virtual constexpr const char* GetMapperName() const noexcept = 0;

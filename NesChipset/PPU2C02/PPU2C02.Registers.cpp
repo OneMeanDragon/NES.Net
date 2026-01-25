@@ -28,6 +28,7 @@ uint8_t PPU2C02_Registers::CpuRead(uint16_t addr, bool rdOnly) {
         switch (addr) {
         case 0x0000: // PPUCTRL   ($2000) - Write-only
         case 0x0001: // PPUMASK   ($2001) - Write-only
+        case 0x0003: // OAMADDR   ($2003) - Write-only
         case 0x0005: // PPUSCROLL ($2005) - Write-only
         case 0x0006: // PPUADDR   ($2006) - Write-only
             data = _openBus;
@@ -37,6 +38,10 @@ uint8_t PPU2C02_Registers::CpuRead(uint16_t addr, bool rdOnly) {
             data = (_status.reg & 0xE0) | (_openBus & 0x1F);
             _status.verticalBlank = false;
             _addressLatch = 0;
+            break;
+
+        case 0x0004: // OAMDATA ($2004) - Read/Write
+            data = ReadOAM();
             break;
 
         case 0x0007: {// PPUDATA ($2007) - Read/Write
@@ -82,6 +87,14 @@ void PPU2C02_Registers::CpuWrite(uint16_t addr, uint8_t data) {
 
     case 0x0002: // PPUSTATUS ($2002)
         // Read-only register, writes are ignored
+        break;
+
+    case 0x0003: // OAMADDR ($2003) - MISSING?
+        SetOAMAddress(data);
+        break;
+
+    case 0x0004: // OAMDATA ($2004) - MISSING?
+        WriteOAM(data);
         break;
 
     case 0x0005: // PPUSCROLL ($2005)

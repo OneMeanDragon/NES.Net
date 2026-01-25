@@ -7,7 +7,10 @@
 class PPU2C02_Sprites {
 protected:
     // OAM (Object Attribute Memory)
-    OAMEntry OAM[64];
+    union {
+        OAMEntry entries[64];      // Structured access
+        uint8_t raw[64 * 4];       // Raw byte access
+    } OAM;
     uint8_t _oamAddress = 0;
 
     // Sprite scanline data
@@ -35,14 +38,14 @@ public:
     void GetSpritePixel(uint8_t& pixel, uint8_t& palette, uint8_t& priority, bool& spriteZero);
 
     // OAM access
-    uint8_t ReadOAM() const { return reinterpret_cast<const uint8_t*>(OAM)[_oamAddress]; }
+    uint8_t ReadOAM() const { return OAM.raw[_oamAddress]; }
     void WriteOAM(uint8_t data);
     void SetOAMAddress(uint8_t addr) { _oamAddress = addr; }
     uint8_t GetOAMAddress() const { return _oamAddress; }
 
     // Debug access
-    const OAMEntry* GetOAM() const { return OAM; }
-    OAMEntry* GetOAMMutable() { return OAM; }  // For DLL exports
+    const OAMEntry* GetOAM() const { return OAM.entries; }
+    OAMEntry* GetOAMMutable() { return OAM.entries; }
 
     // Sprite 0 hit
     bool IsSpriteZeroHitPossible() const { return _spriteZeroHitPossible; }
