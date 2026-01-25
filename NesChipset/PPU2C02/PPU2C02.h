@@ -91,7 +91,7 @@ public:
     void SetOAMAddress(uint8_t addr) override { PPU2C02_Sprites::SetOAMAddress(addr); };
 
     // Direct OAM access for legacy compatibility
-    OAMEntry* GetOAMArray() { return GetOAMMutable(); }
+    OAMEntry& GetOAMArray() { return GetOAMMutable(); }
 
 
     // Expose GetColorFromPalette for DLL exports

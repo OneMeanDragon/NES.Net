@@ -72,19 +72,19 @@ DLLEXPORT void PPU_GetPatternTable(PPU2C02* ppu, uint8_t table, uint8_t palette,
     if (ppu) ppu->GetPatternTable(table, palette, buffer);
 }
 
-DLLEXPORT void PPU_GetOAMEntry(PPU2C02* ppu, uint8_t index, OAMEntry* entry) {
+DLLEXPORT void PPU_GetOAMEntry(PPU2C02* ppu, uint8_t index, OAMEntryS* entry) {
     if (ppu && entry && index < 64) {
         // Access through public method
-        const OAMEntry* oam = ppu->GetOAM();
-        *entry = oam[index];
+        const OAMEntry& oam = ppu->GetOAM();
+        *entry = oam.entries[index];
     }
 }
 
-DLLEXPORT void PPU_SetOAMEntry(PPU2C02* ppu, uint8_t index, OAMEntry* entry) {
+DLLEXPORT void PPU_SetOAMEntry(PPU2C02* ppu, uint8_t index, OAMEntryS* entry) {
     if (ppu && entry && index < 64) {
         // Access through mutable method
-        OAMEntry* oam = ppu->GetOAMMutable();
-        oam[index] = *entry;
+        OAMEntry& oam = ppu->GetOAMMutable();
+        oam.entries[index] = *entry;
     }
 }
 
@@ -92,16 +92,16 @@ DLLEXPORT uint8_t PPU_GetOAMByte(PPU2C02* ppu, uint8_t oamAddr) {
     if (!ppu) return 0xFF;
 
     // Access through public method and cast to byte array
-    const OAMEntry* oam = ppu->GetOAM();
-    return reinterpret_cast<const uint8_t*>(oam)[oamAddr];
+    const OAMEntry& oam = ppu->GetOAM();
+    return reinterpret_cast<const uint8_t*>(oam.entries)[oamAddr];
 }
 
 DLLEXPORT void PPU_SetOAMByte(PPU2C02* ppu, uint8_t oamAddr, uint8_t data) {
     if (!ppu) return;
 
     // Access through mutable method and cast to byte array
-    OAMEntry* oam = ppu->GetOAMMutable();
-    reinterpret_cast<uint8_t*>(oam)[oamAddr] = data;
+    OAMEntry& oam = ppu->GetOAMMutable();
+    reinterpret_cast<uint8_t*>(oam.entries)[oamAddr] = data;
 }
 
 DLLEXPORT void PPU_GetColorFromPalette(PPU2C02* ppu, uint8_t palette, uint8_t pixel, uint8_t* r, uint8_t* g, uint8_t* b) {

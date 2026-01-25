@@ -357,7 +357,7 @@ void NESBus::ProcessDMA() {
             }
             else {
                 // Write cycle
-                reinterpret_cast<uint8_t*>(_ppu->GetOAMMutable())[_dmaAddr] = _dmaData;
+                reinterpret_cast<uint8_t*>(_ppu->GetOAMMutable().entries)[_dmaAddr] = _dmaData;
                 _dmaAddr++;
 
                 if (_dmaAddr == 0) {  // Wrapped to 0 (256 bytes transferred)

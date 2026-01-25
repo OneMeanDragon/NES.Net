@@ -51,7 +51,7 @@ void PPU2C02_Sprites::EvaluateSprites(int16_t scanline, const PpuControlRegister
         if (diff >= 0 && diff < height) {
             if (found < 8) {
                 if (i == 0) _spriteZeroHitPossible = true;
-                _spriteScanline[found++] = OAM.entries[i];
+                _spriteScanline->entries[found++] = OAM.entries[i];
             }
             else {
                 status.spriteOverflow = true;
@@ -66,24 +66,24 @@ void PPU2C02_Sprites::LoadSpriteShifters(int16_t scanline, const PpuControlRegis
         uint8_t patternLo, patternHi;
         uint16_t addrLo, addrHi;
 
-        int16_t spriteLine = scanline - (int16_t)_spriteScanline[i].y;
+        int16_t spriteLine = scanline - (int16_t)_spriteScanline->entries[i].y;
 
         if (!control.spriteSize) {
             // 8x8 mode
             int16_t row = spriteLine;
-            if (_spriteScanline[i].attribute & 0x80) row = 7 - row;
+            if (_spriteScanline->entries[i].attribute & 0x80) row = 7 - row;
 
             addrLo = (control.patternSprite ? 0x1000 : 0) |
-                ((uint16_t)_spriteScanline[i].id << 4) |
+                ((uint16_t)_spriteScanline->entries[i].id << 4) |
                 (uint16_t)row;
         }
         else {
             // 8x16 mode
             int16_t row = spriteLine;
-            if (_spriteScanline[i].attribute & 0x80) row = 15 - row;
+            if (_spriteScanline->entries[i].attribute & 0x80) row = 15 - row;
 
-            uint16_t bank = (_spriteScanline[i].id & 1) << 12;
-            uint16_t tile = _spriteScanline[i].id & 0xFE;
+            uint16_t bank = (_spriteScanline->entries[i].id & 1) << 12;
+            uint16_t tile = _spriteScanline->entries[i].id & 0xFE;
             if (row >= 8) {
                 tile++;
                 row -= 8;
@@ -96,7 +96,7 @@ void PPU2C02_Sprites::LoadSpriteShifters(int16_t scanline, const PpuControlRegis
         patternLo = PpuRead(addrLo);
         patternHi = PpuRead(addrHi);
 
-        if (_spriteScanline[i].attribute & 0x40) {
+        if (_spriteScanline->entries[i].attribute & 0x40) {
             patternLo = FlipByte(patternLo);
             patternHi = FlipByte(patternHi);
         }
@@ -111,8 +111,8 @@ void PPU2C02_Sprites::UpdateSpriteShifters(const PpuMaskRegister& mask, int16_t 
         for (int i = 0; i < std::min((int)_spriteCount, 8); i++) {
             // FIXED: Decrement X only when > 0
             // When X reaches 0, it stays at 0 and sprite becomes active
-            if (_spriteScanline[i].x > 0) {
-                _spriteScanline[i].x--;
+            if (_spriteScanline->entries[i].x > 0) {
+                _spriteScanline->entries[i].x--;
             }
             else {
                 // When X == 0, shift the pattern data
@@ -133,15 +133,15 @@ void PPU2C02_Sprites::GetSpritePixel(uint8_t& pixel, uint8_t& palette, uint8_t& 
     // Check all sprites for the first visible one
     for (uint8_t i = 0; i < _spriteCount && i < 8; i++) {
         // Sprite is active when X == 0
-        if (_spriteScanline[i].x == 0) {
+        if (_spriteScanline->entries[i].x == 0) {
             // Read MSB of shifter registers
             uint8_t pixelLo = (_spriteShifterLo[i] & 0x80) ? 1 : 0;
             uint8_t pixelHi = (_spriteShifterHi[i] & 0x80) ? 1 : 0;
             pixel = (pixelHi << 1) | pixelLo;
 
             if (pixel != 0) {
-                palette = (_spriteScanline[i].attribute & 0x03) + 4;
-                priority = (_spriteScanline[i].attribute & 0x20) == 0;
+                palette = (_spriteScanline->entries[i].attribute & 0x03) + 4;
+                priority = (_spriteScanline->entries[i].attribute & 0x20) == 0;
                 if (i == 0) spriteZero = true;
                 break;  // Use first non-transparent sprite
             }

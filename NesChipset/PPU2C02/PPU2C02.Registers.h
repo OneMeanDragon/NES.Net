@@ -14,6 +14,7 @@ protected:
     virtual void WriteOAM(uint8_t data) = 0;
     virtual void SetOAMAddress(uint8_t addr) = 0;
 protected:
+    // Registers
     PpuControlRegister _control;
     PpuMaskRegister _mask;
     PpuStatusRegister _status;
@@ -22,6 +23,8 @@ protected:
     uint8_t _fineX = 0;
     uint8_t _addressLatch = 0;
     uint8_t _openBus = 0;
+    // **The PPU data buffer for $2007 reads**
+    uint8_t _dataBuffer = 0;
 
 public:
     PPU2C02_Registers() = default;

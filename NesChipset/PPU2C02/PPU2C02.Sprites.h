@@ -7,10 +7,7 @@
 class PPU2C02_Sprites {
 protected:
     // OAM (Object Attribute Memory)
-    union {
-        OAMEntry entries[64];      // Structured access
-        uint8_t raw[64 * 4];       // Raw byte access
-    } OAM;
+    OAMEntry OAM;
     uint8_t _oamAddress = 0;
 
     // Sprite scanline data
@@ -44,8 +41,8 @@ public:
     uint8_t GetOAMAddress() const { return _oamAddress; }
 
     // Debug access
-    const OAMEntry* GetOAM() const { return OAM.entries; }
-    OAMEntry* GetOAMMutable() { return OAM.entries; }
+    const OAMEntry& GetOAM() const { return OAM; }
+    OAMEntry& GetOAMMutable() { return OAM; }
 
     // Sprite 0 hit
     bool IsSpriteZeroHitPossible() const { return _spriteZeroHitPossible; }

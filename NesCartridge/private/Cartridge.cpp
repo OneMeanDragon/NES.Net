@@ -369,7 +369,7 @@ bool Cartridge::InitializeMapper() {
         //_mapper = nes::MapperFactory::CreateMapper(mapperID, _header.prg_rom_size, _header.chr_rom_size);
         uint8_t prgBanks = _header.get_prg_rom_size() / SIXTEEN_KB; // 16KB units
         uint8_t chrBanks = _header.get_chr_rom_size() / EIGHT_KB;   // 8KB units
-        if (chrBanks == 0) chrBanks = 1; // CHR-RAM fallback
+        //if (chrBanks == 0) chrBanks = 1; // CHR-RAM fallback
         _mapper = nes::MapperFactory::CreateMapper(mapperID, prgBanks, chrBanks);
 
         // Determine initial mirror mode from header

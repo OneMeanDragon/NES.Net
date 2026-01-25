@@ -16,11 +16,15 @@ struct Pixel {
 };
 
 // OAM Entry structure (sprite attributes)
-struct OAMEntry {
+struct OAMEntryS {
     uint8_t y;
     uint8_t id;
     uint8_t attribute;
     uint8_t x;
+};
+union OAMEntry {
+    OAMEntryS entries[64];      // Structured access
+    uint8_t raw[64 * 4];       // Raw byte access
 };
 
 // PPU Control Register ($2000)

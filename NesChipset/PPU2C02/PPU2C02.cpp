@@ -59,6 +59,8 @@ void PPU2C02::PpuWrite(uint16_t addr, uint8_t data) {
 }
 
 void PPU2C02::Clock() {
+
+
     bool renderingEnabled = _mask.renderBackground || _mask.renderSprites;
 
     // --------------------------------------------------------
