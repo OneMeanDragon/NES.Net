@@ -138,103 +138,7 @@ void PPU2C02::PerformBackgroundFetch(int16_t cycle) {
     }
 }
 
-void PPU2C02::Clock() {
-    /*
-    * ProcessCycle(_scanline, _cycle)
-    * AdvanceNext() // _scanline++, _cycle++
-    */
-    bool renderingEnabled = _mask.renderBackground || _mask.renderSprites;
-
-    // --------------------------------------------------------
-    // Pre-render & visible scanlines
-    // --------------------------------------------------------
-    if (_scanline >= -1 && _scanline <= 239) {
-        // Odd frame skip
-        if (_scanline == 0 && _cycle == 0 && _oddFrame && renderingEnabled)
-            _cycle = 1;
-
-        // Pre-render line initialization
-        if (_scanline == -1 && _cycle == 1) {
-            _status.verticalBlank = false;
-            _status.spriteZeroHit = false;
-            _status.spriteOverflow = false;
-
-            // Preload first background tile
-            FetchNametableByte(_vramAddr);
-            FetchAttributeByte(_vramAddr);
-            FetchPatternLow(_vramAddr, _control);
-            FetchPatternHigh(_vramAddr, _control);
-            LoadBackgroundShifters();
-        }
-
-        // Background fetch pipeline (1-256, 321-336)
-        if (renderingEnabled &&
-            ((_cycle >= 1 && _cycle <= 256) ||
-                (_cycle >= 321 && _cycle <= 336))) {
-
-            UpdateBackgroundShifters(_mask, _cycle);
-
-            switch ((_cycle - 1) % 8) {
-            case 0:
-                LoadBackgroundShifters();
-                FetchNametableByte(_vramAddr);
-                break;
-            case 2:
-                FetchAttributeByte(_vramAddr);
-                break;
-            case 4:
-                FetchPatternLow(_vramAddr, _control);
-                break;
-            case 6:
-                FetchPatternHigh(_vramAddr, _control);
-                break;
-            case 7:
-                IncrementScrollX(_vramAddr, _mask);
-                break;
-            }
-        }
-
-        // --------------------------------------------------------
-        // Pixel rendering (BEFORE updating shifters)
-        // --------------------------------------------------------
-        if (_scanline >= 0 && _scanline < 240 &&
-            _cycle >= 1 && _cycle <= 256) {
-
-            // Render pixel FIRST (reads current shifter values)
-            RenderPixel();
-
-            // THEN update shifters for next pixel
-            UpdateSpriteShifters(_mask, _cycle);
-        }
-
-
-        // End of scanline operations
-        if (renderingEnabled) {
-            if (_cycle == 256) {
-                IncrementScrollY(_vramAddr, _mask);
-            }
-            if (_cycle == 257) {
-                TransferAddressX(_vramAddr, _tramAddr, _mask);
-                // CRITICAL FIX: Evaluate sprites for the NEXT scanline!
-                // This is why we pass _scanline + 1
-                EvaluateSprites(_scanline + 1, _control, _status);
-                LoadSpriteShifters(_scanline + 1, _control);
-            }
-            if (_scanline == -1 && _cycle >= 280 && _cycle <= 304) {
-                TransferAddressY(_vramAddr, _tramAddr, _mask);
-            }
-        }
-    }
-
-    // VBlank
-    if (_scanline == 241 && _cycle == 1) {
-        _status.verticalBlank = true;
-        if (_control.enableNmi) _nmiRequested = true;
-    }
-
-    // --------------------------------------------------------
-    // Advance cycle
-    // --------------------------------------------------------
+void PPU2C02::AdvanceNext() {
     _cycle++;
     if (_cycle >= CYCLE_MAX) {
         _cycle = 0;
@@ -245,11 +149,13 @@ void PPU2C02::Clock() {
             _oddFrame = !_oddFrame;
         }
     }
+}
 
-    // Scanline hooks for mappers
-    if (renderingEnabled&& _cycle == 260 && _scanline < 240 && _cart) {
-        _cart->GetMapper().ScanlineCounter();
-    }
+void PPU2C02::Clock() {
+    
+    ProcessCycle(_scanline, _cycle);
+    AdvanceNext();
+    
 }
 
 void PPU2C02::RenderPixel() {

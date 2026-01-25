@@ -115,6 +115,7 @@ public:
 private:
     void PerformBackgroundFetch(int16_t cycle);
     void ProcessCycle(int16_t scanline, int16_t cycle);
+    void AdvanceNext();
 private:
     void RenderPixel();
     void Log(const char* msg);
