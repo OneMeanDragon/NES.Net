@@ -58,9 +58,23 @@ void PPU2C02::PpuWrite(uint16_t addr, uint8_t data) {
     PPU2C02_Memory::PpuWrite(addr, data);
 }
 
+void ProcessScanline(int16_t scanline) {
+    for (int16_t cycle = 0; cycle < CYCLE_MAX; cycle++) {
+        ProcessCycle(scanline, cycle);
+    }
+}
+
+void ProcessCycle(int16_t scanline, int16_t cycle) {
+    /* Process our over complicated shit storm */
+}
+
 void PPU2C02::Clock() {
-
-
+    /*
+    * TODO:
+    for (int32_t scanline = -1; scanline < SCANLINE_MAX; scanline++) {
+        ProcessScanline(scanline);
+    }
+    */
     bool renderingEnabled = _mask.renderBackground || _mask.renderSprites;
 
     // --------------------------------------------------------
