@@ -129,12 +129,15 @@ void PPU2C02::ProcessCycle(int16_t scanline, int16_t cycle) {
 }
 
 void PPU2C02::PerformBackgroundFetch(int16_t cycle) {
-    switch ((cycle - 1) % 8) {
-    case 0: LoadBackgroundShifters(); FetchNametableByte(_vramAddr); break;
-    case 2: FetchAttributeByte(_vramAddr); break;
-    case 4: FetchPatternLow(_vramAddr, _control); break;
-    case 6: FetchPatternHigh(_vramAddr, _control); break;
-    case 7: IncrementScrollX(_vramAddr, _mask); break;
+    switch (cycle & 7) {
+    case 1: FetchNametableByte(_vramAddr); break;
+    case 3: FetchAttributeByte(_vramAddr); break;
+    case 5: FetchPatternLow(_vramAddr, _control); break;
+    case 7: FetchPatternHigh(_vramAddr, _control); break;
+    case 0:
+        LoadBackgroundShifters();
+        if (cycle != 256) IncrementScrollX(_vramAddr, _mask);
+        break;
     }
 }
 
@@ -159,33 +162,6 @@ void PPU2C02::Clock() {
 }
 
 void PPU2C02::RenderPixel() {
-    // DEBUG: Print sprite info once per frame
-    //static bool debugPrinted = false;
-    //if (_scanline == 100 && _cycle == 1 && !debugPrinted) {
-    //    printf("=== SPRITE DEBUG (Scanline 100) ===\n");
-    //    printf("Mask: renderSprites=%d, renderBackground=%d\n",
-    //        _mask.renderSprites, _mask.renderBackground);
-    //    printf("Sprite count: %d\n", _spriteCount);
-    //
-    //    for (int i = 0; i < 3 && i < _spriteCount; i++) {
-    //        printf("Sprite %d: Y=%d X=%d ID=%02X Attr=%02X\n",
-    //            i, _spriteScanline[i].y, _spriteScanline[i].x,
-    //            _spriteScanline[i].id, _spriteScanline[i].attribute);
-    //        printf("  Shifters: Lo=%02X Hi=%02X\n",
-    //            _spriteShifterLo[i], _spriteShifterHi[i]);
-    //    }
-    //
-    //    // Print first few OAM entries
-    //    printf("\nFirst 3 OAM entries:\n");
-    //    const OAMEntry* oam = GetOAM();
-    //    for (int i = 0; i < 3; i++) {
-    //        printf("OAM[%d]: Y=%d X=%d ID=%02X Attr=%02X\n",
-    //            i, oam[i].y, oam[i].x, oam[i].id, oam[i].attribute);
-    //    }
-    //    debugPrinted = true;
-    //}
-    //if (_scanline == 0 && _cycle == 1) debugPrinted = false;
-
     bool bgLeftAllowed = _mask.renderBackgroundLeft || _cycle > 8;
     bool sprLeftAllowed = _mask.renderSpritesLeft || _cycle > 8;
 

@@ -75,11 +75,11 @@ void PPU2C02_Registers::CpuWrite(uint16_t addr, uint8_t data) {
 
     case 0x0002: return; // PPUSTATUS ($2002) // Read-only register, writes are ignored
 
-    case 0x0003: // OAMADDR ($2003) - MISSING?
+    case 0x0003: // OAMADDR ($2003)
         SetOAMAddress(data);
         break;
 
-    case 0x0004: // OAMDATA ($2004) - MISSING?
+    case 0x0004: // OAMDATA ($2004)
         WriteOAM(data);
         break;
 

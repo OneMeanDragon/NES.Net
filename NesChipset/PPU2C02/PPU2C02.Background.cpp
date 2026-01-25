@@ -82,33 +82,44 @@ void PPU2C02_Background::FetchNametableByte(const LoopyRegister& vramAddr) {
 }
 
 void PPU2C02_Background::FetchAttributeByte(const LoopyRegister& vramAddr) {
-    uint16_t addr = 0x23C0 |
-        (vramAddr.nametableY << 11) |
-        (vramAddr.nametableX << 10) |
-        ((vramAddr.coarseY >> 2) << 3) |
-        (vramAddr.coarseX >> 2);
+    //uint16_t addr = 0x23C0 |
+    //    (vramAddr.nametableY << 11) |
+    //    (vramAddr.nametableX << 10) |
+    //    ((vramAddr.coarseY >> 2) << 3) |
+    //    (vramAddr.coarseX >> 2); is the following
+    uint16_t addr = 0x23C0 | (vramAddr.reg & 0x0C00) | ((vramAddr.reg >> 4) & 0x38) | ((vramAddr.reg >> 2) & 0x07);
 
     uint8_t attr = PpuRead(addr);
 
-    uint8_t shift = 0;
-    if (vramAddr.coarseY & 0x02) shift += 4;
-    if (vramAddr.coarseX & 0x02) shift += 2;
+    // Shift amount: 0 if top-left, 2 if top-right, 4 if bottom-left, 6 if bottom-right
+    uint8_t shift = (vramAddr.coarseX & 2) | ((vramAddr.coarseY & 2) << 1);
 
     _bgNextTileAttrib = (attr >> shift) & 0x03;
 }
 
+uint16_t PPU2C02_Background::GetPatternAddress(const LoopyRegister& vramAddr, const PpuControlRegister& control, bool highPlane) {
+    uint16_t patternTableBase = control.patternBackground ? 0x1000 : 0x0000;
+    uint16_t tileOffset = _bgNextTileId << 4; // Tile ID × 16 bytes per tile
+    uint16_t row = vramAddr.fineY;            // Which row within the tile (0-7)
+    uint16_t plane = highPlane ? 8 : 0;
+
+    uint16_t addr = patternTableBase | tileOffset | row | plane;
+
+    // Debug: Uncomment to trace pattern fetches
+    // printf("Pattern fetch: table=%04X tile=%02X row=%d plane=%s addr=%04X\n",
+    //        patternTableBase, _bgNextTileId, row, highPlane ? "high" : "low", addr);
+
+    return addr;
+}
+
 void PPU2C02_Background::FetchPatternLow(const LoopyRegister& vramAddr, const PpuControlRegister& control) {
-    _bgNextTileLsb = PpuRead(
-        (control.patternBackground ? 0x1000 : 0x0000) |
-        (_bgNextTileId << 4) |
-        vramAddr.fineY);
+    uint16_t addr = GetPatternAddress(vramAddr, control, false);
+    _bgNextTileLsb = PpuRead(addr);
 }
 
 void PPU2C02_Background::FetchPatternHigh(const LoopyRegister& vramAddr, const PpuControlRegister& control) {
-    _bgNextTileMsb = PpuRead(
-        (control.patternBackground ? 0x1000 : 0x0000) |
-        (_bgNextTileId << 4) |
-        vramAddr.fineY + 8);
+    uint16_t addr = GetPatternAddress(vramAddr, control, true);
+    _bgNextTileMsb = PpuRead(addr);
 }
 
 void PPU2C02_Background::GetBackgroundPixel(uint8_t fineX, uint8_t& pixel, uint8_t& palette) const {

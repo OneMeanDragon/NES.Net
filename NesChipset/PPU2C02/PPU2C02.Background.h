@@ -38,6 +38,8 @@ public:
     // Fetch pipeline
     void FetchNametableByte(const LoopyRegister& vramAddr);
     void FetchAttributeByte(const LoopyRegister& vramAddr);
+
+    uint16_t GetPatternAddress(const LoopyRegister& vramAddr, const PpuControlRegister& control, bool highPlane);
     void FetchPatternLow(const LoopyRegister& vramAddr, const PpuControlRegister& control);
     void FetchPatternHigh(const LoopyRegister& vramAddr, const PpuControlRegister& control);
 
