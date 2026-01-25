@@ -58,22 +58,90 @@ void PPU2C02::PpuWrite(uint16_t addr, uint8_t data) {
     PPU2C02_Memory::PpuWrite(addr, data);
 }
 
-void ProcessScanline(int16_t scanline) {
-    for (int16_t cycle = 0; cycle < CYCLE_MAX; cycle++) {
-        ProcessCycle(scanline, cycle);
+/* Process cycle-by-cycle */
+void PPU2C02::ProcessCycle(int16_t scanline, int16_t cycle) {
+    // Scanline ranges
+    bool preRenderLine = scanline == -1;
+    bool visibleLine = scanline >= 0 && scanline <= 239;
+    bool postRenderLine = scanline == 240;
+    bool vblankLine = scanline >= 241 && scanline <= 260;
+
+    // Cycle ranges
+    bool visibleCycle = cycle >= 1 && cycle <= 256;
+    bool prefetchCycle = cycle >= 321 && cycle <= 336;
+    bool fetchCycle = visibleCycle || prefetchCycle;
+    bool idleCycle = cycle == 0 || (cycle >= 257 && cycle <= 320) || cycle == 337 || cycle >= 338;
+
+    // Rendering checks
+    bool renderingEnabled = _mask.renderBackground || _mask.renderSprites;
+    bool renderingLine = (preRenderLine || visibleLine) && renderingEnabled;
+
+    // === PRE-RENDER AND VISIBLE SCANLINES ===
+    if (preRenderLine || visibleLine) {
+        // Odd frame skip
+        if (scanline == 0 && cycle == 0 && _oddFrame && renderingEnabled) {
+            return; // Skip cycle 0 on odd frames
+        }
+
+        // Clear flags at start of pre-render
+        if (preRenderLine && cycle == 1) {
+            _status.verticalBlank = false;
+            _status.spriteZeroHit = false;
+            _status.spriteOverflow = false;
+        }
+
+        // Background fetching
+        if (renderingEnabled && fetchCycle) {
+            UpdateBackgroundShifters(_mask, cycle);
+            PerformBackgroundFetch(cycle);
+        }
+
+        // Pixel rendering (visible scanlines only)
+        if (visibleLine && visibleCycle) {
+            RenderPixel();
+            UpdateSpriteShifters(_mask, cycle);
+        }
+
+        // End-of-scanline operations
+        if (renderingEnabled) {
+            if (cycle == 256) IncrementScrollY(_vramAddr, _mask);
+            if (cycle == 257) {
+                TransferAddressX(_vramAddr, _tramAddr, _mask);
+                EvaluateSprites(scanline + 1, _control, _status);
+                LoadSpriteShifters(scanline + 1, _control);
+            }
+            if (preRenderLine && cycle >= 280 && cycle <= 304) {
+                TransferAddressY(_vramAddr, _tramAddr, _mask);
+            }
+        }
+    }
+
+    // === VBLANK ===
+    if (scanline == 241 && cycle == 1) {
+        _status.verticalBlank = true;
+        if (_control.enableNmi) _nmiRequested = true;
+    }
+
+    // === MAPPER HOOKS ===
+    if (renderingEnabled && cycle == 260 && scanline < 240 && _cart) {
+        _cart->GetMapper().ScanlineCounter();
     }
 }
 
-void ProcessCycle(int16_t scanline, int16_t cycle) {
-    /* Process our over complicated shit storm */
+void PPU2C02::PerformBackgroundFetch(int16_t cycle) {
+    switch ((cycle - 1) % 8) {
+    case 0: LoadBackgroundShifters(); FetchNametableByte(_vramAddr); break;
+    case 2: FetchAttributeByte(_vramAddr); break;
+    case 4: FetchPatternLow(_vramAddr, _control); break;
+    case 6: FetchPatternHigh(_vramAddr, _control); break;
+    case 7: IncrementScrollX(_vramAddr, _mask); break;
+    }
 }
 
 void PPU2C02::Clock() {
     /*
-    * TODO:
-    for (int32_t scanline = -1; scanline < SCANLINE_MAX; scanline++) {
-        ProcessScanline(scanline);
-    }
+    * ProcessCycle(_scanline, _cycle)
+    * AdvanceNext() // _scanline++, _cycle++
     */
     bool renderingEnabled = _mask.renderBackground || _mask.renderSprites;
 
@@ -168,11 +236,11 @@ void PPU2C02::Clock() {
     // Advance cycle
     // --------------------------------------------------------
     _cycle++;
-    if (_cycle >= 341) {
+    if (_cycle >= CYCLE_MAX) {
         _cycle = 0;
         _scanline++;
-        if (_scanline >= 261) {
-            _scanline = -1;
+        if (_scanline >= SCANLINE_MAX) {
+            _scanline = SCANLINE_START;
             _frameComplete = true;
             _oddFrame = !_oddFrame;
         }

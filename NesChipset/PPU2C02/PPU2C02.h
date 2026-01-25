@@ -8,8 +8,9 @@
 #include "PPU2C02.Sprites.h"
 #include "../Diagnostics/DiagnosticHelpers.h"
 
-constexpr int16_t SCANLINE_MAX = 261;
-constexpr int16_t CYCLE_MAX    = 341;
+constexpr int16_t SCANLINE_MAX   = 261;
+constexpr int16_t SCANLINE_START =  -1;
+constexpr int16_t CYCLE_MAX      = 341;
 
 // Forward declarations
 class CartridgeInterfaceAPI;
@@ -112,7 +113,7 @@ public:
     int16_t GetCycle() const { return _cycle; }
 
 private:
-    void ProcessScanline(int16_t scanline);
+    void PerformBackgroundFetch(int16_t cycle);
     void ProcessCycle(int16_t scanline, int16_t cycle);
 private:
     void RenderPixel();
