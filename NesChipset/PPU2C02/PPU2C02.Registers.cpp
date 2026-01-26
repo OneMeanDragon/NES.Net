@@ -27,12 +27,10 @@ uint8_t PPU2C02_Registers::CpuRead(uint16_t addr, bool rdOnly) {
         _addressLatch = 0;           // reset latch
         _openBus = value;
         return value;
-        break;
     }
     case 0x0004: {// OAMDATA ($2004) - Read/Write
         _openBus = ReadOAM();
         return _openBus;
-        break;
     }
     case 0x0007: {// PPUDATA ($2007) - Read/Write
         uint16_t vAddr = _vramAddr.reg;
@@ -47,10 +45,10 @@ uint8_t PPU2C02_Registers::CpuRead(uint16_t addr, bool rdOnly) {
         }
 
         // Increment VRAM address
-        _vramAddr.reg += (_control.incrementMode ? 32 : 1);
+        //_vramAddr.reg += (_control.incrementMode ? 32 : 1);
+        _vramAddr.reg = (_vramAddr.reg + (_control.incrementMode ? 32 : 1)) & 0x3FFF;
         _openBus = value;
         return value;
-        break;
     }
 
     default: return _openBus;

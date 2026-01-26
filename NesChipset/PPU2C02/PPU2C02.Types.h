@@ -11,8 +11,11 @@
 struct Pixel {
     uint8_t r, g, b;
 
-    Pixel() : r(0), g(0), b(0) {}
-    Pixel(uint8_t red, uint8_t green, uint8_t blue) : r(red), g(green), b(blue) {}
+    // constexpr default constructor
+    constexpr Pixel() : r(0), g(0), b(0) {}
+
+    // constexpr value constructor
+    constexpr Pixel(uint8_t red, uint8_t green, uint8_t blue) : r(red), g(green), b(blue) {}
 };
 
 // OAM Entry structure (sprite attributes)

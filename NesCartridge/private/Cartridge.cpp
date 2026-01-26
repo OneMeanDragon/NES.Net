@@ -476,6 +476,9 @@ bool Cartridge::PpuRead(uint16_t addr, uint8_t& data) {
         else {
             data = 0xFF; // TEMP: fill invalid reads with 0xFF to see difference
             Log(std::format("PPU read mappedAddr out of bounds: {:X}", mappedAddr).c_str());
+            /*
+                Reminder Zelda 2 blows passed the range, needs to be looked at eventually.
+            */
         }
     }
 

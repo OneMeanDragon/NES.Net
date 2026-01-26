@@ -86,7 +86,7 @@ void PPU2C02_Background::FetchAttributeByte(const LoopyRegister& vramAddr) {
     //    (vramAddr.nametableY << 11) |
     //    (vramAddr.nametableX << 10) |
     //    ((vramAddr.coarseY >> 2) << 3) |
-    //    (vramAddr.coarseX >> 2); is the following
+    //    (vramAddr.coarseX >> 2); //is the following
     uint16_t addr = 0x23C0 | (vramAddr.reg & 0x0C00) | ((vramAddr.reg >> 4) & 0x38) | ((vramAddr.reg >> 2) & 0x07);
 
     uint8_t attr = PpuRead(addr);
