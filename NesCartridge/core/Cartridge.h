@@ -71,6 +71,9 @@ private:
     void AllocateMemory();
 
 public:
+    // Destructor - auto-saves battery RAM if present
+    ~Cartridge();
+
     void Log(const char* msg);
 
 public:
@@ -80,7 +83,15 @@ public:
     bool PpuRead(uint16_t addr, uint8_t& data);
     bool PpuWrite(uint16_t addr, uint8_t data);
 
+    // Reset mapper to initial state (soft reset)
+    void Reset();
+
+    // Battery-backed RAM save/load
+    bool SaveBatteryRam();
+    bool LoadBatteryRam();
+
 private:
     void ResetState();
     void LogDiagnostics();
+    std::filesystem::path GetSaveFilePath() const;
 };

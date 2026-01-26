@@ -4,8 +4,14 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-
 #include <format>
+
+Cartridge::~Cartridge() {
+    // Auto-save battery-backed RAM on destruction
+    if (_isLoaded && HasBattery() && !_prgRam.empty()) {
+        SaveBatteryRam();
+    }
+}
 
 void Cartridge::ResetState() {
     _isLoaded = false;
@@ -99,6 +105,12 @@ bool Cartridge::Load(const char* path) {
 
         _isLoaded = true;
         LogDiagnostics();
+
+        // Auto-load battery-backed RAM if present
+        if (HasBattery()) {
+            LoadBatteryRam();
+        }
+
         return true;
     }
     catch (const std::exception& e) {
@@ -273,4 +285,134 @@ bool Cartridge::PpuWrite(uint16_t addr, uint8_t data) {
     }
 
     return false;
+}
+
+void Cartridge::Reset() {
+    if (_mapper) {
+        _mapper->Reset();
+        Log("Mapper reset to initial state.");
+    }
+}
+
+std::filesystem::path Cartridge::GetSaveFilePath() const {
+    if (_filepath.empty()) {
+        return std::filesystem::path();
+    }
+
+    // Get the directory containing the ROM
+    std::filesystem::path romDir = _filepath.parent_path();
+
+    // Create "save" subdirectory path
+    std::filesystem::path saveDir = romDir / "save";
+
+    // Get ROM filename without extension and add .sav
+    std::string saveFilename = _filepath.stem().string() + ".sav";
+
+    return saveDir / saveFilename;
+}
+
+bool Cartridge::SaveBatteryRam() {
+    if (!_isLoaded) {
+        Log("Error: Cannot save battery RAM - cartridge not loaded.");
+        return false;
+    }
+
+    if (!HasBattery()) {
+        Log("Info: Cartridge does not have battery-backed RAM.");
+        return true; // Not an error, just nothing to save
+    }
+
+    if (_prgRam.empty()) {
+        Log("Warning: Battery flag set but no PRG-RAM allocated.");
+        return true;
+    }
+
+    try {
+        std::filesystem::path savePath = GetSaveFilePath();
+
+        // Create save directory if it doesn't exist
+        std::filesystem::path saveDir = savePath.parent_path();
+        if (!std::filesystem::exists(saveDir)) {
+            std::filesystem::create_directories(saveDir);
+            Log(std::format("Created save directory: {}", saveDir.string()).c_str());
+        }
+
+        // Write PRG-RAM to file
+        std::ofstream saveFile(savePath, std::ios::binary);
+        if (!saveFile.is_open()) {
+            Log(std::format("Error: Unable to create save file: {}", savePath.string()).c_str());
+            return false;
+        }
+
+        saveFile.write(reinterpret_cast<const char*>(_prgRam.data()), _prgRam.size());
+
+        if (!saveFile.good()) {
+            Log(std::format("Error: Failed to write save file: {}", savePath.string()).c_str());
+            return false;
+        }
+
+        Log(std::format("Battery RAM saved: {} ({} bytes)", savePath.string(), _prgRam.size()).c_str());
+        return true;
+    }
+    catch (const std::exception& e) {
+        Log(std::format("Error saving battery RAM: {}", e.what()).c_str());
+        return false;
+    }
+}
+
+bool Cartridge::LoadBatteryRam() {
+    if (!_isLoaded) {
+        Log("Error: Cannot load battery RAM - cartridge not loaded.");
+        return false;
+    }
+
+    if (!HasBattery()) {
+        return true; // Not an error, just nothing to load
+    }
+
+    if (_prgRam.empty()) {
+        Log("Warning: Battery flag set but no PRG-RAM allocated.");
+        return true;
+    }
+
+    try {
+        std::filesystem::path savePath = GetSaveFilePath();
+
+        // Check if save file exists
+        if (!std::filesystem::exists(savePath)) {
+            Log(std::format("Info: No save file found at: {}", savePath.string()).c_str());
+            return true; // Not an error - new game
+        }
+
+        // Check file size matches PRG-RAM size
+        size_t fileSize = std::filesystem::file_size(savePath);
+        if (fileSize != _prgRam.size()) {
+            Log(std::format("Warning: Save file size ({} bytes) doesn't match PRG-RAM size ({} bytes). Save file may be corrupt.",
+                fileSize, _prgRam.size()).c_str());
+            // Continue anyway and load what we can
+        }
+
+        // Read save file
+        std::ifstream saveFile(savePath, std::ios::binary);
+        if (!saveFile.is_open()) {
+            Log(std::format("Error: Unable to open save file: {}", savePath.string()).c_str());
+            return false;
+        }
+
+        // Read into PRG-RAM (only up to PRG-RAM size)
+        size_t bytesToRead = std::min(fileSize, _prgRam.size());
+        saveFile.read(reinterpret_cast<char*>(_prgRam.data()), bytesToRead);
+
+        if (!saveFile.good() && !saveFile.eof()) {
+            Log(std::format("Error: Failed to read save file: {}", savePath.string()).c_str());
+            return false;
+        }
+
+        Log(std::format("Battery RAM loaded: {} ({} bytes)", savePath.string(), bytesToRead).c_str());
+        return true;
+    }
+    catch (const std::exception& e) {
+        Log(std::format("Error loading battery RAM: {}", e.what()).c_str());
+        return false;
+    }
 }
