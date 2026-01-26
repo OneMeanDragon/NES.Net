@@ -1,5 +1,6 @@
 #pragma once
 #include "MapperBase.h"
+#include "../Cartridge.h"
 #include <cstring>
 
 namespace nes {
@@ -113,7 +114,6 @@ namespace nes {
         Mapper004(uint8_t prgBanks, uint8_t chrBanks)
             : MapperBase(prgBanks, chrBanks)
         {
-            _cartRam.assign(8192, 0);
             Reset();
         }
 
@@ -145,15 +145,16 @@ namespace nes {
         // CPU MAP
         // ============================================================
 
-        bool CpuMapRead(uint16_t addr, uint32_t& mappedAddr, uint8_t& data) override {
+        bool CpuMapRead(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) override {
             if (addr >= 0x6000 && addr <= 0x7FFF) {
                 if (!_ramEnable) return false;
-                mappedAddr = CARTRAM_SIGNAL;
-                data = _cartRam[addr & 0x1FFF];
+                region = MemoryRegion::PrgRam;
+                mappedAddr = addr & 0x1FFF;
                 return true;
             }
 
             if (addr >= 0x8000) {
+                region = MemoryRegion::PrgRom;
                 uint8_t slot = (addr >> 13) & 0x03;
                 mappedAddr = _prgMap[slot] + (addr & 0x1FFF);
                 return true;
@@ -162,11 +163,11 @@ namespace nes {
             return false;
         }
 
-        bool CpuMapWrite(uint16_t addr, uint32_t& mappedAddr, uint8_t data) override {
+        bool CpuMapWrite(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region, uint8_t data) override {
             if (addr >= 0x6000 && addr <= 0x7FFF) {
                 if (!_ramEnable || _ramProtect) return false;
-                mappedAddr = CARTRAM_SIGNAL;
-                _cartRam[addr & 0x1FFF] = data;
+                region = MemoryRegion::PrgRam;
+                mappedAddr = addr & 0x1FFF;
                 return true;
             }
 
@@ -181,6 +182,8 @@ namespace nes {
                     _chrInvert = data & 0x80;
                     UpdateBanks();
                 }
+                region = MemoryRegion::None;
+                return true;
             }
             else if (addr >= 0xA000 && addr <= 0xBFFF) {
                 if (addr & 1) {
@@ -191,6 +194,8 @@ namespace nes {
                     _mirrorMode = (data & 1) ? MirrorMode::Horizontal
                         : MirrorMode::Vertical;
                 }
+                region = MemoryRegion::None;
+                return true;
             }
             else if (addr >= 0xC000 && addr <= 0xDFFF) {
                 if (addr & 1) {
@@ -199,6 +204,8 @@ namespace nes {
                 else {
                     _irqReloadValue = data;
                 }
+                region = MemoryRegion::None;
+                return true;
             }
             else if (addr >= 0xE000) {
                 if (addr & 1) {
@@ -208,6 +215,8 @@ namespace nes {
                     _irqEnable = false;
                     _irqActive = false;
                 }
+                region = MemoryRegion::None;
+                return true;
             }
 
             return false;
@@ -217,12 +226,14 @@ namespace nes {
         // PPU MAP
         // ============================================================
 
-        bool PpuMapRead(uint16_t addr, uint32_t& mappedAddr) override {
+        bool PpuMapRead(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) override {
             if (addr < 0x2000) {
                 if (_chrBanks == 0) {
+                    region = MemoryRegion::ChrRam;
                     mappedAddr = addr;
                 }
                 else {
+                    region = MemoryRegion::ChrRom;
                     uint8_t bank = addr >> 10;
                     mappedAddr = _chrMap[bank] + (addr & 0x03FF);
                 }
@@ -231,8 +242,9 @@ namespace nes {
             return false;
         }
 
-        bool PpuMapWrite(uint16_t addr, uint32_t& mappedAddr) override {
+        bool PpuMapWrite(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) override {
             if (addr < 0x2000 && _chrBanks == 0) {
+                region = MemoryRegion::ChrRam;
                 mappedAddr = addr;
                 return true;
             }

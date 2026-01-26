@@ -12,24 +12,40 @@
 // Diagnostics
 #include "Diagnostics/DiagnosticHelpers.h"
 
+// Memory region identifiers for mapper communication
+enum class MemoryRegion : uint8_t {
+    None = 0,
+    PrgRom,
+    PrgRam,
+    ChrRom,
+    ChrRam
+};
 
 class Cartridge {
 private:
     std::filesystem::path _filepath{};
+
 private:
     std::unique_ptr<MapperBase> _mapper = nullptr;
+
 private:
-    std::vector<uint8_t> _romData{};   // Holds the entire file
-    std::span<uint8_t> _prgRom{};      // View into _romData (zero-copy)
-    std::vector<uint8_t> _chrRom{};    // Vector because it may be ROM or RAM
-    std::span<uint8_t> _trainer{};     // View into _romData
+    // File data
+    std::vector<uint8_t> _romData{};      // Holds the entire file
+    std::span<uint8_t> _trainer{};         // View into _romData
+
+    // PRG memory (CPU address space)
+    std::vector<uint8_t> _prgRom{};        // PRG-ROM (read-only)
+    std::vector<uint8_t> _prgRam{};        // PRG-RAM (6000-7FFF, battery-backed or not)
+
+    // CHR memory (PPU address space)
+    std::vector<uint8_t> _chrRom{};        // CHR-ROM (read-only)
+    std::vector<uint8_t> _chrRam{};        // CHR-RAM (writable)
 
 private:
     INESHeader _header{ 0 };
-
     bool _isLoaded = false;
 
-public: //readonly propertys
+public: // Readonly properties
     bool IsLoaded() const;
     uint8_t MapperID() const;
     uint8_t PrgBanks() const;
@@ -41,16 +57,18 @@ public: //readonly propertys
 private:
     bool _loggingEnabled = false;
     static void __stdcall DummyLogger(const char* message) { /*static*/ }
+
 public:
-    // Destroy needs to know the callback
     DiagnosticLogCallback _diagnosticCallback = &DummyLogger;
     void EnableLogging(bool enable);
-	bool LoggingEnabled() const { return _loggingEnabled; }
+    bool LoggingEnabled() const { return _loggingEnabled; }
+
 public:
     void SetDiagnosticLogCallback(DiagnosticLogCallback callback);
 
 private:
     bool InitializeMapper();
+    void AllocateMemory();
 
 public:
     void Log(const char* msg);
@@ -61,8 +79,7 @@ public:
     bool CpuWrite(uint16_t addr, uint8_t data);
     bool PpuRead(uint16_t addr, uint8_t& data);
     bool PpuWrite(uint16_t addr, uint8_t data);
-    //void Clock();
-    
+
 private:
     void ResetState();
     void LogDiagnostics();

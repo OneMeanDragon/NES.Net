@@ -1,5 +1,6 @@
 #pragma once
 #include "MapperBase.h"
+#include "../Cartridge.h"
 #include <cstring>
 #include <cstdio>
 
@@ -10,6 +11,7 @@ namespace nes {
         static constexpr uint8_t     ID = 206;
         static constexpr const char* NAME = "Namcot 108/118 / Tengen MIMIC-1";
         static constexpr const char* INFO = "Namco 118, Tengen MIMIC-1 (Discrete MMC3)";
+
         virtual constexpr uint8_t GetMapperNumber() const noexcept override { return ID; }
         virtual constexpr const char* GetMapperName() const noexcept override { return NAME; }
         virtual constexpr const char* GetMapperInfo() const noexcept override { return INFO; }
@@ -20,8 +22,8 @@ namespace nes {
         uint8_t _targetRegister = 0;
 
         // Control flags
-        bool _prgBankMode = false;     // PRG banking mode (0/1)
-        bool _chrInversion = false;    // CHR banking mode (0/1)
+        bool _prgBankMode = false;
+        bool _chrInversion = false;
 
         // Cached bank addresses for faster access
         uint32_t _prgBankOffsets[4]{ 0 };
@@ -117,13 +119,9 @@ namespace nes {
 
             std::memset(_registers, 0, sizeof(_registers));
 
-            // Set initial banks for 64KB PRG-ROM (4 banks of 16KB = 8 banks of 8KB)
-            // $8000-$9FFF = first 8KB
-            // $A000-$BFFF = second 8KB  
-            // $C000-$DFFF = second-last 8KB (bank 6)
-            // $E000-$FFFF = last 8KB (bank 7)
-            _registers[6] = 0;  // Bank for $8000-$9FFF
-            _registers[7] = 1;  // Bank for $A000-$BFFF
+            // Set initial banks
+            _registers[6] = 0;
+            _registers[7] = 1;
 
             UpdateBanks();
 
@@ -134,18 +132,19 @@ namespace nes {
         }
 
         // --- CPU Mapping ---
-        bool CpuMapRead(uint16_t addr, uint32_t& mappedAddr, uint8_t& data) override {
+        bool CpuMapRead(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) override {
             // PRG-ROM reads ($8000-$FFFF)
             if (addr >= 0x8000 && addr <= 0xFFFF) {
+                region = MemoryRegion::PrgRom;
                 int index = (addr >> 13) & 0x03;
                 mappedAddr = _prgBankOffsets[index] + (addr & 0x1FFF);
-                return true;  // Memory read
+                return true;
             }
 
-            return false;  // Not PRG-ROM
+            return false;
         }
 
-        bool CpuMapWrite(uint16_t addr, uint32_t& mappedAddr, uint8_t data) override {
+        bool CpuMapWrite(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region, uint8_t data) override {
             if (_debug && addr >= 0x8000) {
                 printf("Mapper206: Write to $%04X = $%02X\n", addr, data);
             }
@@ -189,15 +188,17 @@ namespace nes {
                     }
                 }
 
-                return false;  // Register write handled internally
+                region = MemoryRegion::None;
+                return true;
             }
 
-            return false;  // Not a mapper write
+            return false;
         }
 
         // --- PPU Mapping ---
-        bool PpuMapRead(uint16_t addr, uint32_t& mappedAddr) override {
+        bool PpuMapRead(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) override {
             if (addr < 0x2000) {
+                region = (_chrBanks > 0) ? MemoryRegion::ChrRom : MemoryRegion::ChrRam;
                 // CHR banking - 1KB banks
                 uint8_t bankIndex = (addr >> 10) & 0x07;
                 mappedAddr = _chrBankOffsets[bankIndex] + (addr & 0x03FF);
@@ -211,8 +212,14 @@ namespace nes {
             return false;
         }
 
-        bool PpuMapWrite(uint16_t addr, uint32_t& mappedAddr) override {
-            // CHR-ROM (not writable)
+        bool PpuMapWrite(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) override {
+            if (addr < 0x2000 && _chrBanks == 0) {
+                // CHR-RAM is writable
+                region = MemoryRegion::ChrRam;
+                uint8_t bankIndex = (addr >> 10) & 0x07;
+                mappedAddr = _chrBankOffsets[bankIndex] + (addr & 0x03FF);
+                return true;
+            }
             return false;
         }
 

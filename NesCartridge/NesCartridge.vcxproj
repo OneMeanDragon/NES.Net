@@ -183,6 +183,8 @@
   <ItemGroup>
     <ClCompile Include="core\Diagnostics\DiagnosticHelpers.cpp" />
     <ClCompile Include="private\Cartridge.cpp" />
+    <ClCompile Include="private\Cartridge.Diagnostics.cpp" />
+    <ClCompile Include="private\Cartridge.Properties.cpp" />
     <ClCompile Include="private\CartridgeExports.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

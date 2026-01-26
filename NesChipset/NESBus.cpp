@@ -505,9 +505,9 @@ bool NESBus::Clock()
     _ppu->Clock();
 
     // APU always clocks with CPU
-    //_apu->Clock();
+    _apu->Clock();
     // Process audio every clock
-    ProcessAudio();
+    ProcessAudio(); // only because i feel like hearing the audio at the correct pitch.
 
     // ------------------------------------------------------------
     // CPU & APU clock every 3 PPU cycles
@@ -524,7 +524,7 @@ bool NESBus::Clock()
         }
 
         //// APU always clocks with CPU
-        _apu->Clock();
+        //_apu->Clock();
         //// Process audio every clock
         //ProcessAudio();
 

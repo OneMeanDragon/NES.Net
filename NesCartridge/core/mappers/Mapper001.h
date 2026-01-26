@@ -1,5 +1,6 @@
 #pragma once
 #include "MapperBase.h"
+#include "../Cartridge.h"
 
 namespace nes {
 
@@ -35,7 +36,6 @@ namespace nes {
         Mapper001(uint8_t prgBanks, uint8_t chrBanks)
             : MapperBase(prgBanks, chrBanks)
         {
-            _cartRam.assign(8192, 0x00);
             Reset();
         }
 
@@ -57,28 +57,34 @@ namespace nes {
         // CPU MAP
         // ============================================================
 
-        bool CpuMapRead(uint16_t addr, uint32_t& mappedAddr, uint8_t& data) override {
+        bool CpuMapRead(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) override {
             // Cartridge RAM ($6000–$7FFF)
             if (addr >= 0x6000 && addr <= 0x7FFF) {
-                mappedAddr = CARTRAM_SIGNAL;
-                data = _cartRam[addr & 0x1FFF];
+                region = MemoryRegion::PrgRam;
+                mappedAddr = addr & 0x1FFF; // 8KB window
                 return true;
             }
 
             // PRG ROM ($8000–$FFFF)
             if (addr >= 0x8000) {
+                region = MemoryRegion::PrgRom;
+
+                // Calculate bank mask based on available PRG banks
+                uint8_t bankMask16KB = _prgBanks - 1;
+                uint8_t bankMask32KB = (_prgBanks / 2) - 1;
+
                 if (_controlReg & 0x08) {
                     // 16KB mode
                     if (addr < 0xC000) {
-                        mappedAddr = (_prgBank16Lo * 0x4000) + (addr & 0x3FFF);
+                        mappedAddr = ((_prgBank16Lo & bankMask16KB) * 0x4000) + (addr & 0x3FFF);
                     }
                     else {
-                        mappedAddr = (_prgBank16Hi * 0x4000) + (addr & 0x3FFF);
+                        mappedAddr = ((_prgBank16Hi & bankMask16KB) * 0x4000) + (addr & 0x3FFF);
                     }
                 }
                 else {
                     // 32KB mode
-                    mappedAddr = (_prgBank32 * 0x8000) + (addr & 0x7FFF);
+                    mappedAddr = ((_prgBank32 & bankMask32KB) * 0x8000) + (addr & 0x7FFF);
                 }
                 return true;
             }
@@ -86,11 +92,11 @@ namespace nes {
             return false;
         }
 
-        bool CpuMapWrite(uint16_t addr, uint32_t& mappedAddr, uint8_t data) override {
+        bool CpuMapWrite(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region, uint8_t data) override {
             // Cartridge RAM
             if (addr >= 0x6000 && addr <= 0x7FFF) {
-                mappedAddr = CARTRAM_SIGNAL;
-                _cartRam[addr & 0x1FFF] = data;
+                region = MemoryRegion::PrgRam;
+                mappedAddr = addr & 0x1FFF;
                 return true;
             }
 
@@ -113,6 +119,10 @@ namespace nes {
                         _loadCounter = 0;
                     }
                 }
+
+                // Register writes don't access memory
+                region = MemoryRegion::None;
+                return true;
             }
 
             return false;
@@ -122,28 +132,45 @@ namespace nes {
         // PPU MAP
         // ============================================================
 
-        bool PpuMapRead(uint16_t addr, uint32_t& mappedAddr) override {
+        bool PpuMapRead(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) override {
             if (addr < 0x2000) {
                 if (_chrBanks == 0) {
-                    mappedAddr = addr; // CHR-RAM
-                }
-                else if (_controlReg & 0x10) {
-                    // 4KB CHR mode
-                    mappedAddr = (addr < 0x1000)
-                        ? (_chrBank4Lo * 0x1000) + (addr & 0x0FFF)
-                        : (_chrBank4Hi * 0x1000) + (addr & 0x0FFF);
+                    // CHR-RAM
+                    region = MemoryRegion::ChrRam;
+                    mappedAddr = addr;
                 }
                 else {
-                    // 8KB CHR mode
-                    mappedAddr = (_chrBank8 * 0x2000) + (addr & 0x1FFF);
+                    // CHR-ROM with banking
+                    region = MemoryRegion::ChrRom;
+
+                    // Calculate bank mask based on available CHR banks
+                    // For 4KB banks: _chrBanks * 2 (since each 8KB bank = 2x 4KB banks)
+                    uint8_t bankMask4KB = (_chrBanks * 2) - 1;
+                    uint8_t bankMask8KB = _chrBanks - 1;
+
+                    if (_controlReg & 0x10) {
+                        // 4KB CHR mode
+                        if (addr < 0x1000) {
+                            mappedAddr = ((_chrBank4Lo & bankMask4KB) * 0x1000) + (addr & 0x0FFF);
+                        }
+                        else {
+                            mappedAddr = ((_chrBank4Hi & bankMask4KB) * 0x1000) + (addr & 0x0FFF);
+                        }
+                    }
+                    else {
+                        // 8KB CHR mode
+                        mappedAddr = ((_chrBank8 & bankMask8KB) * 0x2000) + (addr & 0x1FFF);
+                    }
                 }
                 return true;
             }
             return false;
         }
 
-        bool PpuMapWrite(uint16_t addr, uint32_t& mappedAddr) override {
+        bool PpuMapWrite(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) override {
             if (addr < 0x2000 && _chrBanks == 0) {
+                // CHR-RAM is writable
+                region = MemoryRegion::ChrRam;
                 mappedAddr = addr;
                 return true;
             }

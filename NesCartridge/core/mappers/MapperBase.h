@@ -1,37 +1,36 @@
 #pragma once
 #include <cstdint>
 #include <string>
-#include <vector>
 
 #include "../Interfaces/MirrorModeRequired.h"
 
+// Forward declaration
+enum class MemoryRegion : uint8_t;
+
 class MapperBase {
 public:
-    static constexpr uint32_t CARTRAM_SIGNAL = 0xFFFFFFFF;
-public: // Propertys
+    // Propertys
     virtual constexpr uint8_t GetMapperNumber() const noexcept = 0;
     virtual constexpr const char* GetMapperName() const noexcept = 0;
     virtual constexpr const char* GetMapperInfo() const noexcept = 0;
+
 protected:
-    uint8_t _prgBanks = 0;
-    uint8_t _chrBanks = 0;
-    MirrorMode _initialMirrorMode = MirrorMode::Hardware; // From cartridge header
-    MirrorMode _mirrorMode        = MirrorMode::Hardware; // Current (can be changed by mapper)
-    bool _cartRamEnabled = false;
-    bool _cartRamWriteProtected = false;
-    std::vector<uint8_t> _cartRam{};
+    uint8_t _prgBanks = 0;  // Number of 16KB PRG banks
+    uint8_t _chrBanks = 0;  // Number of 8KB CHR banks
+
+    MirrorMode _initialMirrorMode = MirrorMode::Hardware;
+    MirrorMode _mirrorMode = MirrorMode::Hardware;
+
 public:
-    void SetInitalMapper(MirrorMode mirror) { 
-        _initialMirrorMode = mirror; 
-        _mirrorMode = _initialMirrorMode; 
-        //printf("MirrorMode =%d\n", static_cast<uint8_t>(_mirrorMode));
-    };
+    void SetInitalMapper(MirrorMode mirror) {
+        _initialMirrorMode = mirror;
+        _mirrorMode = _initialMirrorMode;
+    }
+
 public:
     // Constructor
     MapperBase(uint8_t prgBanks, uint8_t chrBanks)
-        : _prgBanks(prgBanks), _chrBanks(chrBanks), _mirrorMode(MirrorMode::Hardware) {
-        // Default to 8KB CHR-RAM if needed
-        _cartRam.assign(CHR_BANK_SIZE, 0);
+        : _prgBanks(prgBanks), _chrBanks(chrBanks) {
     }
 
     virtual ~MapperBase() = default;
@@ -40,11 +39,17 @@ public:
     virtual void Reset() = 0;
 
 public:
-    virtual bool CpuMapRead(uint16_t addr, uint32_t& mappedAddr, uint8_t& data) = 0;
-    virtual bool CpuMapWrite(uint16_t addr, uint32_t& mappedAddr, uint8_t data) = 0;
+    // CPU mapping - returns true if address is handled
+    // region tells cartridge which memory to access
+    // mappedAddr is the offset into that memory
+    virtual bool CpuMapRead(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) = 0;
+    virtual bool CpuMapWrite(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region, uint8_t data) = 0;
+
 public:
-    virtual bool PpuMapRead(uint16_t addr, uint32_t& mappedAddr) = 0;
-    virtual bool PpuMapWrite(uint16_t addr, uint32_t& mappedAddr) = 0;
+    // PPU mapping - returns true if address is handled
+    virtual bool PpuMapRead(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) = 0;
+    virtual bool PpuMapWrite(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) = 0;
+
 public:
     virtual MirrorMode GetMirrorMode() const {
         return _mirrorMode;
@@ -53,11 +58,8 @@ public:
     virtual bool IsIrqActive() const { return false; }
     virtual void ClearIrq() {}
     virtual void ScanlineCounter() {}
-    //virtual void PpuAddressUpdate(uint16_t addr) {}
 
     uint8_t GetPrgBanks() const { return _prgBanks; }
     uint8_t GetChrBanks() const { return _chrBanks; }
 
-public:
-    void Clock() {}
 };

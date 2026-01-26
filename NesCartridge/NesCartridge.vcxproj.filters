@@ -65,5 +65,11 @@
     <ClCompile Include="private\CartridgeExports.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="private\Cartridge.Diagnostics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="private\Cartridge.Properties.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
