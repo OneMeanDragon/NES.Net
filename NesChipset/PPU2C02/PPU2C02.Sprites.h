@@ -11,7 +11,7 @@ protected:
     uint8_t _oamAddress = 0;
 
     // Sprite scanline data
-    OAMEntry _spriteScanline[8];
+    OAMEntryS _spriteScanline[8];
     uint8_t _spriteCount = 0;
     uint8_t _spriteShifterLo[8];
     uint8_t _spriteShifterHi[8];

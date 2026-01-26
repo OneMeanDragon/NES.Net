@@ -1,4 +1,5 @@
 #include "PPU2C02.Registers.h"
+#include <iostream>
 
 void PPU2C02_Registers::ResetRegisters() {
     _control.reg = 0;
@@ -63,8 +64,8 @@ void PPU2C02_Registers::CpuWrite(uint16_t addr, uint8_t data) {
     switch (addr & 0xf) {
     case 0x0000: // PPUCTRL ($2000)
         _control.reg = data;
-        _tramAddr.nametableX = _control.nametableX;
-        _tramAddr.nametableY = _control.nametableY;
+        _tramAddr.SetNametableX(_control.nametableX);
+        _tramAddr.SetNametableY(_control.nametableY);
         break;
 
     case 0x0001: // PPUMASK ($2001)
@@ -83,14 +84,18 @@ void PPU2C02_Registers::CpuWrite(uint16_t addr, uint8_t data) {
 
     case 0x0005: // PPUSCROLL ($2005)
         if (_addressLatch == 0) {
-            _tramAddr.coarseX = data >> 3;
+            _tramAddr.SetCoarseX(data >> 3);
             _fineX = data & 0x07;
             _addressLatch = 1;
+            _tramAddr.reg &= 0x0FFF;  // CLEAR upper bits after scroll write
+            //printf("PPUSCROLL X: data=%02X tramAddr=%04X\n", data, _tramAddr.reg);
         }
         else {
-            _tramAddr.coarseY = data >> 3;
-            _tramAddr.fineY = data & 0x07;
+            _tramAddr.SetCoarseY(data >> 3);
+            _tramAddr.SetFineY(data & 0x07);
             _addressLatch = 0;
+            _tramAddr.reg &= 0x7FFF;  //  CLEAR bit 15
+            //printf("PPUSCROLL Y: data=%02X tramAddr=%04X\n", data, _tramAddr.reg);
         }
         break;
 
@@ -98,17 +103,20 @@ void PPU2C02_Registers::CpuWrite(uint16_t addr, uint8_t data) {
         if (_addressLatch == 0) {
             _tramAddr.reg = (_tramAddr.reg & 0x00FF) | ((data & 0x3F) << 8);
             _addressLatch = 1;
+            //printf("PPUADDR hi: data=%02X tramAddr=%04X\n", data, _tramAddr.reg);
         }
         else {
             _tramAddr.reg = (_tramAddr.reg & 0xFF00) | data;
-            _vramAddr = _tramAddr;
+            _vramAddr.reg = _tramAddr.reg & 0x3FFF;
             _addressLatch = 0;
+            //printf("PPUADDR lo: data=%02X vramAddr=%04X tramAddr=%04X\n",
+            //    data, _vramAddr.reg, _tramAddr.reg);
         }
         break;
 
     case 0x0007: // PPUDATA ($2007)
-        PpuWrite(_vramAddr.reg, data);
-        _vramAddr.reg += (_control.incrementMode ? 32 : 1);
+        PpuWrite(_vramAddr.reg & 0x3FFF, data);
+        _vramAddr.reg += (_control.incrementMode ? 32 : 1) & 0x3FFF;
         break;
     }
 }

@@ -78,27 +78,83 @@ union PpuStatusRegister {
 };
 
 // Loopy Register (internal VRAM address)
-union LoopyRegister {
-    struct {
-        uint16_t coarseX : 5;
-        uint16_t coarseY : 5;
-        uint16_t nametableX : 1;
-        uint16_t nametableY : 1;
-        uint16_t fineY : 3;
-        uint16_t unused : 1;
-    };
+//union LoopyRegister {
+//    struct {
+//        uint16_t coarseX : 5;
+//        uint16_t coarseY : 5;
+//        uint16_t nametableX : 1;
+//        uint16_t nametableY : 1;
+//        uint16_t fineY : 3;
+//        uint16_t unused : 1;
+//    };
+//    uint16_t reg;
+//
+//    LoopyRegister() : reg(0) {}
+//};
+struct LoopyRegister { /* should never go over 0x7fff */
     uint16_t reg;
 
     LoopyRegister() : reg(0) {}
+
+    // Getters
+    uint16_t GetCoarseX() const { return reg & 0x1Fu; }
+    uint16_t GetCoarseY() const { return (reg >> 5) & 0x1Fu; }
+    uint16_t GetFineY() const { return (reg >> 12) & 0x7u; }
+
+    uint16_t GetNametableX() const { return (reg >> 10) & 0x1u; }
+    uint16_t GetNametableY() const { return (reg >> 11) & 0x1u; }
+
+    // Setters
+    void SetCoarseX(uint16_t val) {
+        reg = (reg & ~0x1Fu) | (val & 0x1Fu);
+    }
+    void SetCoarseY(uint16_t val) {
+        reg = (reg & ~0x3e0u) | ((val & 0x1Fu) << 5);
+    }
+    void SetNametableX(uint16_t val) {
+        reg = (reg & ~0x400u) | ((val & 0x1u) << 10);
+    }
+    void SetNametableY(uint16_t val) {
+        reg = (reg & ~0x800u) | ((val & 0x1u) << 11);
+    }
+    void SetFineY(uint16_t val) {
+        reg = (reg & ~0x7000u) | ((val & 0x7u) << 12);
+    }
+
+    // Convenience
+    void IncrementCoarseY() {
+        uint16_t y = (reg >> 5) & 0x1Fu;
+        if (y == 29) {
+            reg &= ~0x3e0u;
+            reg ^= 0x0800u;
+        }
+        else if (y == 31) {
+            reg &= ~0x3e0u;
+        }
+        else {
+            reg += 0x20u;
+        }
+    }
+
+    void IncrementCoarseX() {
+        if ((reg & 0x001Fu) == 31) {
+            reg &= ~0x001Fu;
+            reg ^= 0x0400u;
+        }
+        else {
+            reg++;
+        }
+    }
+
+    void IncrementFineY() {
+        if ((reg & 0x7000u) != 0x7000u) {
+            reg += 0x1000u;
+        }
+        else {
+            reg &= ~0x7000u;
+            IncrementCoarseY();
+        }
+    }
+
 };
-
 #pragma pack(pop)
-
-// Mirror modes for cartridge nametable mirroring
-//enum class MirrorMode : uint8_t {
-//    Horizontal,
-//    Vertical,
-//    OneScreenLo,
-//    OneScreenHi,
-//    FourScreen
-//};

@@ -60,6 +60,28 @@ void PPU2C02::PpuWrite(uint16_t addr, uint8_t data) {
 
 /* Process cycle-by-cycle */
 void PPU2C02::ProcessCycle(int16_t scanline, int16_t cycle) {
+    //if (scanline == -1 && cycle == 256) {
+    //    printf("cycle 256: renderBG=%d renderSpr=%d\n", _mask.renderBackground, _mask.renderSprites);
+    //}
+    //if (scanline == -1 && cycle >= 250 && cycle <= 257) {
+    //    printf("cycle=%d vramAddr=%04X tramAddr=%04X\n", cycle, _vramAddr.reg, _tramAddr.reg);
+    //}
+    // CATCH CORRUPTION IMMEDIATELY
+    //if (_vramAddr.reg > 0x3FFF) {
+    //    printf("\n=== CORRUPTION! ===\n");
+    //    printf("scanline=%d cycle=%d\n", scanline, cycle);
+    //    printf("vramAddr=%04X tramAddr=%04X\n", _vramAddr.reg, _tramAddr.reg);
+    //    printf("===================\n\n");
+    //    _vramAddr.reg &= 0x3FFF;
+    //
+    //    // HALT after first corruption so you can see it
+    //    static bool halted = false;
+    //    if (!halted) {
+    //        halted = true;
+    //        exit(1);  // Stop immediately
+    //    }
+    //}
+
     // Scanline ranges
     bool preRenderLine = scanline == -1;
     bool visibleLine = scanline >= 0 && scanline <= 239;
@@ -78,6 +100,12 @@ void PPU2C02::ProcessCycle(int16_t scanline, int16_t cycle) {
 
     // === PRE-RENDER AND VISIBLE SCANLINES ===
     if (preRenderLine || visibleLine) {
+        //if (scanline == 0 && cycle == 0) {
+        //    printf("Frame start - PPUCTRL=%02X PPUMASK=%02X ScrollX=%d ScrollY=%d\n",
+        //        _control.reg, _mask.reg, _tramAddr.coarseX * 8 + _fineX,
+        //        _tramAddr.coarseY * 8 + _tramAddr.fineY);
+        //}
+
         // Odd frame skip
         if (scanline == 0 && cycle == 0 && _oddFrame && renderingEnabled) {
             return; // Skip cycle 0 on odd frames
@@ -272,7 +300,7 @@ void PPU2C02::GetPatternTable(uint8_t table, uint8_t palette, uint8_t* buffer) {
 void PPU2C02::GetNameTable(uint8_t index, uint8_t* buffer) {
     if (!buffer || index > 1) return;
 
-    uint8_t* nametable = (index == 0) ? _nametable0 : _nametable1;
+    uint8_t* nametable = ((index == 0) ? _nametable0 : _nametable1);
 
     for (int y = 0; y < 30; y++) {
         for (int x = 0; x < 32; x++) {

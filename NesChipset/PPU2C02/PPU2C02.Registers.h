@@ -40,7 +40,7 @@ public:
     const PpuControlRegister& GetControl() const { return _control; }
     const PpuMaskRegister& GetMask() const { return _mask; }
     const PpuStatusRegister& GetStatus() const { return _status; }
-    LoopyRegister& GetVramAddr() { return _vramAddr; }
-    LoopyRegister& GetTramAddr() { return _tramAddr; }
+    const LoopyRegister& GetVramAddr() const { return _vramAddr; }
+    const LoopyRegister& GetTramAddr() const { return _tramAddr; }
     uint8_t GetFineX() const { return _fineX; }
 };

@@ -24,38 +24,35 @@ uint8_t PPU2C02_Memory::ReadNametable(uint16_t addr) {
     addr &= 0x0FFF;
     MirrorMode mirror = _cart ? _cart->GetMirrorMode() : MirrorMode::Horizontal;
 
-    switch (mirror) {
-    // (apparently the correct way)
-    //case MirrorMode::Horizontal:
-    //    // Horizontal: NT0, NT1, NT0, NT1 (alternating every 0x400)
-    //    if (addr < 0x0400) return _nametable0[addr & 0x03FF];
-    //    else if (addr < 0x0800) return _nametable1[addr & 0x03FF];
-    //    else if (addr < 0x0C00) return _nametable0[addr & 0x03FF];
-    //    else return _nametable1[addr & 0x03FF];
-    //
-    //case MirrorMode::Vertical:
-    //    // Vertical: NT0, NT0, NT1, NT1 (two columns)
-    //    if (addr < 0x0800) return _nametable0[addr & 0x03FF];  // First 2KB: NT0
-    //    else return _nametable1[addr & 0x03FF];               // Second 2KB: NT1
+    //// DEBUG: Check what we're reading
+    //if ((addr & 0x0FFF) >= 0x0380 && (addr & 0x0FFF) <= 0x03BF) {
+    //    uint16_t offset = addr & 0x03FF;
+    //    printf("READ NAMETABLE: addr=%04X offset=%04X \n", addr, offset);
+    //}
 
+    switch (mirror) {
     case MirrorMode::Horizontal:
-        if (addr < 0x0800) return _nametable0[addr & 0x03FF];
-        else return _nametable1[addr & 0x03FF];
-    
+        // Horizontal: $2000/$2400 use NT0, $2800/$2C00 use NT1
+        if (addr < 0x0800)
+            return _nametable0[addr & 0x03FF];
+        else
+            return _nametable1[addr & 0x03FF];
+
     case MirrorMode::Vertical:
-        if (addr < 0x0400) return _nametable0[addr];                // NT0
-        else if (addr < 0x0800) return _nametable1[addr - 0x0400];  // NT1
-        else if (addr < 0x0C00) return _nametable0[addr - 0x0800];  // NT0 mirrored
-        else return _nametable1[addr - 0x0C00];                     // NT1 mirrored
+        // Vertical: $2000/$2800 use NT0, $2400/$2C00 use NT1
+        if ((addr & 0x0400) == 0)
+            return _nametable0[addr & 0x03FF];
+        else
+            return _nametable1[addr & 0x03FF];
 
     case MirrorMode::FourScreen:
-        if (addr < 0x0400) return _nametable0[addr & 0x03FF];       // NT0
-        else if (addr < 0x0800) return _nametable1[addr & 0x03FF];  // NT1
-        else if (addr < 0x0C00) return _nametable2[addr & 0x03FF];  // NT2
-        else return _nametable3[addr & 0x03FF];                     // NT3
+        if (addr < 0x0400) return _nametable0[addr];
+        else if (addr < 0x0800) return _nametable1[addr - 0x0400];
+        else if (addr < 0x0C00) return _nametable2[addr - 0x0800];
+        else return _nametable3[addr - 0x0C00];
 
     default:
-        return _nametable0[addr & 0x03FF]; // fallback
+        return _nametable0[addr & 0x03FF];
     }
 }
 
@@ -63,38 +60,32 @@ void PPU2C02_Memory::WriteNametable(uint16_t addr, uint8_t data) {
     addr &= 0x0FFF;
     MirrorMode mirror = _cart ? _cart->GetMirrorMode() : MirrorMode::Horizontal;
 
-    switch (mirror) {
-    // (apparently the correct way)
-    //case MirrorMode::Horizontal:
-    //    // Horizontal: NT0, NT1, NT0, NT1 (alternating every 0x400)
-    //    if (addr < 0x0400) _nametable0[addr & 0x03FF] = data;
-    //    else if (addr < 0x0800) _nametable1[addr & 0x03FF] = data;
-    //    else if (addr < 0x0C00) _nametable0[addr & 0x03FF] = data;
-    //    else _nametable1[addr & 0x03FF] = data;
-    //    break;
-    //case MirrorMode::Vertical:
-    //    // Vertical: NT0, NT0, NT1, NT1 (two columns)
-    //    if (addr < 0x0800) _nametable0[addr & 0x03FF] = data;  // First 2KB: NT0
-    //    else _nametable1[addr & 0x03FF] = data;               // Second 2KB: NT1
-    //    break;
+    // DEBUG
+    //uint16_t coarseY = (addr >> 5) & 0x1F;
+    //if (coarseY >= 28) {
+    //    printf("WRITE NAMETABLE: addr=%04X data=%02X coarseY=%d\n", addr, data, coarseY);
+    //}
 
+    switch (mirror) {
     case MirrorMode::Horizontal:
-        if (addr < 0x0800) _nametable0[addr & 0x03FF] = data;
-        else _nametable1[addr & 0x03FF] = data;
+        if (addr < 0x0800)
+            _nametable0[addr & 0x03FF] = data;
+        else
+            _nametable1[addr & 0x03FF] = data;
         break;
-    
+
     case MirrorMode::Vertical:
-        if (addr < 0x0400) _nametable0[addr] = data;
-        else if (addr < 0x0800) _nametable1[addr - 0x0400] = data;
-        else if (addr < 0x0C00) _nametable0[addr - 0x0800] = data;
-        else _nametable1[addr - 0x0C00] = data;
+        if ((addr & 0x0400) == 0)
+            _nametable0[addr & 0x03FF] = data;
+        else
+            _nametable1[addr & 0x03FF] = data;
         break;
 
     case MirrorMode::FourScreen:
-        if (addr < 0x0400) _nametable0[addr & 0x03FF] = data;
-        else if (addr < 0x0800) _nametable1[addr & 0x03FF] = data;
-        else if (addr < 0x0C00) _nametable2[addr & 0x03FF] = data;
-        else _nametable3[addr & 0x03FF] = data;
+        if (addr < 0x0400) _nametable0[addr] = data;
+        else if (addr < 0x0800) _nametable1[addr - 0x0400] = data;
+        else if (addr < 0x0C00) _nametable2[addr - 0x0800] = data;
+        else _nametable3[addr - 0x0C00] = data;
         break;
 
     default:
