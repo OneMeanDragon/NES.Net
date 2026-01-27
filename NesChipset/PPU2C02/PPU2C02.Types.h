@@ -158,3 +158,10 @@ struct LoopyRegister { /* should never go over 0x7fff */
 
 };
 #pragma pack(pop)
+
+enum scan {
+    VISIBLE,
+    POST,
+    NMI,
+    PRE
+};

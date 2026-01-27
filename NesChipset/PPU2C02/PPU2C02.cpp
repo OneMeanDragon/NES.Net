@@ -151,9 +151,11 @@ void PPU2C02::ProcessCycle(int16_t scanline, int16_t cycle) {
     }
 
     // === MAPPER HOOKS ===
-    if (renderingEnabled && cycle == 260 && scanline < 240 && _cart) {
-        _cart->GetMapper().ScanlineCounter();
-    }
+    //if (renderingEnabled && cycle == 260 && scanline < 240 && _cart) {
+    //    _cart->GetMapper().ScanlineCounter(scanline);
+    //}
+    if(cycle == 260) _cart->GetMapper().ScanlineCounter(scanline);
+    // Cycle Ended
 }
 
 void PPU2C02::PerformBackgroundFetch(int16_t cycle) {
@@ -191,15 +193,14 @@ void PPU2C02::PerformBackgroundFetch(int16_t cycle) {
     }
 }
 
+/* yes are pre-incrementing here */
 void PPU2C02::AdvanceNext() {
-    _cycle++;
-    if (_cycle >= CYCLE_MAX) {
-        _cycle = 0;
-        _scanline++;
-        if (_scanline >= SCANLINE_MAX) {
+    if (++_cycle >= CYCLE_MAX) {
+        _cycle %= CYCLE_MAX;
+        if (++_scanline >= SCANLINE_MAX) {
             _scanline = SCANLINE_START;
             _frameComplete = true;
-            _oddFrame = !_oddFrame;
+            _oddFrame ^= 1;
         }
     }
 }

@@ -64,6 +64,10 @@ void PPU2C02_Registers::CpuWrite(uint16_t addr, uint8_t data) {
     switch (addr & 0xf) {
     case 0x0000: // PPUCTRL ($2000)
         _control.reg = data;
+
+        //printf("PPUCTRL write: %02X (patternBG=%d patternSPR=%d)\n",
+        //    data, _control.patternBackground, _control.patternSprite);
+
         _tramAddr.SetNametableX(_control.nametableX);
         _tramAddr.SetNametableY(_control.nametableY);
         break;

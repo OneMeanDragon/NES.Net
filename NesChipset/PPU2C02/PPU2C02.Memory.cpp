@@ -32,7 +32,6 @@ uint8_t PPU2C02_Memory::ReadNametable(uint16_t addr) {
 
     /*
         Horz and Vert (fixed Ms. Pacman and broke everything else)
-        This fix extended into write aswell.
     */
     switch (mirror) {
     case MirrorMode::Horizontal:
@@ -57,6 +56,11 @@ uint8_t PPU2C02_Memory::ReadNametable(uint16_t addr) {
         else if (addr < 0x0C00) return _nametable2[addr - 0x0800];
         else return _nametable3[addr - 0x0C00];
 
+    //case MirrorMode::OneScreenLo:
+    //    return _nametable0[addr & 0x03FF];
+    //case MirrorMode::OneScreenHi:
+    //    return _nametable1[addr & 0x03FF];
+
     default:
         return _nametable0[addr & 0x03FF];
     }
@@ -72,6 +76,9 @@ void PPU2C02_Memory::WriteNametable(uint16_t addr, uint8_t data) {
     //    printf("WRITE NAMETABLE: addr=%04X data=%02X coarseY=%d\n", addr, data, coarseY);
     //}
 
+    /*
+        Horz and Vert (fixed Ms. Pacman and broke everything else)
+    */
     switch (mirror) {
     case MirrorMode::Horizontal:
         //if (addr < 0x0800)
@@ -95,6 +102,11 @@ void PPU2C02_Memory::WriteNametable(uint16_t addr, uint8_t data) {
         else if (addr < 0x0C00) _nametable2[addr - 0x0800] = data;
         else _nametable3[addr - 0x0C00] = data;
         break;
+
+    //case MirrorMode::OneScreenLo:
+    //    _nametable0[addr & 0x03FF] = data; break;
+    //case MirrorMode::OneScreenHi:
+    //    _nametable1[addr & 0x03FF] = data; break;
 
     default:
         _nametable0[addr & 0x03FF] = data;

@@ -31,7 +31,7 @@ MirrorMode MapperInterfaceAPI::GetMirrorMode()
 	return _api->MapperGetMirrorMode(_mapper);
 }
 
-void MapperInterfaceAPI::ScanlineCounter()
+void MapperInterfaceAPI::ScanlineCounter(int16_t scanline)
 {
-	_api->MapperScanlineCounter(_mapper);
+	_api->MapperScanlineCounter(_mapper, scanline);
 }

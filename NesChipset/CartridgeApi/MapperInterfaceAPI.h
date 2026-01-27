@@ -17,5 +17,5 @@ public:
 	void ClearIrq();
 	void Reset();
 	MirrorMode GetMirrorMode();
-	void ScanlineCounter();
+	void ScanlineCounter(int16_t scanline);
 };

@@ -203,7 +203,7 @@ constexpr const char* LPFN_MAPPER_GET_MIRRORMODE_NAME = "MapperGetMirrorMode";
 typedef MIRRORMODE(*LPFN_MAPPER_GET_MIRRORMODE)(LPMAPPERBASE);
 
 constexpr const char* LPFN_MAPPER_SCANLINE_COUNTER_NAME = "MapperScanlineCounter";
-typedef void(*LPFN_MAPPER_SCANLINE_COUNTER)(LPMAPPERBASE);
+typedef void(*LPFN_MAPPER_SCANLINE_COUNTER)(LPMAPPERBASE, int16_t scanline);
 
 struct MapperApi {
 	LPFN_MAPPER_IS_IRQ_ACTIVE MapperIsIrqActive;

@@ -57,7 +57,7 @@ public:
 
     virtual bool IsIrqActive() const { return false; }
     virtual void ClearIrq() {}
-    virtual void ScanlineCounter() {}
+    virtual void ScanlineCounter(int16_t scanline) {}
 
     uint8_t GetPrgBanks() const { return _prgBanks; }
     uint8_t GetChrBanks() const { return _chrBanks; }

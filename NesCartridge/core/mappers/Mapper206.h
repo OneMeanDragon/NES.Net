@@ -227,7 +227,7 @@ namespace nes {
         bool IsIrqActive() const override { return _irqActive; }
         void ClearIrq() override { _irqActive = false; }
 
-        void ScanlineCounter() override {
+        void ScanlineCounter(int16_t scanline) override {
             if (_irqReloadFlag) {
                 _irqCounter = _irqReload;
                 _irqReloadFlag = false;

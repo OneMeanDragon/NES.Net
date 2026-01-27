@@ -56,6 +56,12 @@ namespace nes {
         bool PpuMapRead(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) override {
             if (addr < 0x2000) {
                 mappedAddr = addr;
+
+                // If only 1 CHR bank (8KB), mirror the second pattern table
+                //if (_chrBanks == 1) {
+                //    mappedAddr &= 0x1FFF;  // Wrap 0x2000 range into 0x1FFF
+                //}
+
                 // Use CHR-ROM if present, otherwise CHR-RAM
                 region = (_chrBanks > 0) ? MemoryRegion::ChrRom : MemoryRegion::ChrRam;
                 return true;

@@ -111,16 +111,6 @@ bool Cartridge::Load(const char* path) {
             LoadBatteryRam();
         }
 
-        // Check mapper directly (Claude testing for invalid address via ppu, check is for a corrupt tile)
-        //auto* mapper = GetMapper();
-        //if (mapper) {
-        //    uint32_t mappedAddr = 0;
-        //    MemoryRegion region = MemoryRegion::None;
-        //    bool mapped = mapper->PpuMapRead(0x1240, mappedAddr, region);
-        //    printf("Mapper PpuMapRead(0x1240): mapped=%d region=%d mappedAddr=%08X\n",
-        //        mapped, (int)region, mappedAddr);
-        //}
-
         return true;
     }
     catch (const std::exception& e) {
