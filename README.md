@@ -14,6 +14,14 @@
 - Knowen Crashes
   - Stop the emulator before closing the window (thread issue, may have been corrected)
 
+## Upcoming
+- Battery Backed Save Files
+  - The cartridge interface 
+    - will create the save file if it is missing.
+    - will auto load it if present at opening the cartridge.
+    - will auto save it upon stoping and or closing the application.
+      - keeping this in mind, back up your own save files as needed this part is not fool proof with crashes..
+
 ## Controls
 - "p"
   - View pallete patterns
