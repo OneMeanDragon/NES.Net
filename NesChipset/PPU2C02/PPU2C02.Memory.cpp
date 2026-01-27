@@ -30,17 +30,23 @@ uint8_t PPU2C02_Memory::ReadNametable(uint16_t addr) {
     //    printf("READ NAMETABLE: addr=%04X offset=%04X \n", addr, offset);
     //}
 
+    /*
+        Horz and Vert (fixed Ms. Pacman and broke everything else)
+        This fix extended into write aswell.
+    */
     switch (mirror) {
     case MirrorMode::Horizontal:
         // Horizontal: $2000/$2400 use NT0, $2800/$2C00 use NT1
-        if (addr < 0x0800)
+        //if (addr < 0x0800)
+        if ((addr & 0x0400) == 0)  // Check left/right (bit 10)
             return _nametable0[addr & 0x03FF];
         else
             return _nametable1[addr & 0x03FF];
 
     case MirrorMode::Vertical:
         // Vertical: $2000/$2800 use NT0, $2400/$2C00 use NT1
-        if ((addr & 0x0400) == 0)
+        //if ((addr & 0x0400) == 0)
+        if (addr < 0x0800)  // Check top/bottom (bit 11)
             return _nametable0[addr & 0x03FF];
         else
             return _nametable1[addr & 0x03FF];
@@ -68,14 +74,16 @@ void PPU2C02_Memory::WriteNametable(uint16_t addr, uint8_t data) {
 
     switch (mirror) {
     case MirrorMode::Horizontal:
-        if (addr < 0x0800)
+        //if (addr < 0x0800)
+        if ((addr & 0x0400) == 0)  // Check left/right (bit 10)
             _nametable0[addr & 0x03FF] = data;
         else
             _nametable1[addr & 0x03FF] = data;
         break;
 
     case MirrorMode::Vertical:
-        if ((addr & 0x0400) == 0)
+        //if ((addr & 0x0400) == 0)
+        if (addr < 0x0800)  // Check top/bottom (bit 11)
             _nametable0[addr & 0x03FF] = data;
         else
             _nametable1[addr & 0x03FF] = data;
@@ -107,7 +115,7 @@ uint8_t PPU2C02_Memory::PpuRead(uint16_t addr, bool rdOnly) {
     }
 
     // --- Nametables (mirroring aware) ---
-    if (addr >= 0x2000 && addr <= 0x3EFF) {
+    if (addr >= 0x2000 && addr <= 0x3EFF) { // > 1fff < 3f00
         return ReadNametable(addr);
     }
 

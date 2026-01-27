@@ -157,13 +157,35 @@ void PPU2C02::ProcessCycle(int16_t scanline, int16_t cycle) {
 }
 
 void PPU2C02::PerformBackgroundFetch(int16_t cycle) {
+    //if (_scanline == -1 && cycle >= 320 && cycle <= 340 && (cycle & 7) == 0) {
+    //    printf("  -> LoadBackgroundShifters at cycle %d: nextLsb=%02X nextMsb=%02X\n",
+    //        cycle, _bgNextTileLsb, _bgNextTileMsb);
+    //}
+
     switch (cycle & 7) {
-    case 1: FetchNametableByte(_vramAddr); break;
+    case 1: 
+        FetchNametableByte(_vramAddr); 
+        //if (_scanline == -1 && cycle >= 320) {
+        //    printf("  Cycle %d: FetchNametable vramAddr=%04X tileId=%02X\n",
+        //        cycle, _vramAddr.reg, _bgNextTileId);
+        //}
+        break;
     case 3: FetchAttributeByte(_vramAddr); break;
-    case 5: FetchPatternLow(_vramAddr, _control); break;
+    case 5: 
+        FetchPatternLow(_vramAddr, _control); 
+        //if (_scanline == -1 && cycle >= 320) {
+        //    uint16_t addr = (_control.patternBackground ? 0x1000 : 0x0000) | (_bgNextTileId << 4) | _vramAddr.GetFineY();
+        //    printf("  Cycle %d: FetchPatternLow addr=%04X data=%02X\n",
+        //        cycle, addr, _bgNextTileLsb);
+        //}
+        break;
     case 7: FetchPatternHigh(_vramAddr, _control); break;
     case 0:
         LoadBackgroundShifters();
+        //if (_scanline == -1 && cycle >= 320) {
+        //    printf("  Cycle %d: LoadShifters nextLsb=%02X nextMsb=%02X\n",
+        //        cycle, _bgNextTileLsb, _bgNextTileMsb);
+        //}
         if (cycle != 256) IncrementScrollX(_vramAddr, _mask);
         break;
     }
@@ -190,6 +212,11 @@ void PPU2C02::Clock() {
 }
 
 void PPU2C02::RenderPixel() {
+//    if (_scanline == 100 && _cycle <= 10) {
+//        printf("Cycle %d: fineX=%d shifterLo=%04X shifterHi=%04X\n",
+//            _cycle, _fineX, _bgShifterPatternLo, _bgShifterPatternHi);
+//    }
+
     bool bgLeftAllowed = _mask.renderBackgroundLeft || _cycle > 8;
     bool sprLeftAllowed = _mask.renderSpritesLeft || _cycle > 8;
 

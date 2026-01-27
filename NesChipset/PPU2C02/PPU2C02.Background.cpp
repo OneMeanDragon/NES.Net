@@ -58,6 +58,8 @@ void PPU2C02_Background::LoadBackgroundShifters() {
 }
 
 void PPU2C02_Background::UpdateBackgroundShifters(const PpuMaskRegister& mask, int16_t cycle) {
+    // Only shift during visible pixel rendering (1-256)
+    // Don't shift during prefetch (321-336) - just load
     if (mask.renderBackground && cycle >= 1 && cycle <= 256) {
         _bgShifterPatternLo <<= 1;
         _bgShifterPatternHi <<= 1;

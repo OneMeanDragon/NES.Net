@@ -111,6 +111,16 @@ bool Cartridge::Load(const char* path) {
             LoadBatteryRam();
         }
 
+        // Check mapper directly (Claude testing for invalid address via ppu, check is for a corrupt tile)
+        //auto* mapper = GetMapper();
+        //if (mapper) {
+        //    uint32_t mappedAddr = 0;
+        //    MemoryRegion region = MemoryRegion::None;
+        //    bool mapped = mapper->PpuMapRead(0x1240, mappedAddr, region);
+        //    printf("Mapper PpuMapRead(0x1240): mapped=%d region=%d mappedAddr=%08X\n",
+        //        mapped, (int)region, mappedAddr);
+        //}
+
         return true;
     }
     catch (const std::exception& e) {
@@ -259,9 +269,11 @@ bool Cartridge::PpuRead(uint16_t addr, uint8_t& data) {
             break;
 
         default:
+            Log(std::format("PPU read out hit cartridge default: - CHR-RAM addr: 0x{:04X}, mapped: 0x{:08X}", addr, mappedAddr).c_str());
             break;
         }
     }
+    Log(std::format("Unhandled by the mapper: - CHR-RAM addr: 0x{:04X}, mapped: 0x{:08X}", addr, mappedAddr).c_str());
 
     return false;
 }

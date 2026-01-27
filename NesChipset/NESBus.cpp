@@ -164,6 +164,15 @@ void NESBus::ConnectCartridge(Cartridge* cart) {
     _cart = new CartridgeInterfaceAPI(cart);
     if (_cart) _ppu->SetCartridge(_cart);
     if (_cart) _apu->SetCartridge(_cart);
+
+    //// Test read from CHR-ROM
+    //uint8_t testByte = _ppu->PpuRead(0x1240);
+    //printf("Test CHR-ROM read at 0x1240: %02X\n", testByte);
+    //
+    //// Try reading first few bytes
+    //for (int i = 0; i < 16; i++) {
+    //    printf("CHR[0x%04X] = %02X\n", 0x1240 + i, _ppu->PpuRead(0x1240 + i));
+    //}
 }
 
 void NESBus::ConnectPPU(PPU2C02* ppu) {

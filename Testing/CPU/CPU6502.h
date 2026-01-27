@@ -1,5 +1,10 @@
 #pragma once
+/*
 
+    Just a reminder that http://www.6502.org/tutorials/6502opcodes.html
+    still exists.
+
+*/
 #include <cstdint>
 #include <functional>
 

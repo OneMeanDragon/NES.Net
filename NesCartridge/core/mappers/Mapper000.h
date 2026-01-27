@@ -25,7 +25,14 @@ namespace nes {
 
         // --- CPU Mapping ---
         bool CpuMapRead(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region) override {
-            if (addr >= 0x8000) {
+            // PRG-RAM: $6000-$7FFF (rare, but some NROM carts have it)
+            if (addr >= 0x6000 && addr <= 0x7FFF) {
+                region = MemoryRegion::PrgRam;
+                mappedAddr = addr & 0x1FFF;
+                return true;
+            }
+            // PRG-ROM: $8000-$FFFF
+            else if (addr >= 0x8000) {
                 region = MemoryRegion::PrgRom;
                 // If 2+ PRG banks (32KB), use full range, otherwise mirror first 16KB
                 mappedAddr = (_prgBanks > 1) ? (addr & 0x7FFF) : (addr & 0x3FFF);
@@ -35,7 +42,13 @@ namespace nes {
         }
 
         bool CpuMapWrite(uint16_t addr, uint32_t& mappedAddr, MemoryRegion& region, uint8_t data) override {
-            // NROM has no writable regions in cartridge space
+            // PRG-RAM: $6000-$7FFF (if cartridge has RAM allocated)
+            if (addr >= 0x6000 && addr <= 0x7FFF) {
+                region = MemoryRegion::PrgRam;
+                mappedAddr = addr & 0x1FFF;
+                return true;
+            }
+            // NROM has no other writable regions
             return false;
         }
 
