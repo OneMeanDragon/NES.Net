@@ -102,6 +102,7 @@ bool Cartridge::Load(const char* path) {
         if (!InitializeMapper()) {
             return false;
         }
+        //Log(std::format("Mirror: {}", (uint8_t)_mapper->GetMirrorMode()).c_str());
 
         _isLoaded = true;
         LogDiagnostics();
@@ -166,6 +167,7 @@ bool Cartridge::InitializeMapper() {
     else {
         initialMirror = MirrorMode::Horizontal;
     }
+    //Log(std::format("initialMirror: {}", (uint8_t)initialMirror).c_str());
 
     _mapper->SetInitalMapper(initialMirror);
     return true;

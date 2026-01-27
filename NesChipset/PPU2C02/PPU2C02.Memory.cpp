@@ -3,6 +3,7 @@
 #include "../CartridgeApi/CartridgeInterfaceAPI.h"
 #include <cstring>
 #include <xutility>
+#include <format>
 
 PPU2C02_Memory::PPU2C02_Memory() {
     std::memset(_nametable0, 0, sizeof(_nametable0));
@@ -21,34 +22,17 @@ void PPU2C02_Memory::ResetMemory(bool coldstart) {
 }
 
 uint8_t PPU2C02_Memory::ReadNametable(uint16_t addr) {
-    addr &= 0x0FFF;
     MirrorMode mirror = _cart ? _cart->GetMirrorMode() : MirrorMode::Horizontal;
+    if (addr >= 0x3000 && addr < 0x3F00)
+        printf("%s BAD NT READ %04X\n", std::format("Mirror::{}", (uint8_t)mirror).c_str(), addr);
 
-    //// DEBUG: Check what we're reading
-    //if ((addr & 0x0FFF) >= 0x0380 && (addr & 0x0FFF) <= 0x03BF) {
-    //    uint16_t offset = addr & 0x03FF;
-    //    printf("READ NAMETABLE: addr=%04X offset=%04X \n", addr, offset);
-    //}
-
-    /*
-        Horz and Vert (fixed Ms. Pacman and broke everything else)
-    */
+    addr &= 0x0FFF;
     switch (mirror) {
     case MirrorMode::Horizontal:
-        // Horizontal: $2000/$2400 use NT0, $2800/$2C00 use NT1
-        //if (addr < 0x0800)
-        if ((addr & 0x0400) == 0)  // Check left/right (bit 10)
-            return _nametable0[addr & 0x03FF];
-        else
-            return _nametable1[addr & 0x03FF];
+        return (addr & 0x0400) ? _nametable1[addr & 0x03FF] : _nametable0[addr & 0x03FF];
 
     case MirrorMode::Vertical:
-        // Vertical: $2000/$2800 use NT0, $2400/$2C00 use NT1
-        //if ((addr & 0x0400) == 0)
-        if (addr < 0x0800)  // Check top/bottom (bit 11)
-            return _nametable0[addr & 0x03FF];
-        else
-            return _nametable1[addr & 0x03FF];
+        return (addr & 0x0800) ? _nametable1[addr & 0x03FF] : _nametable0[addr & 0x03FF];
 
     case MirrorMode::FourScreen:
         if (addr < 0x0400) return _nametable0[addr];
@@ -56,10 +40,10 @@ uint8_t PPU2C02_Memory::ReadNametable(uint16_t addr) {
         else if (addr < 0x0C00) return _nametable2[addr - 0x0800];
         else return _nametable3[addr - 0x0C00];
 
-    //case MirrorMode::OneScreenLo:
-    //    return _nametable0[addr & 0x03FF];
-    //case MirrorMode::OneScreenHi:
-    //    return _nametable1[addr & 0x03FF];
+    case MirrorMode::OneScreenLo:
+        return _nametable0[addr & 0x03FF];
+    case MirrorMode::OneScreenHi:
+        return _nametable1[addr & 0x03FF];
 
     default:
         return _nametable0[addr & 0x03FF];
@@ -70,30 +54,19 @@ void PPU2C02_Memory::WriteNametable(uint16_t addr, uint8_t data) {
     addr &= 0x0FFF;
     MirrorMode mirror = _cart ? _cart->GetMirrorMode() : MirrorMode::Horizontal;
 
-    // DEBUG
-    //uint16_t coarseY = (addr >> 5) & 0x1F;
-    //if (coarseY >= 28) {
-    //    printf("WRITE NAMETABLE: addr=%04X data=%02X coarseY=%d\n", addr, data, coarseY);
-    //}
-
-    /*
-        Horz and Vert (fixed Ms. Pacman and broke everything else)
-    */
     switch (mirror) {
     case MirrorMode::Horizontal:
-        //if (addr < 0x0800)
-        if ((addr & 0x0400) == 0)  // Check left/right (bit 10)
-            _nametable0[addr & 0x03FF] = data;
-        else
+        if (addr & 0x0400)
             _nametable1[addr & 0x03FF] = data;
+        else
+            _nametable0[addr & 0x03FF] = data;
         break;
 
     case MirrorMode::Vertical:
-        //if ((addr & 0x0400) == 0)
-        if (addr < 0x0800)  // Check top/bottom (bit 11)
-            _nametable0[addr & 0x03FF] = data;
-        else
+        if (addr & 0x0800)
             _nametable1[addr & 0x03FF] = data;
+        else
+            _nametable0[addr & 0x03FF] = data;
         break;
 
     case MirrorMode::FourScreen:
@@ -103,10 +76,10 @@ void PPU2C02_Memory::WriteNametable(uint16_t addr, uint8_t data) {
         else _nametable3[addr - 0x0C00] = data;
         break;
 
-    //case MirrorMode::OneScreenLo:
-    //    _nametable0[addr & 0x03FF] = data; break;
-    //case MirrorMode::OneScreenHi:
-    //    _nametable1[addr & 0x03FF] = data; break;
+    case MirrorMode::OneScreenLo:
+        _nametable0[addr & 0x03FF] = data; break;
+    case MirrorMode::OneScreenHi:
+        _nametable1[addr & 0x03FF] = data; break;
 
     default:
         _nametable0[addr & 0x03FF] = data;
