@@ -20,10 +20,10 @@ namespace nes {
         // Delete constructor to make it a static-only class
         MapperFactory() = delete;
 
-        static std::unique_ptr<MapperBase> CreateMapper(uint8_t mapperNumber, uint8_t prgBanks, uint8_t chrBanks) {
+        static std::unique_ptr<MapperBase> CreateMapper(uint8_t mapperNumber, uint8_t prgBanks, uint8_t chrBanks, uint8_t submapper = 0) {
             switch (mapperNumber) {
             case Mapper000::ID: return std::make_unique<Mapper000>(prgBanks, chrBanks);
-            case Mapper001::ID: return std::make_unique<Mapper001>(prgBanks, chrBanks);
+            case Mapper001::ID: return std::make_unique<Mapper001>(prgBanks, chrBanks, submapper);
             case Mapper002::ID: return std::make_unique<Mapper002>(prgBanks, chrBanks);
             case Mapper003::ID: return std::make_unique<Mapper003>(prgBanks, chrBanks);
             case Mapper004::ID: return std::make_unique<Mapper004>(prgBanks, chrBanks);
@@ -37,15 +37,15 @@ namespace nes {
 
         static constexpr bool IsSupported(uint8_t mapperNumber) {
             switch (mapperNumber) {
-                case Mapper000::ID: return true;
-                case Mapper001::ID: return true;
-                case Mapper002::ID: return true;
-                case Mapper003::ID: return true;
-                case Mapper004::ID: return true;
-                case Mapper009::ID: return true;
-                case Mapper066::ID: return true;
-                case Mapper206::ID: return true;
-                default: return false;
+            case Mapper000::ID: return true;
+            case Mapper001::ID: return true;
+            case Mapper002::ID: return true;
+            case Mapper003::ID: return true;
+            case Mapper004::ID: return true;
+            case Mapper009::ID: return true;
+            case Mapper066::ID: return true;
+            case Mapper206::ID: return true;
+            default: return false;
             }
         }
 

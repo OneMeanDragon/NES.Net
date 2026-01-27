@@ -53,6 +53,7 @@ public: // Readonly properties
     MirrorMode GetMirrorMode() const;
     bool HasBattery() const;
     MapperBase* GetMapper() const;
+    uint8_t GetSubmapper() const { return _header.get_submapper(); };
 
 private:
     bool _loggingEnabled = false;

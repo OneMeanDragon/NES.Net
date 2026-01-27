@@ -32,10 +32,28 @@ namespace nes {
         uint8_t _prgBank16Hi = 0;
         uint8_t _prgBank32 = 0;
 
+        // --- Submapper support ---
+        uint8_t _submapper = 0;
+        uint8_t _prgBankMask = 0x0F;  // Default: 4 bits (16 banks)
+
     public:
-        Mapper001(uint8_t prgBanks, uint8_t chrBanks)
-            : MapperBase(prgBanks, chrBanks)
+        Mapper001(uint8_t prgBanks, uint8_t chrBanks, uint8_t submapper = 0)
+            : MapperBase(prgBanks, chrBanks), _submapper(submapper)
         {
+            // Configure based on submapper
+            switch (_submapper) {
+            case 1: // SUROM - 512KB PRG-ROM support (32 banks)
+                _prgBankMask = 0x1F;  // 5 bits for PRG banking
+                break;
+            case 5: // SXROM - 32KB PRG-RAM with battery
+                _prgBankMask = 0x0F;
+                // Note: Cartridge should allocate 32KB RAM based on header
+                break;
+            default: // Standard MMC1
+                _prgBankMask = 0x0F;  // 4 bits (16 banks)
+                break;
+            }
+
             Reset();
         }
 
@@ -200,21 +218,28 @@ namespace nes {
                 break;
 
             case 3: // PRG bank
+            {
+                uint8_t prgBankValue = _loadRegister & _prgBankMask;
+
                 switch ((_controlReg >> 2) & 0x03) {
                 case 0:
                 case 1:
-                    _prgBank32 = (_loadRegister & 0x0E) >> 1;
+                    // 32KB mode - use upper bits
+                    _prgBank32 = (prgBankValue & 0x0E) >> 1;
                     break;
                 case 2:
+                    // Fix first to bank 0, switch upper
                     _prgBank16Lo = 0;
-                    _prgBank16Hi = _loadRegister & 0x0F;
+                    _prgBank16Hi = prgBankValue;
                     break;
                 case 3:
-                    _prgBank16Lo = _loadRegister & 0x0F;
+                    // Switch lower, fix upper to last
+                    _prgBank16Lo = prgBankValue;
                     _prgBank16Hi = _prgBanks - 1;
                     break;
                 }
-                break;
+            }
+            break;
             }
         }
     };
