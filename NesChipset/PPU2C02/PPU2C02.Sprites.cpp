@@ -4,6 +4,7 @@
 PPU2C02_Sprites::PPU2C02_Sprites() {
     std::memset(OAM.raw, 0xFF, sizeof(OAM.raw)); // Initialize all OAM to 0xFF
     std::memset(_spriteScanline, 0xFF, sizeof(_spriteScanline));
+    std::memset(_spriteScanlineIndex, 0xFF, sizeof(_spriteScanlineIndex));
     std::memset(_spriteShifterLo, 0, sizeof(_spriteShifterLo));
     std::memset(_spriteShifterHi, 0, sizeof(_spriteShifterHi));
 }
@@ -50,8 +51,12 @@ void PPU2C02_Sprites::EvaluateSprites(int16_t scanline, const PpuControlRegister
         int16_t diff = scanline - (int16_t)OAM.entries[i].y;
         if (diff >= 0 && diff < height) {
             if (found < 8) {
+                //if (i == 0) _spriteZeroHitPossible = true;
+                //_spriteScanline[found++] = OAM.entries[i];
+                _spriteScanline[found] = OAM.entries[i];
+                _spriteScanlineIndex[found] = i;   // <-- STORE OAM INDEX
                 if (i == 0) _spriteZeroHitPossible = true;
-                _spriteScanline[found++] = OAM.entries[i];
+                found++;
             }
             else {
                 status.spriteOverflow = true;
@@ -139,11 +144,23 @@ void PPU2C02_Sprites::GetSpritePixel(uint8_t& pixel, uint8_t& palette, uint8_t& 
             uint8_t pixelHi = (_spriteShifterHi[i] & 0x80) ? 1 : 0;
             pixel = (pixelHi << 1) | pixelLo;
 
+            //if (pixel != 0) {
+            //    palette = (_spriteScanline[i].attribute & 0x03) + 4;
+            //    priority = (_spriteScanline[i].attribute & 0x20) == 0;
+            //    if (i == 0) spriteZero = true;
+            //    break;  // Use first non-transparent sprite
+            //}
             if (pixel != 0) {
                 palette = (_spriteScanline[i].attribute & 0x03) + 4;
                 priority = (_spriteScanline[i].attribute & 0x20) == 0;
-                if (i == 0) spriteZero = true;
-                break;  // Use first non-transparent sprite
+
+                if (_spriteZeroHitPossible &&
+                    _spriteScanlineIndex[i] == 0 &&
+                    _spriteScanline[i].x != 255)
+                {
+                    spriteZero = true;
+                }
+                break;
             }
         }
     }

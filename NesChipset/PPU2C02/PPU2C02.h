@@ -29,8 +29,8 @@ private:
     PPU::PpuState _renderState = PPU::PpuState::PRERENDER;
 private:
     // Timing state
-    int16_t _scanline = 0;
-    int16_t _cycle = 0;
+    int16_t _scanline = SCANLINE_START;
+    int16_t _cycle = CYCLE_START;
     bool _oddFrame = false;
     bool _frameComplete = false;
 
@@ -117,7 +117,6 @@ public:
 
 private:
     void PerformBackgroundFetch(int16_t cycle);
-    void DummyProcess(int16_t scanline, int16_t cycle);
     void ProcessCycle(int16_t scanline, int16_t cycle);
     void AdvanceNext();
     void UpdateRenderState();

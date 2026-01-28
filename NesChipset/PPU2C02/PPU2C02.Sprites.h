@@ -12,6 +12,8 @@ protected:
 
     // Sprite scanline data
     OAMEntryS _spriteScanline[8];
+    uint8_t _spriteScanlineIndex[8];
+
     uint8_t _spriteCount = 0;
     uint8_t _spriteShifterLo[8];
     uint8_t _spriteShifterHi[8];

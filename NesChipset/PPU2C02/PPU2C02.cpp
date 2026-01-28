@@ -35,7 +35,7 @@ void PPU2C02::Reset(bool coldstart) {
     PPU2C02_Sprites::ResetSprites(coldstart);
 
     _scanline = SCANLINE_START;
-    _cycle = 0;
+    _cycle = CYCLE_START;
     _oddFrame = false;
     _frameComplete = false;
     _nmiRequested = false;
@@ -59,206 +59,6 @@ void PPU2C02::PpuWrite(uint16_t addr, uint8_t data) {
     PPU2C02_Memory::PpuWrite(addr, data);
 }
 
-/* Process cycle-by-cycle */
-//void PPU2C02::ProcessCycle(int16_t scanline, int16_t cycle) {
-//    //if (scanline == -1 && cycle == 256) {
-//    //    printf("cycle 256: renderBG=%d renderSpr=%d\n", _mask.renderBackground, _mask.renderSprites);
-//    //}
-//    //if (scanline == -1 && cycle >= 250 && cycle <= 257) {
-//    //    printf("cycle=%d vramAddr=%04X tramAddr=%04X\n", cycle, _vramAddr.reg, _tramAddr.reg);
-//    //}
-//    // CATCH CORRUPTION IMMEDIATELY
-//    //if (_vramAddr.reg > 0x3FFF) {
-//    //    printf("\n=== CORRUPTION! ===\n");
-//    //    printf("scanline=%d cycle=%d\n", scanline, cycle);
-//    //    printf("vramAddr=%04X tramAddr=%04X\n", _vramAddr.reg, _tramAddr.reg);
-//    //    printf("===================\n\n");
-//    //    _vramAddr.reg &= 0x3FFF;
-//    //
-//    //    // HALT after first corruption so you can see it
-//    //    static bool halted = false;
-//    //    if (!halted) {
-//    //        halted = true;
-//    //        exit(1);  // Stop immediately
-//    //    }
-//    //}
-//
-//    // Scanline ranges
-//    bool preRenderLine = scanline == -1;
-//    bool visibleLine = scanline >= 0 && scanline <= 239;
-//    bool postRenderLine = scanline == 240;
-//    bool vblankLine = scanline >= 241 && scanline <= 260;
-//
-//    // Cycle ranges
-//    bool visibleCycle = cycle >= 1 && cycle <= 256;
-//    bool prefetchCycle = cycle >= 321 && cycle <= 336;
-//    bool fetchCycle = visibleCycle || prefetchCycle;
-//    bool idleCycle = cycle == 0 || (cycle >= 257 && cycle <= 320) || cycle == 337 || cycle >= 338;
-//
-//    // Rendering checks
-//    bool renderingEnabled = _mask.renderBackground || _mask.renderSprites;
-//    bool renderingLine = (preRenderLine || visibleLine) && renderingEnabled;
-//
-//    // === PRE-RENDER AND VISIBLE SCANLINES ===
-//    if (preRenderLine || visibleLine) {
-//        //if (scanline == 0 && cycle == 0) {
-//        //    printf("Frame start - PPUCTRL=%02X PPUMASK=%02X ScrollX=%d ScrollY=%d\n",
-//        //        _control.reg, _mask.reg, _tramAddr.coarseX * 8 + _fineX,
-//        //        _tramAddr.coarseY * 8 + _tramAddr.fineY);
-//        //}
-//
-//        // Odd frame skip
-//        if (scanline == 0 && cycle == 0 && _oddFrame && renderingEnabled) {
-//            return; // Skip cycle 0 on odd frames
-//        }
-//
-//        // Clear flags at start of pre-render
-//        if (preRenderLine && cycle == 1) {
-//            _status.verticalBlank = false;
-//            _status.spriteZeroHit = false;
-//            _status.spriteOverflow = false;
-//        }
-//
-//        // Background fetching
-//        if (renderingEnabled && fetchCycle) {
-//            UpdateBackgroundShifters(_mask, cycle);
-//            PerformBackgroundFetch(cycle);
-//        }
-//
-//        // Pixel rendering (visible scanlines only)
-//        if (visibleLine && visibleCycle) {
-//            RenderPixel();
-//            UpdateSpriteShifters(_mask, cycle);
-//        }
-//
-//        // End-of-scanline operations
-//        if (renderingEnabled) {
-//            if (cycle == 256) {
-//                IncrementScrollY(_vramAddr);
-//            }
-//            // Horizontal copy at start of next scanline
-//            if (cycle == 257) {
-//                TransferAddressX(_vramAddr, _tramAddr);
-//                EvaluateSprites(scanline + 1, _control, _status);
-//                LoadSpriteShifters(scanline + 1, _control);
-//            }
-//            // Vertical copy during pre-render scanline
-//            if (preRenderLine && cycle >= 280 && cycle <= 304) {
-//                TransferAddressY(_vramAddr, _tramAddr);
-//            }
-//        }
-//    }
-//
-//    // === VBLANK ===
-//    if (scanline == 241 && cycle == 1) {
-//        _status.verticalBlank = true;
-//        if (_control.enableNmi) _nmiRequested = true;
-//    }
-//
-//    // === MAPPER HOOKS ===
-//    //if (renderingEnabled && cycle == 260 && scanline < 240 && _cart) {
-//    //    _cart->GetMapper().ScanlineCounter(scanline);
-//    //}
-//    if(cycle == 260) _cart->GetMapper().ScanlineCounter(scanline);
-//    // Cycle Ended
-//}
-
-void PPU2C02::ProcessCycle(int16_t scanline, int16_t cycle)
-{
-    // --- Scanline classification ---
-    const bool preRenderLine = (scanline == -1);
-    const bool visibleLine = (scanline >= 0 && scanline <= 239);
-    const bool vblankLine = (scanline >= 241 && scanline <= 260);
-
-    // --- Cycle classification ---
-    const bool visibleCycle = (cycle >= 1 && cycle <= 256);
-    const bool prefetchCycle = (cycle >= 321 && cycle <= 336);
-    const bool fetchCycle = visibleCycle || prefetchCycle;
-
-    // --- Rendering state ---
-    const bool renderingEnabled =
-        _mask.renderBackground || _mask.renderSprites;
-
-    // =========================================================
-    // PRE-RENDER & VISIBLE SCANLINES
-    // =========================================================
-    if (preRenderLine || visibleLine)
-    {
-        // Odd frame skip (pre-render only)
-        if (preRenderLine && cycle == 0 && _oddFrame && renderingEnabled)
-            return;
-
-        // Clear flags at start of pre-render
-        if (preRenderLine && cycle == 1)
-        {
-            _status.verticalBlank = 0;
-            _status.spriteZeroHit = 0;
-            _status.spriteOverflow = 0;
-        }
-
-        // Background fetch pipeline
-        if (renderingEnabled && fetchCycle)
-        {
-            UpdateBackgroundShifters(_mask, cycle);
-            PerformBackgroundFetch(cycle);
-        }
-
-        // Pixel output (visible area only)
-        if (visibleLine && visibleCycle)
-        {
-            RenderPixel();
-            UpdateSpriteShifters(_mask, cycle);
-        }
-
-        // -----------------------------------------------------
-        // End-of-scanline scroll & sprite operations
-        // -----------------------------------------------------
-        if (renderingEnabled)
-        {
-            // Increment vertical scroll
-            if (cycle == 256)
-            {
-                IncrementScrollY(_vramAddr);
-            }
-
-            // Copy horizontal scroll & sprite eval
-            if (cycle == 257)
-            {
-                TransferAddressX(_vramAddr, _tramAddr);
-                EvaluateSprites(scanline + 1, _control, _status);
-                LoadSpriteShifters(scanline + 1, _control);
-            }
-
-            // Copy vertical scroll during pre-render
-            if (preRenderLine && cycle >= 280 && cycle <= 304)
-            {
-                TransferAddressY(_vramAddr, _tramAddr);
-            }
-        }
-    }
-
-    // =========================================================
-    // VBLANK
-    // =========================================================
-    if (scanline == 241 && cycle == 1)
-    {
-        _status.verticalBlank = 1;
-        if (_control.enableNmi)
-            _nmiRequested = true;
-    }
-
-    // =========================================================
-    // MAPPER SCANLINE HOOK
-    // =========================================================
-    if (cycle == 260 && _cart)
-    {
-        _cart->GetMapper().ScanlineCounter(scanline);
-    }
-}
-
-
-
-
 void PPU2C02::PerformBackgroundFetch(int16_t cycle) {
     switch (cycle & 7) {
     case 1: FetchNametableByte(_vramAddr); break;
@@ -275,12 +75,13 @@ void PPU2C02::PerformBackgroundFetch(int16_t cycle) {
 /* yes are pre-incrementing here */
 void PPU2C02::AdvanceNext() {
     // Odd Frame Skip
-    //if (_scanline == -1 && _cycle == 339 && _oddFrame && _mask.renderBackground) {
-    //    //++_scanline;
-    //    _cycle = _scanline; // 340
-    //    //UpdateRenderState();
-    //    //return;
-    //} the fuck?
+    if (_scanline == -1 && _cycle == 339 && _oddFrame && (_mask.renderBackground || _mask.renderSprites)) {
+        _scanline = 0;
+        _cycle = 0;
+        _frameComplete = false;
+        UpdateRenderState();
+        return;
+    }
     // Advance the cycle
     if (++_cycle >= CYCLE_MAX) {
         _cycle = CYCLE_START;
@@ -304,37 +105,130 @@ void PPU2C02::UpdateRenderState() {
         _renderState = PPU::PpuState::PRERENDER;
 }
 
-void PPU2C02::DummyProcess(int16_t scanline, int16_t cycle) {
+void PPU2C02::ProcessCycle(int16_t scanline, int16_t cycle) {
+    // --- Rendering state ---
+    const bool renderingEnabled = _mask.renderBackground || _mask.renderSprites;
+
+    // --- Cycle classification ---
+    const bool visibleCycle = (cycle >= 1 && cycle <= 256);
+    const bool prefetchCycle = (cycle >= 321 && cycle <= 336);
+    const bool fetchCycle = visibleCycle || prefetchCycle;
+
     switch (_renderState) {
-    case PPU::PpuState::PRERENDER: {
-        static size_t count = 0;
-        if (++count == 1)
-            printf("State: Prerender, scanline=%i, cycle=%i\n", scanline, cycle);
+    case PPU::PpuState::PRERENDER:
+    {
+        // Clear flags at start of pre-render
+        if (cycle == 1)
+        {
+            _status.verticalBlank = 0;
+            _status.spriteZeroHit = 0;
+            _status.spriteOverflow = 0;
+        }
+
+        // Background fetch pipeline
+        if (renderingEnabled && fetchCycle)
+        {
+            UpdateBackgroundShifters(_mask, cycle);
+            PerformBackgroundFetch(cycle);
+        }
+
+        // End-of-scanline scroll operations
+        if (renderingEnabled)
+        {
+            // Increment vertical scroll
+            if (cycle == 256)
+            {
+                IncrementScrollY(_vramAddr);
+            }
+
+            // Copy horizontal scroll & sprite eval
+            if (cycle == 257)
+            {
+                TransferAddressX(_vramAddr, _tramAddr);
+                EvaluateSprites(scanline + 1, _control, _status);
+                LoadSpriteShifters(scanline + 1, _control);
+            }
+
+            // Copy vertical scroll during pre-render
+            if (cycle >= 280 && cycle <= 304)
+            {
+                TransferAddressY(_vramAddr, _tramAddr);
+            }
+        }
         break;
     }
-    case PPU::PpuState::VISIBLE:{
-        static size_t count = 0;
-        if (++count == 1)
-            printf("State: Visible, scanline=%i, cycle=%i\n", scanline, cycle);
+
+    case PPU::PpuState::VISIBLE:
+    {
+        // Background fetch pipeline
+        if (renderingEnabled && fetchCycle)
+        {
+            UpdateBackgroundShifters(_mask, cycle);
+            PerformBackgroundFetch(cycle);
+        }
+
+        // Pixel output
+        if (visibleCycle)
+        {
+            //RenderPixel();
+            //UpdateSpriteShifters(_mask, cycle);
+            UpdateSpriteShifters(_mask, cycle);
+            RenderPixel();
+        }
+
+        // End-of-scanline scroll & sprite operations
+        if (renderingEnabled)
+        {
+            // Increment vertical scroll
+            if (cycle == 256)
+            {
+                IncrementScrollY(_vramAddr);
+            }
+
+            // Copy horizontal scroll & sprite eval
+            if (cycle == 257)
+            {
+                TransferAddressX(_vramAddr, _tramAddr);
+                EvaluateSprites(scanline + 1, _control, _status);
+                LoadSpriteShifters(scanline + 1, _control);
+            }
+        }
         break;
     }
-    case PPU::PpuState::POST:{
-        static size_t count = 0;
-        if (++count == 1)
-            printf("State: Post, scanline=%i, cycle=%i\n", scanline, cycle);
+
+    case PPU::PpuState::POST:
+    {
+        // Post-render scanline (240) - idle
         break;
     }
-    case PPU::PpuState::VBLANK_NMI:{
-        static size_t count = 0;
-        if (++count == 1)
-            printf("State: Blank, scanline=%i, cycle=%i\n", scanline, cycle);
+
+    case PPU::PpuState::VBLANK_NMI:
+    {
+        // Set VBlank flag and trigger NMI
+        if (scanline == 241 && cycle == 1)
+        {
+            _status.verticalBlank = 1;
+            if (_control.enableNmi)
+                _nmiRequested = true;
+        }
         break;
     }
+
+    default:
+        break;
+    }
+
+    // =========================================================
+    // MAPPER SCANLINE HOOK (all states)
+    // =========================================================
+    if (cycle == 260 && renderingEnabled && scanline >= 0 && scanline <= 239 && _cart)
+    {
+        _cart->GetMapper().ScanlineCounter(scanline);
     }
 }
 
 void PPU2C02::Clock() {
-    DummyProcess(_scanline, _cycle);
+
     ProcessCycle(_scanline, _cycle);
     AdvanceNext();
     
