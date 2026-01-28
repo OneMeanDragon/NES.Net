@@ -28,10 +28,10 @@ public:
     void ResetBackground();
 
     // Background rendering helpers
-    void IncrementScrollX(LoopyRegister& vramAddr, const PpuMaskRegister& mask);
-    void IncrementScrollY(LoopyRegister& vramAddr, const PpuMaskRegister& mask);
-    void TransferAddressX(LoopyRegister& vramAddr, const LoopyRegister& tramAddr, const PpuMaskRegister& mask);
-    void TransferAddressY(LoopyRegister& vramAddr, const LoopyRegister& tramAddr, const PpuMaskRegister& mask);
+    void IncrementScrollX(LoopyRegister& vramAddr);
+    void IncrementScrollY(LoopyRegister& vramAddr);
+    void TransferAddressX(LoopyRegister& vramAddr, const LoopyRegister& tramAddr);
+    void TransferAddressY(LoopyRegister& vramAddr, const LoopyRegister& tramAddr);
     void LoadBackgroundShifters();
     void UpdateBackgroundShifters(const PpuMaskRegister& mask, int16_t cycle);
 

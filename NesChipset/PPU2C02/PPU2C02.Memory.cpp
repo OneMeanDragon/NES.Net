@@ -22,67 +22,68 @@ void PPU2C02_Memory::ResetMemory(bool coldstart) {
 }
 
 uint8_t PPU2C02_Memory::ReadNametable(uint16_t addr) {
-    MirrorMode mirror = _cart ? _cart->GetMirrorMode() : MirrorMode::Horizontal;
+    MirrorMode mirror = _cart->GetMirrorMode();
     if (addr >= 0x3000 && addr < 0x3F00)
         printf("%s BAD NT READ %04X\n", std::format("Mirror::{}", (uint8_t)mirror).c_str(), addr);
 
-    addr &= 0x0FFF;
+    uint16_t map_addr = addr & 0x0FFF;
     switch (mirror) {
-    case MirrorMode::Horizontal:
-        return (addr & 0x0400) ? _nametable1[addr & 0x03FF] : _nametable0[addr & 0x03FF];
+    case MirrorMode::Horizontal: // is supposed to be 0x400 not 800
+        return (map_addr & 0x0400) ? _nametable1[map_addr & 0x03FF] : _nametable0[map_addr & 0x03FF];
 
-    case MirrorMode::Vertical:
-        return (addr & 0x0800) ? _nametable1[addr & 0x03FF] : _nametable0[addr & 0x03FF];
+    case MirrorMode::Vertical: // is supposed to be 0x800 not 400
+        return (map_addr & 0x0800) ? _nametable1[map_addr & 0x03FF] : _nametable0[map_addr & 0x03FF];
 
     case MirrorMode::FourScreen:
-        if (addr < 0x0400) return _nametable0[addr];
-        else if (addr < 0x0800) return _nametable1[addr - 0x0400];
-        else if (addr < 0x0C00) return _nametable2[addr - 0x0800];
-        else return _nametable3[addr - 0x0C00];
+        if (map_addr < 0x0400) return _nametable0[map_addr];
+        else if (map_addr < 0x0800) return _nametable1[map_addr - 0x0400];
+        else if (map_addr < 0x0C00) return _nametable2[map_addr - 0x0800];
+        else return _nametable3[map_addr - 0x0C00];
 
     case MirrorMode::OneScreenLo:
-        return _nametable0[addr & 0x03FF];
+        return _nametable0[map_addr & 0x03FF];
     case MirrorMode::OneScreenHi:
-        return _nametable1[addr & 0x03FF];
+        return _nametable1[map_addr & 0x03FF];
 
     default:
-        return _nametable0[addr & 0x03FF];
+        return _nametable0[map_addr & 0x03FF];
     }
+    // should throw if it ever made it out 
 }
 
 void PPU2C02_Memory::WriteNametable(uint16_t addr, uint8_t data) {
-    addr &= 0x0FFF;
-    MirrorMode mirror = _cart ? _cart->GetMirrorMode() : MirrorMode::Horizontal;
+    uint16_t map_addr = addr & 0x0FFF;
+    MirrorMode mirror = _cart->GetMirrorMode();
 
     switch (mirror) {
-    case MirrorMode::Horizontal:
-        if (addr & 0x0400)
-            _nametable1[addr & 0x03FF] = data;
+    case MirrorMode::Horizontal: // is supposed to be 0x400 not 800
+        if (map_addr & 0x0400)
+            _nametable1[map_addr & 0x03FF] = data;
         else
-            _nametable0[addr & 0x03FF] = data;
+            _nametable0[map_addr & 0x03FF] = data;
         break;
 
-    case MirrorMode::Vertical:
-        if (addr & 0x0800)
-            _nametable1[addr & 0x03FF] = data;
+    case MirrorMode::Vertical: // is supposed to be 0x800 not 400
+        if (map_addr & 0x0800)
+            _nametable1[map_addr & 0x03FF] = data;
         else
-            _nametable0[addr & 0x03FF] = data;
+            _nametable0[map_addr & 0x03FF] = data;
         break;
 
     case MirrorMode::FourScreen:
-        if (addr < 0x0400) _nametable0[addr] = data;
-        else if (addr < 0x0800) _nametable1[addr - 0x0400] = data;
-        else if (addr < 0x0C00) _nametable2[addr - 0x0800] = data;
-        else _nametable3[addr - 0x0C00] = data;
+        if (map_addr < 0x0400) _nametable0[map_addr] = data;
+        else if (map_addr < 0x0800) _nametable1[map_addr - 0x0400] = data;
+        else if (map_addr < 0x0C00) _nametable2[map_addr - 0x0800] = data;
+        else _nametable3[map_addr - 0x0C00] = data;
         break;
 
     case MirrorMode::OneScreenLo:
-        _nametable0[addr & 0x03FF] = data; break;
+        _nametable0[map_addr & 0x03FF] = data; break;
     case MirrorMode::OneScreenHi:
-        _nametable1[addr & 0x03FF] = data; break;
+        _nametable1[map_addr & 0x03FF] = data; break;
 
     default:
-        _nametable0[addr & 0x03FF] = data;
+        _nametable0[map_addr & 0x03FF] = data;
         break;
     }
 }

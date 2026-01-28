@@ -12,38 +12,22 @@ void PPU2C02_Background::ResetBackground() {
     _bgShifterAttribHi = 0;
 }
 
-void PPU2C02_Background::IncrementScrollX(LoopyRegister& vramAddr, const PpuMaskRegister& mask) {
-    if (!mask.renderBackground && !mask.renderSprites) return;
-    vramAddr.IncrementCoarseX();
+// Always increment, ignore mask
+void PPU2C02_Background::IncrementScrollX(LoopyRegister& v) {
+    v.IncrementCoarseX();
 }
 
-void PPU2C02_Background::IncrementScrollY(LoopyRegister& vramAddr, const PpuMaskRegister& mask) {
-    if (!mask.renderBackground && !mask.renderSprites) return;
-    vramAddr.IncrementFineY();
+void PPU2C02_Background::IncrementScrollY(LoopyRegister& v) {
+    v.IncrementFineY();
 }
 
-void PPU2C02_Background::TransferAddressX(LoopyRegister& vramAddr, const LoopyRegister& tramAddr, const PpuMaskRegister& mask) {
-    if (!mask.renderBackground && !mask.renderSprites) return;
-
-    // DEBUG: Check if tramAddr is corrupt BEFORE transfer
-    //if (tramAddr.reg > 0x3FFF) {
-    //    printf("TransferAddressX: tramAddr is ALREADY corrupt! tramAddr=%04X\n", tramAddr.reg);
-    //}
-
-    vramAddr.SetNametableX(tramAddr.GetNametableX());
-    vramAddr.SetCoarseX(tramAddr.GetCoarseX());
-
-    // DEBUG: Check result
-    //if (vramAddr.reg > 0x3FFF) {
-    //    printf("TransferAddressX: vramAddr corrupted AFTER transfer! vramAddr=%04X\n", vramAddr.reg);
-    //}
+// Always copy, ignore mask
+void PPU2C02_Background::TransferAddressX(LoopyRegister& v, const LoopyRegister& t) {
+    v.CopyHorizontalFrom(t);
 }
 
-void PPU2C02_Background::TransferAddressY(LoopyRegister& vramAddr, const LoopyRegister& tramAddr, const PpuMaskRegister& mask) {
-    if (!mask.renderBackground && !mask.renderSprites) return;
-    vramAddr.SetFineY(tramAddr.GetFineY());
-    vramAddr.SetNametableY(tramAddr.GetNametableY());
-    vramAddr.SetCoarseY(tramAddr.GetCoarseY());
+void PPU2C02_Background::TransferAddressY(LoopyRegister& v, const LoopyRegister& t) {
+    v.CopyVerticalFrom(t);
 }
 
 void PPU2C02_Background::LoadBackgroundShifters() {
@@ -69,20 +53,17 @@ void PPU2C02_Background::UpdateBackgroundShifters(const PpuMaskRegister& mask, i
 }
 
 void PPU2C02_Background::FetchNametableByte(const LoopyRegister& vramAddr) {
-    //if (vramAddr.reg >= 0x3F00) {
-    //    printf("ERROR: FetchNametable with palette addr=%04X!\n", vramAddr.reg);
-    //}
-    uint16_t addr = 0x2000 | (vramAddr.reg & 0x0FFF);
+    uint16_t addr = PPUADDR::NAMETABLE_BASE | (vramAddr.reg & PPUADDR::NAMETABLE_MASK);
     _bgNextTileId = PpuRead(addr);
 }
 
 void PPU2C02_Background::FetchAttributeByte(const LoopyRegister& vramAddr) {
-    uint16_t v = vramAddr.reg & 0x0FFF;
-    uint16_t addr = 0x23C0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07);
+    uint16_t v = vramAddr.reg & PPUADDR::NAMETABLE_MASK;
+    uint16_t addr = PPUADDR::ATTR_TABLE_BASE_NT0 | (v & 0x0C00) | ((v >> 4) & 0x38) | ((v >> 2) & 0x07);
     uint8_t attr = PpuRead(addr);
 
-    uint8_t coarseX = vramAddr.GetCoarseX();
-    uint8_t coarseY = vramAddr.GetCoarseY();
+    uint8_t coarseX = vramAddr.CoarseX();
+    uint8_t coarseY = vramAddr.CoarseY();
     uint8_t shift = (coarseX & 2) | ((coarseY & 2) << 1);
 
     _bgNextTileAttrib = (attr >> shift) & 0x03;
@@ -91,7 +72,7 @@ void PPU2C02_Background::FetchAttributeByte(const LoopyRegister& vramAddr) {
 uint16_t PPU2C02_Background::GetPatternAddress(const LoopyRegister& vramAddr, const PpuControlRegister& control, bool highPlane) {
     uint16_t patternTableBase = control.patternBackground ? 0x1000 : 0x0000;
     uint16_t tileOffset = _bgNextTileId << 4;
-    uint16_t row = vramAddr.GetFineY();
+    uint16_t row = vramAddr.FineY();
     uint16_t plane = highPlane ? 8 : 0;
     return patternTableBase | tileOffset | row | plane;
 }

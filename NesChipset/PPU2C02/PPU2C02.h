@@ -11,6 +11,7 @@
 constexpr int16_t SCANLINE_MAX   = 261;
 constexpr int16_t SCANLINE_START =  -1;
 constexpr int16_t CYCLE_MAX      = 341;
+constexpr int16_t CYCLE_START    =   0;
 
 // Forward declarations
 class CartridgeInterfaceAPI;
