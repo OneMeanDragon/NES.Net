@@ -77,6 +77,16 @@ union PpuStatusRegister {
     PpuStatusRegister() : reg(0) {}
 };
 
+namespace PPU {
+    enum class PpuState {
+        NOTSET,
+        VISIBLE,
+        PRERENDER,
+        VBLANK_NMI,
+        POST
+    };
+}
+
 namespace PPUADDR {
     constexpr uint16_t NAMETABLE_BASE      = 0x2000;
     constexpr uint16_t NAMETABLE_MASK      = 0x0FFF;
@@ -178,10 +188,3 @@ struct LoopyRegister {
     }
 };
 #pragma pack(pop)
-
-enum scan {
-    VISIBLE,
-    POST,
-    NMI,
-    PRE
-};

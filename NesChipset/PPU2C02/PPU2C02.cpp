@@ -34,12 +34,13 @@ void PPU2C02::Reset(bool coldstart) {
     PPU2C02_Background::ResetBackground();
     PPU2C02_Sprites::ResetSprites(coldstart);
 
-    _scanline = 0;
+    _scanline = SCANLINE_START;
     _cycle = 0;
     _oddFrame = false;
     _frameComplete = false;
     _nmiRequested = false;
     _scanlineTrigger = false;
+    _renderState = PPU::PpuState::PRERENDER;
 }
 
 // Forward CPU interface to Registers component
@@ -273,6 +274,14 @@ void PPU2C02::PerformBackgroundFetch(int16_t cycle) {
 
 /* yes are pre-incrementing here */
 void PPU2C02::AdvanceNext() {
+    // Odd Frame Skip
+    //if (_scanline == -1 && _cycle == 339 && _oddFrame && _mask.renderBackground) {
+    //    //++_scanline;
+    //    _cycle = _scanline; // 340
+    //    //UpdateRenderState();
+    //    //return;
+    //} the fuck?
+    // Advance the cycle
     if (++_cycle >= CYCLE_MAX) {
         _cycle = CYCLE_START;
         if (++_scanline >= SCANLINE_MAX) {
@@ -280,11 +289,52 @@ void PPU2C02::AdvanceNext() {
             _frameComplete = true;
             _oddFrame ^= 1;
         }
+        UpdateRenderState();
+    }
+}
+
+void PPU2C02::UpdateRenderState() {
+    if (_scanline >= 0 && _scanline <= 239)
+        _renderState = PPU::PpuState::VISIBLE;
+    else if (_scanline == 240)
+        _renderState = PPU::PpuState::POST;
+    else if (_scanline >= 241 && _scanline <= 260)
+        _renderState = PPU::PpuState::VBLANK_NMI;
+    else
+        _renderState = PPU::PpuState::PRERENDER;
+}
+
+void PPU2C02::DummyProcess(int16_t scanline, int16_t cycle) {
+    switch (_renderState) {
+    case PPU::PpuState::PRERENDER: {
+        static size_t count = 0;
+        if (++count == 1)
+            printf("State: Prerender, scanline=%i, cycle=%i\n", scanline, cycle);
+        break;
+    }
+    case PPU::PpuState::VISIBLE:{
+        static size_t count = 0;
+        if (++count == 1)
+            printf("State: Visible, scanline=%i, cycle=%i\n", scanline, cycle);
+        break;
+    }
+    case PPU::PpuState::POST:{
+        static size_t count = 0;
+        if (++count == 1)
+            printf("State: Post, scanline=%i, cycle=%i\n", scanline, cycle);
+        break;
+    }
+    case PPU::PpuState::VBLANK_NMI:{
+        static size_t count = 0;
+        if (++count == 1)
+            printf("State: Blank, scanline=%i, cycle=%i\n", scanline, cycle);
+        break;
+    }
     }
 }
 
 void PPU2C02::Clock() {
-    
+    DummyProcess(_scanline, _cycle);
     ProcessCycle(_scanline, _cycle);
     AdvanceNext();
     

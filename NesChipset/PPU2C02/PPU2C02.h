@@ -26,6 +26,8 @@ class PPU2C02 : public PPU2C02_Memory,
     public PPU2C02_Background,
     public PPU2C02_Sprites {
 private:
+    PPU::PpuState _renderState = PPU::PpuState::PRERENDER;
+private:
     // Timing state
     int16_t _scanline = 0;
     int16_t _cycle = 0;
@@ -115,8 +117,10 @@ public:
 
 private:
     void PerformBackgroundFetch(int16_t cycle);
+    void DummyProcess(int16_t scanline, int16_t cycle);
     void ProcessCycle(int16_t scanline, int16_t cycle);
     void AdvanceNext();
+    void UpdateRenderState();
 private:
     void RenderPixel();
     void Log(const char* msg);
