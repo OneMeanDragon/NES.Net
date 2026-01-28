@@ -87,6 +87,31 @@ namespace PPU {
     };
 }
 
+namespace NTMASKS {
+    // Address breakdown: 0x2000-0x2FFF (nametable space)
+    // After masking with 0x0FFF: 0x000-0xFFF
+    // Bits: xxxx TT oooooooooo
+    //       |    |  +--- Offset within nametable (0x000-0x3FF, 10 bits)
+    //       |    +------ Table select (0-3, 2 bits, bits 10-11)
+    //       +----------- Extended address bits (unused after 0x0FFF mask)
+
+    constexpr uint16_t OFFSET = 0b0000001111111111; // 0x03FF - offset within a nametable
+    constexpr uint16_t TABLE = 0b0000110000000000; // 0x0C00 - which of 4 nametables
+    constexpr uint16_t INDEX = 0b0000111111111111; // 0x0FFF - full index after mirroring
+
+    // Individual table select bits
+    constexpr uint16_t TABLE_BIT0 = 0b0000010000000000; // 0x0400 - horizontal mirror check
+    constexpr uint16_t TABLE_BIT1 = 0b0000100000000000; // 0x0800 - vertical mirror check
+
+    // For extracting table number
+    constexpr uint8_t  TABLE_SHIFT = 10;                 // Shift right by 10 to get table 0-3
+    constexpr uint8_t  TABLE_MASK = 0x03;               // Mask after shift to get 0-3
+
+    // Mirroring helpers
+    constexpr uint8_t  HORIZONTAL_MASK = 0x01;             // After (table >> 1), keeps NT0/NT1
+    constexpr uint8_t  VERTICAL_MASK = 0x01;             // After (table & 1), keeps NT0/NT1
+}
+
 namespace PPUADDR {
     constexpr uint16_t NAMETABLE_BASE      = 0x2000;
     constexpr uint16_t NAMETABLE_MASK      = 0x0FFF;
@@ -94,6 +119,22 @@ namespace PPUADDR {
 }
 
 namespace LOOPYMASKS {
+    // Loopy register breakdown: 15-bit PPU address register
+    // Format: yyy NN YYYYY XXXXX
+    //         |   |  |     +--- Coarse X scroll (tile column 0-31, 5 bits)
+    //         |   |  +--------- Coarse Y scroll (tile row 0-29, 5 bits)
+    //         |   +------------ Nametable select (2 bits: horizontal=bit 0, vertical=bit 1)
+    //         +---------------- Fine Y scroll (pixel row within tile 0-7, 3 bits)
+    // 
+    // Bits:  15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0
+    //         U  F  F  F  Y  X  Y  Y  Y  Y  Y  X  X  X  X  X
+    //         |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+    //         |  +--+--+  |  |  +--+--+--+--+  +--+--+--+--+
+    //         |     |     |  |        |              |
+    //         |  Fine Y   |  |    Coarse Y       Coarse X
+    //         |           |  |
+    //      Unused    Table Y  Table X
+
     constexpr uint16_t COARSEX       = 0b0000000000011111;
     constexpr uint16_t COARSEY       = 0b0000001111100000;
     constexpr uint16_t TABLEX        = 0b0000010000000000;

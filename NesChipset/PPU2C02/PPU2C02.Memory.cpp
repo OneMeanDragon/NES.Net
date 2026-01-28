@@ -49,9 +49,13 @@ uint8_t PPU2C02_Memory::ReadNametable(uint16_t addr) {
 //        return _nametable0[map_addr & 0x03FF];
 //    }
 //    // should throw if it ever made it out 
-    uint16_t index = addr & 0x0FFF;
-    uint16_t table = (index >> 10) & 0x03; // 0–3
-    uint16_t offset = index & 0x03FF;
+    uint16_t index = addr & NTMASKS::INDEX;
+    uint16_t table = (index >> NTMASKS::TABLE_SHIFT) & NTMASKS::TABLE_MASK; // 0–3
+    uint16_t offset = index & NTMASKS::OFFSET;
+
+    // For mirroring checks:
+//    bool is_bottom_half = (index & NTMASKS::TABLE_BIT0); // Horizontal mirroring
+//    bool is_right_half = (index & NTMASKS::TABLE_BIT1); // Vertical mirroring
 
     switch (_cart->GetMirrorMode()) {
     case MirrorMode::Vertical:
@@ -121,9 +125,12 @@ void PPU2C02_Memory::WriteNametable(uint16_t addr, uint8_t data) {
 //        _nametable0[map_addr & 0x03FF] = data;
 //        break;
 //    }
-    uint16_t index = addr & 0x0FFF;
-    uint16_t table = (index >> 10) & 0x03;
-    uint16_t offset = index & 0x03FF;
+    uint16_t index = addr & NTMASKS::INDEX;
+    uint16_t table = (index >> NTMASKS::TABLE_SHIFT) & NTMASKS::TABLE_MASK; // 0–3
+    uint16_t offset = index & NTMASKS::OFFSET;
+    // For mirroring checks:
+//    bool is_bottom_half = (index & NTMASKS::TABLE_BIT0); // Horizontal mirroring
+//    bool is_right_half = (index & NTMASKS::TABLE_BIT1); // Vertical mirroring
 
     switch (_cart->GetMirrorMode()) {
     case MirrorMode::Vertical:
