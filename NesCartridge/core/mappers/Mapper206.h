@@ -228,17 +228,32 @@ namespace nes {
         void ClearIrq() override { _irqActive = false; }
 
         void ScanlineCounter(int16_t scanline) override {
-            if (_irqReloadFlag) {
+            //if (_irqReloadFlag) {
+            //    _irqCounter = _irqReload;
+            //    _irqReloadFlag = false;
+            //}
+            //else if (_irqCounter == 0) {
+            //    _irqCounter = _irqReload;
+            //}
+            //else {
+            //    _irqCounter--;
+            //}
+            //
+            //if (_irqCounter == 0 && _irqEnable) {
+            //    _irqActive = true;
+            //}
+            // 1. Handle Reloads (Manual or Automatic)
+            if (_irqReloadFlag || _irqCounter == 0) {
                 _irqCounter = _irqReload;
                 _irqReloadFlag = false;
             }
-            else if (_irqCounter == 0) {
-                _irqCounter = _irqReload;
-            }
             else {
+                // 2. Normal Count Down
                 _irqCounter--;
             }
 
+            // 3. Trigger Condition
+            // Note: On real hardware, the IRQ fires the moment it HITS 0.
             if (_irqCounter == 0 && _irqEnable) {
                 _irqActive = true;
             }

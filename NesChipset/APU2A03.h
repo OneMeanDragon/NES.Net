@@ -222,18 +222,3 @@ private:
     bool _testToneEnabled = false;
     double _testTonePhase = 0.0;
 };
-
-// Exports
-DLLEXPORT APU2A03* CreateAPU();
-DLLEXPORT void DestroyAPU(APU2A03* apu);
-
-DLLEXPORT void APU_CpuWrite(APU2A03* apu, uint16_t addr, uint8_t data);
-DLLEXPORT uint8_t APU_CpuRead(APU2A03* apu, uint16_t addr);
-DLLEXPORT void APU_Clock(APU2A03* apu);
-DLLEXPORT void APU_Reset(APU2A03* apu, bool coldstart);
-DLLEXPORT double APU_GetOutputSample(APU2A03* apu);
-DLLEXPORT bool APU_IsIRQActive(APU2A03* apu);
-
-// Aliases
-DLLEXPORT void ClockAPU(APU2A03* apu);
-DLLEXPORT void ResetAPU(APU2A03* apu, bool coldstart);

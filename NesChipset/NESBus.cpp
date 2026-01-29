@@ -13,6 +13,7 @@
 #include "PPU2C02/PPU2C02.h"
 #include "FMODAudio/FMODAudioSystem.h"
 
+#include "CPU6502/CPU6502.Types.h"
 
 
 
@@ -39,7 +40,7 @@ void NESBus::MeasureAudioLatency() {
     _apu->InjectTestTone(true);
 
     // Run for ~0.5 seconds worth of clocks
-    uint64_t clocksFor500ms = static_cast<uint64_t>(PPU_CLOCK_HZ * 0.5);
+    uint64_t clocksFor500ms = static_cast<uint64_t>(CPU::PPU_CLOCK_HZ * 0.5);
     uint64_t targetClock = _systemClockCounter + clocksFor500ms;
 
     while (_systemClockCounter < targetClock) {
@@ -50,7 +51,7 @@ void NESBus::MeasureAudioLatency() {
 
     // Calculate how long it took
     uint64_t elapsedClocks = _systemClockCounter - _latencyTestStartClock;
-    double elapsedMs = (elapsedClocks / PPU_CLOCK_HZ) * 1000.0;
+    double elapsedMs = (elapsedClocks / CPU::PPU_CLOCK_HZ) * 1000.0;
 
     int bufferLevel = GetAudioBufferLevel();
     double bufferMs = (bufferLevel * 1000.0) / _sampleRate;
@@ -129,10 +130,10 @@ NESBus::NESBus()
 
     _audioBuffer.resize(AUDIO_BUFFER_CAPACITY, 0.0f);
     _audioTimePerSystemSample = 1.0 / static_cast<double>(_sampleRate);
-    _audioTimePerNESClock = 1.0 / PPU_CLOCK_HZ;
+    _audioTimePerNESClock = 1.0 / CPU::PPU_CLOCK_HZ;
 
     // Calculate how many NES clocks per audio sample
-    _nesClocksPerSample = PPU_CLOCK_HZ / static_cast<double>(_sampleRate);
+    _nesClocksPerSample = CPU::PPU_CLOCK_HZ / static_cast<double>(_sampleRate);
 
     // Create audio system - DO THIS LAST
     _audioSystem = std::make_unique<FMODAudioSystem>();
@@ -165,14 +166,6 @@ void NESBus::ConnectCartridge(Cartridge* cart) {
     if (_cart) _ppu->SetCartridge(_cart);
     if (_cart) _apu->SetCartridge(_cart);
 
-    //// Test read from CHR-ROM
-    //uint8_t testByte = _ppu->PpuRead(0x1240);
-    //printf("Test CHR-ROM read at 0x1240: %02X\n", testByte);
-    //
-    //// Try reading first few bytes
-    //for (int i = 0; i < 16; i++) {
-    //    printf("CHR[0x%04X] = %02X\n", 0x1240 + i, _ppu->PpuRead(0x1240 + i));
-    //}
 }
 
 void NESBus::ConnectPPU(PPU2C02* ppu) {
@@ -355,12 +348,12 @@ void NESBus::ProcessDMA() {
     if (_dmaTransfer) {
         if (_dmaDummy) {
             // Wait for alignment (odd/even cycle)
-            if (_systemClockCounter % 2 == 1) {
+            if ((_systemClockCounter + 1) % 2 == 1) {
                 _dmaDummy = false;
             }
         }
         else {
-            if (_systemClockCounter % 2 == 0) {
+            if ((_systemClockCounter + 1) % 2 == 0) {
                 // Read cycle
                 _dmaData = CpuRead((_dmaPage << 8) | _dmaAddr);
             }
@@ -513,15 +506,10 @@ bool NESBus::Clock()
     // ------------------------------------------------------------
     _ppu->Clock();
 
-    // APU always clocks with CPU
-    _apu->Clock();
-    // Process audio every clock
-    ProcessAudio(); // only because i feel like hearing the audio at the correct pitch.
-
     // ------------------------------------------------------------
     // CPU & APU clock every 3 PPU cycles
     // ------------------------------------------------------------
-    if ((_systemClockCounter % 3) == 0)
+    if (((_systemClockCounter + 1) % 3) == 0)
     {
         if (_dmaTransfer)
         {
@@ -533,7 +521,7 @@ bool NESBus::Clock()
         }
 
         //// APU always clocks with CPU
-        //_apu->Clock();
+        _apu->Clock();
         //// Process audio every clock
         //ProcessAudio();
 
@@ -555,7 +543,8 @@ bool NESBus::Clock()
             _cpu->IRQ();
         }
     }
-
+    
+    ProcessAudio();
     _systemClockCounter++;
     return true;
 }
@@ -566,13 +555,13 @@ void NESBus::ClockDMA()
     if (_dmaDummy)
     {
         // Wait for an even CPU cycle
-        if ((_systemClockCounter % 2) == 1)
+        if (((_systemClockCounter + 1) % 2) == 1)
             _dmaDummy = false;
         return;
     }
 
     // Even CPU cycle: read from CPU memory
-    if ((_systemClockCounter % 2) == 0)
+    if (((_systemClockCounter + 1) % 2) == 0)
     {
         uint16_t addr = (_dmaPage << 8) | _dmaAddr;
         _dmaData = CpuRead(addr);

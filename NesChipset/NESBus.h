@@ -72,18 +72,6 @@ private:
     static constexpr uint16_t CPU_RAM_MIRROR_MASK = 0x07FF;
     static constexpr uint16_t PPU_REG_MIRROR_MASK = 0x0007;
 
-    static constexpr double MHZ = 1000000.0;
-    static constexpr double NTSC_MASTER_CRYSTAL_MHZ = 21.477272;
-    static constexpr double  PAL_MASTER_CRYSTAL_MHZ = 26.601712;
-
-    static constexpr double NTSC_MASTER_CLOCK_HZ = NTSC_MASTER_CRYSTAL_MHZ * MHZ;
-    static constexpr double  PAL_MASTER_CLOCK_HZ = PAL_MASTER_CRYSTAL_MHZ * MHZ;
-
-    static constexpr double CPU_CLOCK_HZ = (NTSC_MASTER_CLOCK_HZ / 12); // NTSC master hz frequencys
-    static constexpr double PPU_CLOCK_HZ = (NTSC_MASTER_CLOCK_HZ / 4);
-    static constexpr double PAL_CPU_CLOCK_HZ = (PAL_MASTER_CLOCK_HZ / 16); // PAL master hz frequencys
-    static constexpr double PAL_PPU_CLOCK_HZ = (PAL_MASTER_CLOCK_HZ / 5);
-
     static constexpr size_t AUDIO_BUFFER_CAPACITY = 32768;  // Larger buffer for stability
 
     // Components

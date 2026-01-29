@@ -73,8 +73,9 @@ public:
     void SetFrameComplete(bool value) { _frameComplete = value; }
 
     // NMI/Scanline triggers
-    bool GetNmiRequested() const { return _nmiRequested; }
-    void ClearNmiRequested() { _nmiRequested = false; }
+    //_status.verticalBlank && _control.enableNmi; 
+    bool GetNmiRequested() const override { return _nmiRequested; } // needed by the register derived
+    void ClearNmiRequested() override { _nmiRequested = false; }    // needed by the register derived
     bool GetScanlineTrigger() const { return _scanlineTrigger; }
     void ClearScanlineTrigger() { _scanlineTrigger = false; }
 
@@ -112,8 +113,8 @@ public:
     using PPU2C02_Registers::GetStatus;
 
     // Timing accessors for DLL exports
-    int16_t GetScanline() const { return _scanline; }
-    int16_t GetCycle() const { return _cycle; }
+    int16_t GetScanline() const override { return _scanline; }
+    int16_t GetCycle() const override { return _cycle; }
 
 private:
     void PerformBackgroundFetch(int16_t cycle);

@@ -23,11 +23,20 @@ uint8_t PPU2C02_Registers::CpuRead(uint16_t addr, bool rdOnly) {
     case 0x0006u: return _openBus;// PPUADDR   ($2006) - Write-only
 
     case 0x0002u: {// PPUSTATUS ($2002) - Read-only
-        uint8_t value = (_status.reg & 0xE0u) | (_openBus & 0x1Fu);
-        _status.verticalBlank = 0;  // clear VBL flag on read
-        _addressLatch = 0;           // reset latch
-        _openBus = value;
-        return value;
+        _openBus = (_status.reg & 0xE0u) | (_openBus & 0x1Fu);
+
+        // --- NMI Suppression Logic ---
+        // If we read $2002 right when VBlank starts, suppress the NMI
+        //const int16_t scanline = GetScanline();
+        //const int16_t cycle = GetCycle();
+        //if (scanline == 241 && (cycle >= 0 && cycle <= 3)) { // Expanded window
+        //    ClearNmiRequested();
+        //    if (cycle == 0) _openBus &= 0x7F;
+        //}
+
+        _status.verticalBlank = 0; // clear VBL flag on read
+        _addressLatch = 0; // reset latch
+        return _openBus;
     }
     case 0x0004u: {// OAMDATA ($2004) - Read/Write
         _openBus = ReadOAM();
@@ -62,11 +71,22 @@ void PPU2C02_Registers::CpuWrite(uint16_t addr, uint8_t data) {
     _openBus = data & 0xFFu;
 
     switch (addr & 0xfu) {
-    case 0x0000u: // PPUCTRL ($2000)
+    case 0x0000u: {// PPUCTRL ($2000)
+        bool oldNmiEnable = _control.enableNmi;
+
         _control.reg = data;
         _tramAddr.SetNametableX(data & 0x1u);
         _tramAddr.SetNametableY((data >> 1) & 0x1u);
+
+        // --------------------------------------------------
+        // NMI edge cancellation (REQUIRED for Ms. Pac-Man)
+        // --------------------------------------------------
+        if (oldNmiEnable && !_control.enableNmi && _status.verticalBlank)
+        {
+            ClearNmiRequested();
+        }
         break;
+    }
 
     case 0x0001u: // PPUMASK ($2001)
         _mask.reg = data;

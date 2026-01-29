@@ -43,4 +43,10 @@ public:
     const LoopyRegister& GetVramAddr() const { return _vramAddr; }
     const LoopyRegister& GetTramAddr() const { return _tramAddr; }
     uint8_t GetFineX() const { return _fineX; }
+
+public: // required for NMI supression from the main class
+    virtual bool GetNmiRequested() const = 0;
+    virtual void ClearNmiRequested() = 0;
+    virtual int16_t GetScanline() const = 0;
+    virtual int16_t GetCycle() const = 0;
 };

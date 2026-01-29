@@ -67,7 +67,9 @@ void PPU2C02::PerformBackgroundFetch(int16_t cycle) {
     case 7: FetchPatternHigh(_vramAddr, _control); break;
     case 0: // end of 8-cycle tile fetch
         LoadBackgroundShifters();
-        if (cycle != 256) IncrementScrollX(_vramAddr); // every tile except at end of scanline
+        IncrementScrollX(_vramAddr);
+        //if (cycle != 256) IncrementScrollX(_vramAddr); // every tile except at end of scanline
+        //if ((cycle >= 8 && cycle <= 256) || (cycle >= 328 && cycle <= 336)) IncrementScrollX(_vramAddr); // every tile except at end of scanline
         break;
     }
 }
@@ -208,8 +210,7 @@ void PPU2C02::ProcessCycle(int16_t scanline, int16_t cycle) {
         if (scanline == 241 && cycle == 1)
         {
             _status.verticalBlank = 1;
-            if (_control.enableNmi)
-                _nmiRequested = true;
+            if (_control.enableNmi) _nmiRequested = true;
         }
         break;
     }
@@ -221,9 +222,18 @@ void PPU2C02::ProcessCycle(int16_t scanline, int16_t cycle) {
     // =========================================================
     // MAPPER SCANLINE HOOK (all states)
     // =========================================================
-    if (cycle == 260 && renderingEnabled && scanline >= 0 && scanline <= 239 && _cart)
+    //if (cycle == 260 && renderingEnabled && scanline >= 0 && scanline <= 239 && _cart)
+    //{
+    //    _cart->GetMapper().ScanlineCounter(scanline);
+    //}
+    if (cycle == 260 && (scanline >= 0 && scanline <= 239)) 
     {
-        _cart->GetMapper().ScanlineCounter(scanline);
+        if (_mask.renderBackground || _mask.renderSprites) 
+        {
+            if (_cart) {
+                _cart->GetMapper().ScanlineCounter(scanline);
+            }
+        }
     }
 }
 
@@ -292,10 +302,12 @@ void PPU2C02::RenderPixel() {
             if (_mask.renderBackground && _mask.renderSprites) {
                 if (!(_mask.renderBackgroundLeft && _mask.renderSpritesLeft)) {
                     if (_cycle >= 9) {
+                    //    printf("SPR0 HIT @ scanline=%d cycle=%d\n", _scanline, _cycle);
                         _status.spriteZeroHit = 1;
                     }
                 }
                 else {
+                //    printf("SPR0 HIT @ scanline=%d cycle=%d\n", _scanline, _cycle);
                     _status.spriteZeroHit = 1;
                 }
             }

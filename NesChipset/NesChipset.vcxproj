@@ -24,6 +24,7 @@
     <ClInclude Include="CartridgeApi\MapperInterfaceAPI.h" />
     <ClInclude Include="CartridgeApi\SharedObjectHelper.h" />
     <ClInclude Include="CPU6502\CPU6502.h" />
+    <ClInclude Include="CPU6502\CPU6502.Types.h" />
     <ClInclude Include="Diagnostics\DiagnosticHelpers.h" />
     <ClInclude Include="FMODAudio\FMODAudioSystem.h" />
     <ClInclude Include="InputSystem\InputSystem.h" />
@@ -36,7 +37,6 @@
     <ClInclude Include="PPU2C02\PPU2C02.Types.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="APU2A03.cpp" />
     <ClCompile Include="CartridgeApi\CartridgeInterfaceAPI.cpp" />
     <ClCompile Include="CartridgeApi\MapperInterfaceAPI.cpp" />
     <ClCompile Include="CartridgeApi\SharedObjectHelper.cpp" />
@@ -48,6 +48,7 @@
     <ClCompile Include="CPU6502\CPU6502.Instructions.Official.cpp" />
     <ClCompile Include="CPU6502\CPU6502.Interrupts.cpp" />
     <ClCompile Include="Diagnostics\DiagnosticHelpers.cpp" />
+    <ClCompile Include="Exports\ApuExports.cpp" />
     <ClCompile Include="Exports\PpuExports.cpp" />
     <ClCompile Include="FMODAudio\FMODAudioSystem.cpp" />
     <ClCompile Include="InputSystem\InputSystem.cpp" />
@@ -59,6 +60,7 @@
     <ClCompile Include="PPU2C02\PPU2C02.Memory.cpp" />
     <ClCompile Include="PPU2C02\PPU2C02.Registers.cpp" />
     <ClCompile Include="PPU2C02\PPU2C02.Sprites.cpp" />
+    <ClCompile Include="APU2A03.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>

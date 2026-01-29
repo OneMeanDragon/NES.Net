@@ -2,6 +2,7 @@
 #include <algorithm>
 
 #include "CartridgeApi/CartridgeInterfaceAPI.h"
+#include "CPU6502/CPU6502.Types.h"
 
 // DMC period table for NTSC (in CPU cycles)
 static const uint16_t DMC_PERIODS[16] = {
@@ -140,7 +141,7 @@ APU2A03::APU2A03() : _cart(nullptr), _bus(nullptr) {
 }
 
 APU2A03::~APU2A03() {
-    // non-owning _cart and _bus — do not delete
+    // non-owning _cart and _bus - do not delete
 }
 
 void APU2A03::SetCartridge(CartridgeInterfaceAPI* cart) {
@@ -273,13 +274,10 @@ void APU2A03::CpuWrite(uint16_t addr, uint8_t data) {
 
         // DMC
     case 0x4010:
-        dmc_irq_enable = (data >> 7) != 0;
-        dmc_loop = (data >> 6) != 0;
-        dmc_rate_index = (data & 0x0F);
+        dmc_irq_enable = (data & 0x80) != 0;
+        dmc_loop = (data & 0x40) != 0;
+        dmc_rate_index = data & 0x0F;
         dmc_period = DMC_PERIODS[dmc_rate_index];
-        dmc_timer = dmc_period;
-
-        // Clear DMC IRQ flag if IRQ is disabled
         if (!dmc_irq_enable) {
             dmc_irq_flag = false;
         }
@@ -294,7 +292,7 @@ void APU2A03::CpuWrite(uint16_t addr, uint8_t data) {
         break;
 
     case 0x4013:
-        dmc_sample_length = (static_cast<uint32_t>(data) << 4) | 1;
+        dmc_sample_length = (static_cast<uint32_t>(data) << 4) | 0x0001;
         break;
 
         // Status
@@ -303,70 +301,54 @@ void APU2A03::CpuWrite(uint16_t addr, uint8_t data) {
         pulse2_enable = (data & 0x02) != 0;
         triangle_enable = (data & 0x04) != 0;
         noise_enable = (data & 0x08) != 0;
+        dmc_enable = (data & 0x10) != 0;
 
-        // Disabling a channel immediately clears its length counter
         if (!pulse1_enable) pulse1_lc.counter = 0;
         if (!pulse2_enable) pulse2_lc.counter = 0;
         if (!triangle_enable) triangle_lc.counter = 0;
         if (!noise_enable) noise_lc.counter = 0;
 
-        // DMC
-        {
-            bool new_dmc_enable = (data & 0x10) != 0;
-            if (!dmc_enable && new_dmc_enable && dmc_bytes_remaining == 0) {
+        if (dmc_enable) {
+            if (dmc_bytes_remaining == 0) {
                 dmc_current_address = dmc_sample_address;
                 dmc_bytes_remaining = dmc_sample_length;
             }
-            dmc_enable = new_dmc_enable;
-            if (!dmc_enable) {
-                dmc_bytes_remaining = 0;
-            }
-
-            // Clear DMC interrupt flag
-            dmc_irq_flag = false;
         }
+        else {
+            dmc_bytes_remaining = 0;
+        }
+
+        dmc_irq_flag = false;
         break;
 
-    case 0x4017: // Frame Counter
-        frame_counter_mode = (data & 0x80) != 0;  // 0 = 4-step, 1 = 5-step
+        // Frame Counter
+    case 0x4017:
+        frame_counter_mode = (data & 0x80) != 0;
         frame_counter_irq_disable = (data & 0x40) != 0;
 
-        // If IRQ disable is set, clear the frame interrupt flag
         if (frame_counter_irq_disable) {
             frame_counter_irq_flag = false;
         }
 
-        // Reset is delayed by 3 or 4 CPU cycles
+        // Writing to $4017 resets frame counter with delay
         frame_counter_reset_delay = 3;
-
-        // If 5-step mode, clock immediately (after delay)
-        if (frame_counter_mode) {
-            frame_counter_should_clock_immediately = true;
-        }
+        frame_counter_should_clock_immediately = (clock_counter & 1) == 1;
         break;
     }
 }
 
 uint8_t APU2A03::CpuRead(uint16_t addr) {
-    uint8_t data = 0;
+    uint8_t data = 0x00;
 
     if (addr == 0x4015) {
-        // Bit 0-3: Length counter status
         data |= (pulse1_lc.counter > 0) ? 0x01 : 0x00;
         data |= (pulse2_lc.counter > 0) ? 0x02 : 0x00;
         data |= (triangle_lc.counter > 0) ? 0x04 : 0x00;
         data |= (noise_lc.counter > 0) ? 0x08 : 0x00;
-
-        // Bit 4: DMC active
         data |= (dmc_bytes_remaining > 0) ? 0x10 : 0x00;
-
-        // Bit 6: Frame interrupt flag
         data |= frame_counter_irq_flag ? 0x40 : 0x00;
-
-        // Bit 7: DMC interrupt flag
         data |= dmc_irq_flag ? 0x80 : 0x00;
 
-        // Reading $4015 clears the frame interrupt flag
         frame_counter_irq_flag = false;
     }
 
@@ -374,90 +356,85 @@ uint8_t APU2A03::CpuRead(uint16_t addr) {
 }
 
 void APU2A03::ClockFrameCounter() {
-    // Handle reset delay
+    // Handle frame counter reset delay
     if (frame_counter_reset_delay > 0) {
         frame_counter_reset_delay--;
         if (frame_counter_reset_delay == 0) {
             frame_clock_counter = 0;
-
-            // If 5-step mode and should clock immediately
             if (frame_counter_should_clock_immediately) {
                 ClockQuarterFrame();
                 ClockHalfFrame();
-                frame_counter_should_clock_immediately = false;
             }
         }
-        return;
     }
 
-    bool quarter_frame_clock = false;
-    bool half_frame_clock = false;
-
-    if (frame_counter_mode) {
-        // 5-step mode
-        switch (frame_clock_counter) {
-        case 3728:
-            quarter_frame_clock = true;
-            break;
-        case 7456:
-            quarter_frame_clock = true;
-            half_frame_clock = true;
-            break;
-        case 11185:
-            quarter_frame_clock = true;
-            break;
-        case 14914:
-            quarter_frame_clock = true;
-            half_frame_clock = true;
-            break;
-        case 18640:
+    // 4-step mode
+    if (!frame_counter_mode) {
+        // Step 0: 7457 CPU cycles (3728.5 APU cycles)
+        if (frame_clock_counter == 3728) {
+            ClockQuarterFrame();
+        }
+        // Step 1: 14913 CPU cycles (7456.5 APU cycles)
+        else if (frame_clock_counter == 7456) {
+            ClockQuarterFrame();
+            ClockHalfFrame();
+        }
+        // Step 2: 22371 CPU cycles (11185.5 APU cycles)
+        else if (frame_clock_counter == 11185) {
+            ClockQuarterFrame();
+        }
+        // Step 3: 29829 CPU cycles (14914.5 APU cycles), set IRQ flag
+        else if (frame_clock_counter == 14914) {
+            ClockQuarterFrame();
+            ClockHalfFrame();
+            if (!frame_counter_irq_disable) {
+                frame_counter_irq_flag = true;
+            }
+        }
+        // Step 4: 29830 CPU cycles, set IRQ flag again (for confirmation)
+        else if (frame_clock_counter == 14915) {
+            if (!frame_counter_irq_disable) {
+                frame_counter_irq_flag = true;
+            }
+        }
+        // Reset after full 4-step cycle (29830 CPU cycles = 14915 APU cycles)
+        else if (frame_clock_counter >= 14916) {
             frame_clock_counter = 0;
-            return;
         }
     }
+    // 5-step mode
     else {
-        // 4-step mode
-        switch (frame_clock_counter) {
-        case 3728:
-            quarter_frame_clock = true;
-            break;
-        case 7456:
-            quarter_frame_clock = true;
-            half_frame_clock = true;
-            break;
-        case 11185:
-            quarter_frame_clock = true;
-            break;
-        case 14914:
-            quarter_frame_clock = true;
-            half_frame_clock = true;
-
-            // Set frame IRQ if not inhibited
-            if (!frame_counter_irq_disable) {
-                frame_counter_irq_flag = true;
-            }
-            break;
-        case 14915:
-            // IRQ flag stays set
-            if (!frame_counter_irq_disable) {
-                frame_counter_irq_flag = true;
-            }
-            frame_clock_counter = 0;
-            return;
+        // Step 0: 7457 CPU cycles (3728.5 APU cycles)
+        if (frame_clock_counter == 3728) {
+            ClockQuarterFrame();
         }
-    }
-
-    if (quarter_frame_clock) {
-        ClockQuarterFrame();
-    }
-
-    if (half_frame_clock) {
-        ClockHalfFrame();
+        // Step 1: 14913 CPU cycles (7456.5 APU cycles)
+        else if (frame_clock_counter == 7456) {
+            ClockQuarterFrame();
+            ClockHalfFrame();
+        }
+        // Step 2: 22371 CPU cycles (11185.5 APU cycles)
+        else if (frame_clock_counter == 11185) {
+            ClockQuarterFrame();
+        }
+        // Step 3: 29829 CPU cycles (14914.5 APU cycles), no IRQ
+        else if (frame_clock_counter == 14914) {
+            // Do nothing (5-step mode doesn't clock here)
+        }
+        // Step 4: 37281 CPU cycles (18640.5 APU cycles)
+        else if (frame_clock_counter == 18640) {
+            ClockQuarterFrame();
+            ClockHalfFrame();
+        }
+        // Reset after full 5-step cycle (37282 CPU cycles = 18641 APU cycles)
+        else if (frame_clock_counter >= 18641) {
+            frame_clock_counter = 0;
+        }
     }
 }
 
 void APU2A03::ClockQuarterFrame() {
-    // Clock envelopes
+    // Clock envelopes and triangle linear counter
     pulse1_env.Clock(pulse1_halt);
     pulse2_env.Clock(pulse2_halt);
     noise_env.Clock(noise_halt);
@@ -476,23 +453,23 @@ void APU2A03::ClockQuarterFrame() {
 }
 
 void APU2A03::ClockHalfFrame() {
-    // Clock length counters
+    // Clock length counters and sweep units
     pulse1_lc.Clock(pulse1_enable, pulse1_halt);
     pulse2_lc.Clock(pulse2_enable, pulse2_halt);
     triangle_lc.Clock(triangle_enable, triangle_control_flag);
     noise_lc.Clock(noise_enable, noise_halt);
 
-    // Clock sweeps
     pulse1_sweep.Clock(pulse1_seq.reload, false);
     pulse2_sweep.Clock(pulse2_seq.reload, true);
 }
 
 void APU2A03::Clock() {
-    // Increment global time
-    global_time += (0.3333333333 / 1789773.0);
+    // Increment global time at CPU clock rate
+    global_time += (1.0 / CPU::CPU_CLOCK_HZ);
 
     // APU runs at half CPU speed (every other CPU cycle)
-    if (clock_counter % 6 == 0) {
+    // Since we're now clocking at CPU rate, we need to divide by 2 instead of 6
+    if ((clock_counter + 1) % 2 == 0) {
         frame_clock_counter++;
         ClockFrameCounter();
 
@@ -501,7 +478,7 @@ void APU2A03::Clock() {
             s = ((s & 0x0001) << 7) | ((s & 0x00FE) >> 1);
             });
 
-        pulse1_osc.frequency = 1789773.0 / (16.0 * (static_cast<double>(pulse1_seq.reload) + 1.0));
+        pulse1_osc.frequency = CPU::CPU_CLOCK_HZ / (16.0 * (static_cast<double>(pulse1_seq.reload) + 1.0));
         pulse1_osc.amplitude = (static_cast<double>(pulse1_env.output) - 1.0) / 16.0;
         pulse1_sample = pulse1_osc.Sample(global_time);
 
@@ -517,7 +494,7 @@ void APU2A03::Clock() {
             s = ((s & 0x0001) << 7) | ((s & 0x00FE) >> 1);
             });
 
-        pulse2_osc.frequency = 1789773.0 / (16.0 * (static_cast<double>(pulse2_seq.reload) + 1.0));
+        pulse2_osc.frequency = CPU::CPU_CLOCK_HZ / (16.0 * (static_cast<double>(pulse2_seq.reload) + 1.0));
         pulse2_osc.amplitude = (static_cast<double>(pulse2_env.output) - 1.0) / 16.0;
         pulse2_sample = pulse2_osc.Sample(global_time);
 
@@ -749,50 +726,4 @@ void APU2A03::Reset(bool coldstart) {
     // 7. DO NOT clear $4017 mode bits
     // frame_counter_mode - UNCHANGED
     // frame_counter_irq_disable - UNCHANGED
-}
-
-
-// C exports
-DLLEXPORT APU2A03* CreateAPU() {
-    return new APU2A03();
-}
-
-DLLEXPORT void DestroyAPU(APU2A03* apu) {
-    delete apu;
-}
-
-DLLEXPORT void APU_CpuWrite(APU2A03* apu, uint16_t addr, uint8_t data) {
-    if (apu) apu->CpuWrite(addr, data);
-}
-
-DLLEXPORT uint8_t APU_CpuRead(APU2A03* apu, uint16_t addr) {
-    if (apu) return apu->CpuRead(addr);
-    return 0;
-}
-
-DLLEXPORT void APU_Clock(APU2A03* apu) {
-    if (apu) apu->Clock();
-}
-
-DLLEXPORT void APU_Reset(APU2A03* apu, bool coldstart) {
-    if (apu) apu->Reset(coldstart);
-}
-
-DLLEXPORT double APU_GetOutputSample(APU2A03* apu) {
-    if (apu) return apu->GetOutputSample();
-    return 0.0;
-}
-
-DLLEXPORT bool APU_IsIRQActive(APU2A03* apu) {
-    if (apu) return apu->IsIRQActive();
-    return false;
-}
-
-// Aliases for Bus compatibility
-DLLEXPORT void ClockAPU(APU2A03* apu) {
-    if (apu) apu->Clock();
-}
-
-DLLEXPORT void ResetAPU(APU2A03* apu, bool coldstart) {
-    if (apu) apu->Reset(coldstart);
 }
